@@ -1,0 +1,27 @@
+@import "./superhero.css";
+@import "/node_modules/@fortawesome/fontawesome-free/css/all.css";
+
+body {
+  background-color: #272b30;
+}
+
+.bg-dark {
+  background-color: #3a3f44 !important;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.custom-file-label::after {
+  content: "Bla gjennom";
+  background-color: #df691a;
+}
