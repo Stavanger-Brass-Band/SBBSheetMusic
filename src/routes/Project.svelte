@@ -225,7 +225,7 @@
               <Icon icon={faTrash} />
             </span>
           </div>
-          <a href="#/set/{set.id}" class="card-link">Se notesett</a>
+          <a href="#/set/edit/{set.id}" class="card-link">Se notesett</a>
         </div>
       </div>
     {/each}

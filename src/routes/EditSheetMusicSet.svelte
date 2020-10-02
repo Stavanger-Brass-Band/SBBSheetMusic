@@ -276,11 +276,17 @@
             Last ned alle notene
           </a>
         {/if}
-        <a class="dropdown-item" href="#" on:click|preventDefault={editSet}>
+        <a
+          class="dropdown-item"
+          href="nohref"
+          on:click|preventDefault={editSet}>
           Rediger
         </a>
         <div class="dropdown-divider" />
-        <a class="dropdown-item" href="#" on:click|preventDefault={removeSet}>
+        <a
+          class="dropdown-item"
+          href="nohref"
+          on:click|preventDefault={removeSet}>
           Slett
         </a>
       </div>
