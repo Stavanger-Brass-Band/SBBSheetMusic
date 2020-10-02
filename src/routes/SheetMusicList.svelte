@@ -58,7 +58,7 @@
     var result = await Api.post("/sheetMusic/sets", newSet);
     if (result) {
       window.$("#newMusicSetModal").modal("hide");
-      push("/set/" + result.id);
+      push("/set/edit/" + result.id);
     }
   }
 
@@ -146,7 +146,7 @@
   </div>
   <VirtualList itemHeight={45} height="675px" items={filteredSetList} let:item>
     <div
-      on:click={() => push('/set/' + item.id)}
+      on:click={() => push('/set/edit/' + item.id)}
       class="set-list-item row clickable"
       class:even={filteredSetList.indexOf(item) % 2 == 0}>
       <div class="col-1">{item.archiveNumber}</div>

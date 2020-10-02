@@ -17,7 +17,7 @@
     <div class="container">
       <a class="navbar-brand" href="#/">
         <img src="img/logo.jpg" width="30" height="30" alt="SBB-logo" />
-        Notearkiv - Administrator
+        Notearkiv - SBB
       </a>
       <button
         class="navbar-toggler"
@@ -32,19 +32,11 @@
       <div class="collapse navbar-collapse" id="navbar">
         <ul class="navbar-nav mr-auto">
           <li class="nav-item">
-            <a class="nav-link" href="#/">Arkivliste</a>
+            <a class="nav-link" href="#/archive">Arkivliste</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#/projects">Prosjekter</a>
           </li>
-          <!-- <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="baseData" aria-expanded="false">Grunndata</a>
-            <div class="dropdown-menu" aria-labelledby="baseData">
-                <a class="dropdown-item" href="/projects">Prosjekter</a>
-                <a class="dropdown-item" href="/projects">Stemmer</a>
-                <a class="dropdown-item" href="/projects">Prosjekter</a>
-              </div>
-          </li> -->
           <li class="nav-item">
             <a class="nav-link" href="#/users">Brukere</a>
           </li>
