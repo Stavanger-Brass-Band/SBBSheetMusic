@@ -1,5 +1,6 @@
 <script>
   import auth from "../authentication.js";
+  import { get } from "svelte/store";
   import { push } from "svelte-spa-router";
   import { onMount } from "svelte";
   import moment from "moment";

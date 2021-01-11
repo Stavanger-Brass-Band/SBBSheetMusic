@@ -1,16 +1,22 @@
 <script>
   import { onMount } from "svelte";
   import { push } from "svelte-spa-router";
+  import { get } from "svelte/store";
   import moment from "moment";
   import Modal from "sv-bootstrap-modal";
   import ProjectModalBody from "../components/ProjectModalBody.svelte";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
   import * as Api from "../api";
+  import { isAdmin } from "../store";
 
   let projects = [];
   let loading = true;
 
   onMount(async function() {
+    if (!get(isAdmin)) {
+      push("/");
+    }
+
     projects = await Api.get("/projects");
 
     if (projects) {

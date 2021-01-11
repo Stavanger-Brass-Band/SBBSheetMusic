@@ -1,6 +1,5 @@
 import auth from "./authentication.js";
-
-const baseUrl = "https://sheetmusic-api.azurewebsites.net";
+import { baseUrl } from "./store.js";
 
 const getAuthorizationHeader = () => {
   return "Bearer " + localStorage.getItem("access_token");
@@ -124,7 +123,7 @@ const deleteSingle = async (url, data) => {
 };
 
 export {
-  baseUrl,
+  getAuthorizationHeader,
   get,
   getMultiple,
   getPaginated,

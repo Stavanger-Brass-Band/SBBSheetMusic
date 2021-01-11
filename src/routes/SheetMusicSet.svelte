@@ -1,6 +1,6 @@
 <script>
-  import auth from "../authentication.js";
   import { onMount } from "svelte";
+  import auth from "../authentication.js";
   import Header from "../components/Header.svelte";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
   import Icon from "fa-svelte";

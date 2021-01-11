@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from "svelte";
   import Router from "svelte-spa-router";
   import { push } from "svelte-spa-router";
   import active from "svelte-spa-router/active";
@@ -6,12 +7,8 @@
   import auth from "./authentication";
   import Header from "./components/Header.svelte";
   import moment from "moment";
-
-  if (
-    !localStorage.getItem("access_token") ||
-    localStorage.getItem("access_token") === "undefined"
-  )
-    push("/login");
+  import { isAuthenticated } from "./store";
+  import { get } from "svelte/store";
 
   moment.locale("no", {
     months: [
@@ -43,6 +40,14 @@
       "Des"
     ]
   });
+
+  onMount(async () => {
+    if (get(isAuthenticated)) {
+      auth.checkAdmin();
+    } else {
+      push("/login");
+    }
+  });
 </script>
 
 <style>
@@ -62,7 +67,7 @@
 </style>
 
 <div class="container">
-  {#if $auth}
+  {#if $isAuthenticated}
     <Header />
   {/if}
   <div class="main-content">

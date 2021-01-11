@@ -1,19 +1,19 @@
 <script>
   import { onMount } from "svelte";
   import { push } from "svelte-spa-router";
+  import { get } from "svelte/store";
+  import { isAdmin } from "../store";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
   import * as Api from "../api";
-
-  if (
-    !localStorage.getItem("access_token") ||
-    localStorage.getItem("access_token") === "undefined"
-  )
-    push("/login");
 
   let users = [];
   let loading = true;
 
   onMount(async function() {
+    if (!get(isAdmin)) {
+      push("/");
+    }
+
     users = await Api.get("/users");
     loading = false;
   });

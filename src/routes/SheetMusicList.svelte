@@ -1,20 +1,17 @@
 <script>
+  import { onMount } from "svelte";
+  import { push } from "svelte-spa-router";
+  import Icon from "fa-svelte";
+  import { faSearch } from "@fortawesome/free-solid-svg-icons";
+  import { get } from "svelte/store";
+
+  import { isAdmin, baseUrl } from "../store";
   import Header from "../components/Header.svelte";
   import VirtualList from "@sveltejs/svelte-virtual-list";
   import Modal from "sv-bootstrap-modal";
   import MusicSetModalBody from "../components/MusicSetModalBody.svelte";
-  import { push } from "svelte-spa-router";
-  import { onMount } from "svelte";
   import * as Api from "../api";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
-  import Icon from "fa-svelte";
-  import { faSearch } from "@fortawesome/free-solid-svg-icons";
-
-  if (
-    !localStorage.getItem("access_token") ||
-    localStorage.getItem("access_token") === "undefined"
-  )
-    push("/login");
 
   const headers = {
     Authorization: "Bearer " + localStorage.getItem("access_token")
@@ -42,12 +39,16 @@
     : [];
 
   onMount(async function() {
+    if (!get(isAdmin)) {
+      push("/");
+    }
+
     sets = await Api.get("/sheetmusic/sets");
     loading = false;
   });
 
   async function download(id, url) {
-    let result = await fetch(`${Api.baseUrl}/sheetmusic/sets/${id}/zip/token`, {
+    let result = await fetch(`${baseUrl}/sheetmusic/sets/${id}/zip/token`, {
       headers: headers
     });
     var body = await result.text();

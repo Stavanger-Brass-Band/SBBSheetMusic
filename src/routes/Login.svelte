@@ -1,6 +1,8 @@
 <script>
   import auth from "../authentication.js";
   import { push } from "svelte-spa-router";
+  import { get } from "svelte/store";
+  import { isAuthenticated } from "../store";
 
   let loginErrorMessage = "";
   let isLoggingIn = false;
@@ -14,10 +16,12 @@
 
     if (response.message) {
       loginErrorMessage = response.message;
+    } else {
+      push("/");
     }
   }
 
-  if ($auth) {
+  if (get(isAuthenticated)) {
     push("/");
   }
 </script>
