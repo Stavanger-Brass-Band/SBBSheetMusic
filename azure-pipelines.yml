@@ -33,6 +33,7 @@ jobs:
 - deployment: DeployTest
   dependsOn: Build
   condition: succeeded()
+  environment: 'App test'
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
@@ -51,6 +52,7 @@ jobs:
 - deployment: DeployProd
   dependsOn: DeployTest
   condition: succeeded()
+  environment: 'App production'
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
