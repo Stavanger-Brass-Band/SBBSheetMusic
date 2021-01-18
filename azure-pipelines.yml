@@ -63,7 +63,7 @@ stages:
 
 - stage: DeployToProd
   displayName: Deploy to sheetmusic-app (production)
-  dependsOn: DeployTest
+  dependsOn: DeployToTest
   condition: succeeded()
   jobs:
   - deployment: DeployProd
