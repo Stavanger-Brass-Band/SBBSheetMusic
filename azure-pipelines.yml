@@ -45,7 +45,7 @@ jobs:
           inputs:
             azureSubscription: 'Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)'
             appType: 'webAppLinux'
-            appName: 'sheetmusic-member-test'
+            appName: 'sheetmusic-app-test'
             package: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
             runtimeStack: 'NODE|12-lts'
 
@@ -64,6 +64,6 @@ jobs:
           inputs:
             azureSubscription: 'Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)'
             appType: 'webAppLinux'
-            appName: 'sheetmusic-member'
+            appName: 'sheetmusic-app'
             package: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
             runtimeStack: 'NODE|12-lts'
