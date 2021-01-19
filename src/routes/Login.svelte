@@ -6,6 +6,7 @@
 
   let loginErrorMessage = "";
   let isLoggingIn = false;
+  let email = localStorage.getItem("lastUserName");
 
   async function doLogin(event) {
     isLoggingIn = true;
@@ -81,6 +82,7 @@
           type="email"
           class="form-control"
           name="email"
+          value={email}
           placeholder="Skriv inn epost" />
       </div>
       <div class="form-group">

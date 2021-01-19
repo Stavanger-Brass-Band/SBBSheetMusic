@@ -5,7 +5,7 @@ const getAuthorizationHeader = () => {
   return "Bearer " + localStorage.getItem("access_token");
 };
 
-const get = async (url) => {
+const get = async (url, returnType) => {
   var result = await fetch(baseUrl + url, {
     method: "GET",
     headers: { Authorization: getAuthorizationHeader() },
@@ -16,7 +16,16 @@ const get = async (url) => {
     return;
   }
 
-  var data = await result.json();
+  let data;
+
+  if (returnType === "text") {
+    data = await result.text();
+  } else if (returnType === "blob") {
+    data = await result.blob();
+  } else {
+    data = await result.json();
+  }
+
   return data;
 };
 

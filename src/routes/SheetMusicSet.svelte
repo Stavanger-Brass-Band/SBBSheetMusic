@@ -4,6 +4,7 @@
   import Header from "../components/Header.svelte";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
   import Icon from "fa-svelte";
+  import * as Api from "../api.js";
   import {
     faCloudDownloadAlt,
     faChevronLeft,
@@ -17,27 +18,9 @@
   let selectedPartForDownload = {};
   let loading = true;
 
-  const headers = {
-    Authorization: "Bearer " + localStorage.getItem("access_token")
-  };
-
-  async function getParts() {
-    loading = true;
-    let result = await fetch(
-      `https://sheetmusic-api.azurewebsites.net/sheetmusic/sets/${params.id}/parts`,
-      { headers: headers }
-    );
-
-    if (result.status === 401) auth.logout();
-
-    let data = await result.json();
-
-    set = data;
-    loading = false;
-  }
-
   onMount(async () => {
-    getParts();
+    set = await Api.get(`/sheetmusic/sets/${params.id}/parts`);
+    loading = false;
   });
 
   function showPdf(blob) {
@@ -59,26 +42,23 @@
     selectedPartForDownload = {};
   }
 
-  function downloadPart(part) {
+  async function downloadPart(part) {
     if (selectedPartForDownload === part) return;
     selectedPartForDownload = part;
-    fetch(
-      `https://sheetmusic-api.azurewebsites.net/sheetmusic/sets/${params.id}/zip/token`,
-      { headers: headers }
-    )
-      .then(result => {
-        return result.text();
-      })
-      .then(response => {
-        fetch(
-          `https://sheetmusic-api.azurewebsites.net/sheetmusic/sets/${params.id}/parts/${part.name}/pdf?downloadToken=${response}`,
-          { headers: headers }
-        )
-          .then(result => {
-            return result.blob();
-          })
-          .then(showPdf);
-      });
+
+    const downloadToken = await Api.get(
+      `/sheetmusic/sets/${params.id}/zip/token`,
+      "text"
+    );
+
+    if (downloadToken) {
+      const blob = await Api.get(
+        `/sheetmusic/sets/${params.id}/parts/${part.name}/pdf?downloadToken=${downloadToken}`,
+        "blob"
+      );
+
+      showPdf(blob);
+    }
   }
 
   function getPartImageUrl(part) {

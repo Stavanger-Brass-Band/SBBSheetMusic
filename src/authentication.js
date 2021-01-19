@@ -6,6 +6,8 @@ async function login(event) {
   const email = event.target.email.value;
   const password = event.target.password.value;
 
+  localStorage.setItem("lastUserName", email);
+
   var result = await fetch(baseUrl + "/token", {
     method: "POST",
     body: `grant_type=password&username=${email}&password=${password}`,
@@ -43,6 +45,7 @@ async function checkAdmin() {
   });
 
   isAdmin.set(user.status === 200);
+  localStorage.setItem("isAdmin", user.status === 200);
 }
 
 async function logout() {

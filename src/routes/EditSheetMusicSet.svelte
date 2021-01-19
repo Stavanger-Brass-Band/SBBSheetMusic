@@ -104,7 +104,7 @@
       if (!files[i].suggestedPart.name) continue;
 
       var result = await Api.postFile(
-        `/sheetmusic/sets/${params.id}/parts/${files[i].suggestedPart.name}/content`,
+        `/sheetmusic/sets/${params.id}/parts/${files[i].suggestedPart.name}/content?api-version=2.0`,
         files[i]
       );
 
@@ -140,30 +140,27 @@
     selectedPartForDownload = {};
   }
 
-  function downloadPart(part) {
+  async function downloadPart(part) {
     if (selectedPartForDownload === part) return;
     selectedPartForDownload = part;
-    fetch(
-      `https://sheetmusic-api.azurewebsites.net/sheetmusic/sets/${params.id}/zip/token`,
-      { headers: headers }
-    )
-      .then(result => {
-        return result.text();
-      })
-      .then(response => {
-        fetch(
-          `https://sheetmusic-api.azurewebsites.net/sheetmusic/sets/${params.id}/parts/${part.name}/pdf?downloadToken=${response}`,
-          { headers: headers }
-        )
-          .then(result => {
-            return result.blob();
-          })
-          .then(showPdf);
-      });
+
+    const downloadToken = await Api.get(
+      `/sheetmusic/sets/${params.id}/zip/token`,
+      "text"
+    );
+
+    if (downloadToken) {
+      const blob = await Api.get(
+        `/sheetmusic/sets/${params.id}/parts/${part.name}/pdf?downloadToken=${downloadToken}`,
+        "blob"
+      );
+
+      showPdf(blob);
+    }
   }
 
   async function download(id, url) {
-    let result = await fetch(`${Api.baseUrl}/sheetmusic/sets/${id}/zip/token`, {
+    let result = await fetch(`${baseUrl}/sheetmusic/sets/${id}/zip/token`, {
       headers: headers
     });
     var body = await result.text();
@@ -249,7 +246,9 @@
   <li class="breadcrumb-item">
     <a href="#/archive">Arkivliste</a>
   </li>
-  <li class="breadcrumb-item active">{set.title ? set.title : '-'}</li>
+  <li class="breadcrumb-item active">
+    {set.archiveNumber} - {set.title ? set.title : '-'}
+  </li>
 </ol>
 
 {#if loading}

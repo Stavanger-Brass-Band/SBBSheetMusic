@@ -8,6 +8,14 @@
   if (project.endDate) project.endDate = new Date(project.endDate);
   let formattedStartDate = "";
   let formattedEndDate = "";
+
+  let minDate = moment()
+    .subtract(1, "year")
+    .toDate();
+
+  let maxDate = moment()
+    .add(3, "year")
+    .toDate();
 </script>
 
 <div class="modal-body">
@@ -26,6 +34,8 @@
       <Datepicker
         style="display:block; width:100%"
         format={date => moment(date).format('DD.MM.YYYY')}
+        start={minDate}
+        end={maxDate}
         bind:selected={project.startDate}
         bind:formattedSelected={formattedStartDate}>
         <button class="form-control text-left">
@@ -38,6 +48,8 @@
       <Datepicker
         style="display:block; width:100%"
         format={date => moment(date).format('DD.MM.YYYY')}
+        start={minDate}
+        end={maxDate}
         bind:selected={project.endDate}
         bind:formattedSelected={formattedEndDate}>
         <button class="form-control text-left">

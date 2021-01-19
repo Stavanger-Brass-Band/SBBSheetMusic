@@ -21,7 +21,7 @@
 
     if (projects) {
       projects.sort(
-        (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
+        (a, b) => moment(b.startDate).valueOf() - moment(a.startDate).valueOf()
       );
     }
 

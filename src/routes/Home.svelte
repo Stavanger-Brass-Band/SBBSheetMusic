@@ -3,6 +3,8 @@
   import { get } from "svelte/store";
   import { push } from "svelte-spa-router";
   import { onMount } from "svelte";
+  import { baseUrl } from "../store.js";
+  import * as Api from "../api.js";
   import moment from "moment";
 
   import Header from "../components/Header.svelte";
@@ -13,25 +15,9 @@
   let projects = [];
   let loading;
 
-  const headers = {
-    Authorization: "Bearer " + localStorage.getItem("access_token")
-  };
-
-  async function getProjects() {
+  onMount(async () => {
     loading = true;
-    let result = await fetch(
-      "https://sheetmusic-api.azurewebsites.net/projects",
-      { headers: headers }
-    );
-
-    if (result.status === 401) {
-      auth.logout();
-      return;
-    }
-
-    let data = await result.json();
-
-    let promises = [];
+    let data = await Api.get(`/projects`);
 
     data = data.filter(
       project =>
@@ -43,28 +29,16 @@
       (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
     );
 
-    data.forEach(project => {
-      promises.push(getSets(project));
-    });
-
-    Promise.all(promises).then(response => {
-      projects = data;
-      loading = false;
-    });
-  }
-
-  async function getSets(project) {
-    let result = await fetch(
-      `https://sheetmusic-api.azurewebsites.net/projects/${project.id}/sets`,
-      { headers: headers }
+    const setsResult = await Api.getMultiple(
+      data.map(project => `/projects/${project.id}/sets`)
     );
-    let data = await result.json();
 
-    project.sets = data;
-  }
+    for (let i = 0; i < setsResult.length; i++) {
+      data[i].sets = setsResult[i];
+    }
 
-  onMount(async () => {
-    getProjects();
+    projects = data;
+    loading = false;
   });
 </script>
 

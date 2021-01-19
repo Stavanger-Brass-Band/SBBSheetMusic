@@ -13,10 +13,6 @@
   import * as Api from "../api";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
 
-  const headers = {
-    Authorization: "Bearer " + localStorage.getItem("access_token")
-  };
-
   let loading = true;
   let sets = [];
   let searchTerm = "";
@@ -48,11 +44,11 @@
   });
 
   async function download(id, url) {
-    let result = await fetch(`${baseUrl}/sheetmusic/sets/${id}/zip/token`, {
-      headers: headers
-    });
-    var body = await result.text();
-    window.location.assign(url + "?downloadToken=" + body);
+    let downloadToken = await Api.get(
+      `/sheetmusic/sets/${id}/zip/token`,
+      "text"
+    );
+    window.location.assign(url + "?downloadToken=" + downloadToken);
   }
 
   async function saveNewSet() {
