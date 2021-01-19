@@ -5,8 +5,8 @@ import livereload from "rollup-plugin-livereload";
 import { terser } from "rollup-plugin-terser";
 import rollup_start_dev from "./rollup_start_dev";
 import svg from "rollup-plugin-svg-import";
-import { config } from "dotenv";
 import replace from "@rollup/plugin-replace";
+import includeEnv from "svelte-environment-variables";
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -19,14 +19,6 @@ export default {
     file: "public/bundle.js",
   },
   plugins: [
-    replace({
-      __myapp: JSON.stringify({
-        env: {
-          isProd: production,
-          ...config().parsed,
-        },
-      }),
-    }),
     svg({ stringify: true }),
     svelte({
       // enable run-time checks when not in production
@@ -36,6 +28,10 @@ export default {
       css: (css) => {
         css.write("public/bundle.css");
       },
+    }),
+
+    replace({
+      ...includeEnv(),
     }),
 
     // If you have external dependencies installed from

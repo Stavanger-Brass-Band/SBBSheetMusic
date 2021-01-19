@@ -11,7 +11,7 @@
   import { get } from "svelte/store";
   import { baseUrl } from "./store.js";
 
-  baseUrl = __myapp.env.API_BASE_URL;
+  baseUrl = process.env.SVELTE_APP_API_URL;
 
   moment.locale("no", {
     months: [
