@@ -1,6 +1,6 @@
 import { writable } from "svelte/store";
 
-export let baseUrl = "https://sheetmusic-api.azurewebsites.net";
+export let baseUrl = process.env.SVELTE_APP_API_URL; //"https://sheetmusic-api.azurewebsites.net"
 export const isAuthenticated = writable(
   localStorage.getItem("access_token") &&
     localStorage.getItem("access_token") !== "undefined"

@@ -9,9 +9,6 @@
   import moment from "moment";
   import { isAuthenticated } from "./store";
   import { get } from "svelte/store";
-  import { baseUrl } from "./store.js";
-
-  baseUrl = process.env.SVELTE_APP_API_URL;
 
   moment.locale("no", {
     months: [
