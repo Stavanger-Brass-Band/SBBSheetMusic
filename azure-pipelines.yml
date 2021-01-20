@@ -14,6 +14,7 @@ stages:
     value: 'https://sheet-music-api-test.azurewebsites.net'
   jobs:
   - job: Build
+    
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -33,7 +34,7 @@ stages:
         rootFolderOrFile: '$(System.DefaultWorkingDirectory)/public'
         includeRootFolder: false
         archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_test.zip'
         replaceExistingArchive: true
     
     - task: PublishBuildArtifacts@1
@@ -42,7 +43,7 @@ stages:
         ArtifactName: 'drop'
         publishLocation: 'Container'
 
-  - deployment: DeployTest
+  - deployment: DeployToTest
     dependsOn: Build
     condition: succeeded()
     environment: 'App test'
@@ -53,12 +54,12 @@ stages:
         deploy:
           steps:
           - task: AzureWebApp@1
-            displayName: 'Deploy package to SheetMusic Admin'
+            displayName: 'Deploy package to sheetmusic-app-test'
             inputs:
               azureSubscription: 'Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)'
               appType: 'webAppLinux'
               appName: 'sheetmusic-app-test'
-              package: '$(Pipeline.Workspace)/**/$(Build.BuildId).zip'
+              package: '$(Pipeline.Workspace)/**/$(Build.BuildId)_test.zip'
               runtimeStack: 'NODE|12-lts'
 
 - stage: BuildAndDeployToProduction
@@ -87,7 +88,7 @@ stages:
         rootFolderOrFile: '$(System.DefaultWorkingDirectory)/public'
         includeRootFolder: false
         archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_prod.zip'
         replaceExistingArchive: true
     
     - task: PublishBuildArtifacts@1
@@ -104,10 +105,10 @@ stages:
         deploy:
           steps:
           - task: AzureWebApp@1
-            displayName: 'Deploy package to SheetMusic Admin'
+            displayName: 'Deploy package to sheetmusic-app'
             inputs:
               azureSubscription: 'Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)'
               appType: 'webAppLinux'
               appName: 'sheetmusic-app'
-              package: '$(Pipeline.Workspace)/**/$(Build.BuildId).zip'
+              package: '$(Pipeline.Workspace)/**/$(Build.BuildId)_prod.zip'
               runtimeStack: 'NODE|12-lts'
