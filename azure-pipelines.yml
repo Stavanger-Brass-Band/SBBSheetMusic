@@ -7,8 +7,11 @@ trigger:
 - master
 
 stages: 
-- stage: Build
-  displayName: Build and publish
+- stage: BuildAndDeployToTest
+  displayName: Build and publish to Test
+  variables:
+  - name: SVELTE_APP_API_URL
+    value: 'https://sheet-music-api-test.azurewebsites.net'
   jobs:
   - job: Build
     pool:
@@ -39,12 +42,9 @@ stages:
         ArtifactName: 'drop'
         publishLocation: 'Container'
 
-- stage: DeployToTest
-  displayName: Deploy to sheetmusic-app-test (test)
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
   - deployment: DeployTest
+    dependsOn: Build
+    condition: succeeded()
     environment: 'App test'
     pool:
       vmImage: 'ubuntu-latest'
@@ -61,11 +61,40 @@ stages:
               package: '$(Pipeline.Workspace)/**/$(Build.BuildId).zip'
               runtimeStack: 'NODE|12-lts'
 
-- stage: DeployToProd
-  displayName: Deploy to sheetmusic-app (production)
-  dependsOn: DeployToTest
-  condition: succeeded()
+- stage: BuildAndDeployToProduction
+  displayName: Build and deploy to production
+  variables:
+  - name: SVELTE_APP_API_URL
+    value: 'https://sheetmusic-api.azurewebsites.net'
   jobs:
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '12.x'
+      displayName: 'Install Node.js'
+
+    - script: |
+        npm install
+        npm run build
+      displayName: 'npm install and build'
+
+    - task: ArchiveFiles@2
+      displayName: 'Package files into .zip archive'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/public'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        replaceExistingArchive: true
+    
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
   - deployment: DeployProd
     environment: 'App production'
     pool:
