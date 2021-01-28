@@ -5,7 +5,7 @@
   import { faSearch, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
   import { get } from "svelte/store";
 
-  import { isAdmin, baseUrl } from "../store";
+  import { isAdmin, baseUrl, musicSets, timeout } from "../store";
   import Header from "../components/Header.svelte";
   import VirtualList from "@sveltejs/svelte-virtual-list";
   import Modal from "sv-bootstrap-modal";
@@ -13,14 +13,13 @@
   import * as Api from "../api";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
 
-  let loading = true;
-  let sets = [];
+  let loading = false;
   let searchTerm = "";
   let newSet = {};
   let isOpen = false;
 
-  $: filteredSetList = sets
-    ? sets.filter(set => {
+  $: filteredSetList = $musicSets
+    ? $musicSets.filter(set => {
         let uppercaseSearchTerm = searchTerm.toUpperCase();
         return (
           set.archiveNumber.toString().indexOf(uppercaseSearchTerm) !== -1 ||
@@ -35,9 +34,25 @@
     : [];
 
   onMount(async function() {
-    sets = await Api.get("/sheetmusic/sets");
-    loading = false;
+    if($musicSets.length < 1 || $timeout){
+      loading = true;
+      $musicSets = await Api.get("/sheetmusic/sets");
+      sortMusicSets();
+      loading = false;
+    }
   });
+
+  function sortMusicSets(){
+    $musicSets.sort((a, b) => {
+      if ( a.archiveNumber > b.archiveNumber ){
+        return -1;
+      }
+      if ( a.archiveNumber < b.archiveNumber ){
+        return 1;
+      }
+      return 0;
+    });
+  }
 
   async function download(id, url) {
     let downloadToken = await Api.get(
@@ -50,6 +65,8 @@
   async function saveNewSet() {
     var result = await Api.post("/sheetMusic/sets", newSet);
     if (result) {
+      $musicSets.push(result);
+      sortMusicSets();
       window.$("#newMusicSetModal").modal("hide");
       push("/set/edit/" + result.id);
     }

@@ -16,6 +16,8 @@
     faStickyNote
   } from "@fortawesome/free-solid-svg-icons";
 
+  import { musicSets } from '../store.js';
+
   export let params = {};
 
   let set = {};
@@ -27,6 +29,7 @@
   let selectedPartForDownload = {};
   let editSetModalIsOpen = false;
   var savingSet = false;
+  let localIndex = 0;
 
   const headers = {
     Authorization: "Bearer " + localStorage.getItem("access_token")
@@ -35,6 +38,8 @@
   onMount(async () => {
     let result = await Api.get(`/sheetmusic/sets/${params.id}/parts`);
     set = result;
+    
+    localIndex = $musicSets.findIndex(x => x.id === params.id);
 
     result = await Api.get(`/parts`);
 
@@ -47,11 +52,14 @@
   async function reloadParts() {
     let result = await Api.get(`/sheetmusic/sets/${params.id}/parts`);
     set.parts = [...result.parts];
+    set.hasBeenScanned = set.parts && set.parts.length > 0;
+    $musicSets[localIndex] = set;
   }
 
   async function removeSet() {
     let result = await Api.deleteSingle(`/sheetmusic/sets/${params.id}`);
     if (result.status === 200) {
+      $musicSets.splice(localIndex, 1);
       push("/archive");
     } else {
     }
@@ -72,6 +80,8 @@
       set.parts.splice(index, 1);
       set.parts = [...set.parts];
     }
+
+    reloadParts();
   }
 
   async function onFileSelected() {
@@ -182,6 +192,7 @@
       set.arranger = result.arranger;
       set.composer = result.composer;
       set.archiveNumber = result.archiveNumber;
+      $musicSets[localIndex] = set;
     }
   }
 

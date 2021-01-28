@@ -15,6 +15,7 @@
     faTrash
   } from "@fortawesome/free-solid-svg-icons";
   import * as Api from "../api";
+  import { musicSets } from "../store.js";
 
   export let params = {};
 
@@ -24,7 +25,6 @@
   let loadingModal = false;
   let editProjectModalIsOpen = false;
   let addMusicSetModalIsOpen = false;
-  let availableMusicSets = [];
   let selectedMusicSets = [];
   let isSavingProject = false;
 
@@ -72,7 +72,7 @@
   //Music sets related code
   let searchTerm = "";
 
-  $: filteredMusicSets = availableMusicSets.filter(set => {
+  $: filteredMusicSets = $musicSets.filter(set => {
     let uppercaseSearchTerm = searchTerm.toUpperCase();
     return (
       (set.title &&
@@ -85,12 +85,12 @@
   });
 
   async function openModal() {
-    loadingModal = true;
+    selectedMusicSets = [];
     addMusicSetModalIsOpen = true;
-    if (availableMusicSets.length > 0) {
-      loadingModal = false;
-    } else {
-      availableMusicSets = await Api.get("/sheetmusic/sets");
+
+    if($musicSets.length < 1){
+      loadingModal = true;
+      $musicSets = await Api.get("/sheetmusic/sets");
       loadingModal = false;
     }
   }
@@ -114,6 +114,7 @@
     sets = [...newSetList];
 
     addMusicSetModalIsOpen = false;
+    selectedMusicSets = [];
   }
 
   async function removeMusicSet(set) {
