@@ -66,7 +66,7 @@ stages:
   displayName: Build and deploy to production
   variables:
   - name: SVELTE_APP_API_URL
-    value: 'https://sheetmusic-api.azurewebsites.net'
+    value: 'https://sheet-music-api.azurewebsites.net'
   jobs:
   - job: Build
     pool:
