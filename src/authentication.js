@@ -61,35 +61,3 @@ const auth = {
 };
 
 export default auth;
-
-// const auth = writable(
-//   localStorage.getItem("access_token") &&
-//     localStorage.getItem("access_token") !== "undefined"
-//     ? true
-//     : false
-// );
-
-// export default {
-// login: async (event) => {
-//   const email = event.target.email.value;
-//   const password = event.target.password.value;
-
-//   var result = await Api.login(email, password);
-
-//   if (result.access_token) {
-//     localStorage.setItem("access_token", data.access_token);
-//     auth.set(true);
-//     push("/");
-//     return data;
-//   } else {
-//     auth.set(false);
-//     return data;
-//   }
-// },
-// logout: () => {
-//   localStorage.removeItem("access_token");
-//   auth.set(false);
-//   push("/login");
-// },
-//   authenticated: () => get(auth),
-// };

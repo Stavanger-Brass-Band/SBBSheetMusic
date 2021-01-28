@@ -3,7 +3,7 @@
   import { get } from "svelte/store";
   import { push } from "svelte-spa-router";
   import { onMount } from "svelte";
-  import { baseUrl } from "../store.js";
+  import { baseUrl, activeProjects } from "../store.js";
   import * as Api from "../api.js";
   import moment from "moment";
 
@@ -12,33 +12,34 @@
   import MusicSetCard from "../components/MusicSetCard.svelte";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
 
-  let projects = [];
   let loading;
 
   onMount(async () => {
-    loading = true;
-    let data = await Api.get(`/projects`);
+    if($activeProjects.length < 1){
+      loading = true;
+      let data = await Api.get(`/projects`);
 
-    data = data.filter(
+      data = data.filter(
       project =>
-        moment(project.startDate).isSameOrBefore(moment(), "day") &&
-        moment(project.endDate).isSameOrAfter(moment(), "day")
-    );
+          moment(project.startDate).isSameOrBefore(moment(), "day") &&
+          moment(project.endDate).isSameOrAfter(moment(), "day")
+      );
 
-    data.sort(
-      (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
-    );
+      data.sort(
+        (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
+      );
 
-    const setsResult = await Api.getMultiple(
-      data.map(project => `/projects/${project.id}/sets`)
-    );
+      const setsResult = await Api.getMultiple(
+        data.map(project => `/projects/${project.id}/sets`)
+      );
 
-    for (let i = 0; i < setsResult.length; i++) {
-      data[i].sets = setsResult[i];
+      for (let i = 0; i < setsResult.length; i++) {
+        data[i].sets = setsResult[i];
+      }
+
+      $activeProjects = data;
+      loading = false;
     }
-
-    projects = data;
-    loading = false;
   });
 </script>
 
@@ -86,7 +87,7 @@
 {#if loading}
   <LoadingSpinner />
 {:else}
-  {#each projects as project}
+  {#each $activeProjects as project}
     <div class="project">
       <h2>
         {project.name}

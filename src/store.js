@@ -12,5 +12,6 @@ export const isAuthenticated = writable(
 export const isAdmin = writable(localStorage.getItem("isAdmin") ? true : false);
 
 export const musicSets = writable([]);
+export const activeProjects = writable([]);
 
 export const timeout = writable(false);

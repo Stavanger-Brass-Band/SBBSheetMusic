@@ -84,7 +84,7 @@
         partImageUrl += "Baryton.jpg";
         break;
       case name.toLowerCase().indexOf("trombone") != -1:
-        partImageUrl += "Trombone.png";
+        partImageUrl += "Trombone.jpg";
         break;
       case name.toLowerCase().indexOf("euphonium") != -1:
         partImageUrl += "Euphonium.jpg";
@@ -96,15 +96,13 @@
         name.toLowerCase().indexOf("klokkespill") != -1 ||
         name.toLowerCase().indexOf("melodisk") != -1 ||
         name.toLowerCase().indexOf("timpani") != -1:
-        partImageUrl += "Drums.png";
+        partImageUrl += "Drums.jpg";
         break;
       case name.toLowerCase().indexOf("partitur") != -1:
         partImageUrl += "dirigent.jpg";
         break;
-      case name.toLowerCase().indexOf("alle stemmer") != -1:
-        partImageUrl += "music-notes.png";
-        break;
       default:
+        partImageUrl += "music-notes-compressed.jpg";
         break;
     }
 
