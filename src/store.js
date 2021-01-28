@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import moment from "moment";
 
 export let baseUrl = process.env.SVELTE_APP_API_URL; //"https://sheetmusic-api.azurewebsites.net"
 
@@ -12,6 +13,6 @@ export const isAuthenticated = writable(
 export const isAdmin = writable(localStorage.getItem("isAdmin") ? true : false);
 
 export const musicSets = writable([]);
-export const activeProjects = writable([]);
+export const lastSetTime = writable(moment());
 
-export const timeout = writable(false);
+export const activeProjects = writable([]);

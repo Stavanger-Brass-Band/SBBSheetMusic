@@ -17,29 +17,33 @@
   onMount(async () => {
     if($activeProjects.length < 1){
       loading = true;
-      let data = await Api.get(`/projects`);
-
-      data = data.filter(
-      project =>
-          moment(project.startDate).isSameOrBefore(moment(), "day") &&
-          moment(project.endDate).isSameOrAfter(moment(), "day")
-      );
-
-      data.sort(
-        (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
-      );
-
-      const setsResult = await Api.getMultiple(
-        data.map(project => `/projects/${project.id}/sets`)
-      );
-
-      for (let i = 0; i < setsResult.length; i++) {
-        data[i].sets = setsResult[i];
-      }
-
-      $activeProjects = data;
-      loading = false;
     }
+
+    let data = await Api.get(`/projects`);
+
+    data = data.filter(
+    project =>
+        moment(project.startDate).isSameOrBefore(moment(), "day") &&
+        moment(project.endDate).isSameOrAfter(moment(), "day")
+    );
+
+    data.sort(
+      (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
+    );
+
+    const setsResult = await Api.getMultiple(
+      data.map(project => `/projects/${project.id}/sets`)
+    );
+
+    for (let i = 0; i < setsResult.length; i++) {
+      data[i].sets = setsResult[i];
+    }
+
+    if($activeProjects !== data){
+      $activeProjects = data;
+    }
+
+    loading = false;
   });
 </script>
 

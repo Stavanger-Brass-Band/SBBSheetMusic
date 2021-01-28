@@ -15,7 +15,7 @@
     faTrash
   } from "@fortawesome/free-solid-svg-icons";
   import * as Api from "../api";
-  import { musicSets } from "../store.js";
+  import { musicSets, activeProjects } from "../store.js";
 
   export let params = {};
 

@@ -5,7 +5,7 @@
   import { faSearch, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
   import { get } from "svelte/store";
 
-  import { isAdmin, baseUrl, musicSets, timeout } from "../store";
+  import { isAdmin, baseUrl, musicSets, lastSetTime } from "../store";
   import Header from "../components/Header.svelte";
   import VirtualList from "@sveltejs/svelte-virtual-list";
   import Modal from "sv-bootstrap-modal";
@@ -34,7 +34,7 @@
     : [];
 
   onMount(async function() {
-    if($musicSets.length < 1 || $timeout){
+    if($musicSets.length < 1 || moment().diff($lastSetTime, 'minutes') >= 5){
       loading = true;
       $musicSets = await Api.get("/sheetmusic/sets");
       sortMusicSets();
