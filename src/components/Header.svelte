@@ -21,7 +21,7 @@
         Notearkiv - SBB
       </a>
 
-      {#if $isAdmin}
+      
         <button
           class="navbar-toggler"
           type="button"
@@ -35,26 +35,25 @@
         <div class="collapse navbar-collapse" id="navbar">
 
           <ul class="navbar-nav mr-auto">
-
+            <li class="nav-item">
+              <a class="nav-link" href="#/">Hjem</a>
+            </li>
             <li class="nav-item">
               <a class="nav-link" href="#/archive">Arkivliste</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#/projects">Prosjekter</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#/users">Brukere</a>
-            </li>
+            {#if $isAdmin}
+              <li class="nav-item">
+                <a class="nav-link" href="#/projects">Prosjekter</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#/users">Brukere</a>
+              </li>
+            {/if}
           </ul>
-          <button class="btn btn-secondary navbar-right" on:click={logout}>
+          <button class="btn btn-secondary navbar-right my-2 my-lg-0" on:click={logout}>
             Logg ut
           </button>
         </div>
-      {:else}
-        <button class="btn btn-secondary navbar-right" on:click={logout}>
-          Logg ut
-        </button>
-      {/if}
     </div>
   </nav>
 </header>

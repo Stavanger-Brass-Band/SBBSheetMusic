@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { push } from "svelte-spa-router";
   import Icon from "fa-svelte";
-  import { faSearch } from "@fortawesome/free-solid-svg-icons";
+  import { faSearch, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
   import { get } from "svelte/store";
 
   import { isAdmin, baseUrl } from "../store";
@@ -35,10 +35,6 @@
     : [];
 
   onMount(async function() {
-    if (!get(isAdmin)) {
-      push("/");
-    }
-
     sets = await Api.get("/sheetmusic/sets");
     loading = false;
   });
@@ -115,9 +111,11 @@
 
 <h1 class="page-header">
   Arkivliste
+  {#if $isAdmin}
   <button type="button" class="btn btn-link right" on:click={openModal}>
     + Nytt notesett
   </button>
+  {/if}
 </h1>
 
 <div class="input-group mb-4">
@@ -139,25 +137,30 @@
     <div class="col-4">Tittel</div>
     <div class="col-3">Komponist</div>
     <div class="col-3">Arrangør</div>
-    <div class="col-1">Last ned</div>
+    <div class="col-1">{#if $isAdmin}Last ned{:else}Digitalt{/if}</div>
   </div>
   <VirtualList itemHeight={45} height="675px" items={filteredSetList} let:item>
     <div
-      on:click={() => push('/set/edit/' + item.id)}
-      class="set-list-item row clickable"
+      on:click={() => $isAdmin ? push('/set/edit/' + item.id) : null}
+      class="set-list-item row"
+      class:clickable={$isAdmin}
       class:even={filteredSetList.indexOf(item) % 2 == 0}>
       <div class="col-1">{item.archiveNumber}</div>
       <div class="col-4">{item.title}</div>
       <div class="col-3">{item.composer != null ? item.composer : ''}</div>
       <div class="col-3">{item.arranger != null ? item.arranger : ''}</div>
       <div class="col-1">
-        {#if item.hasBeenScanned}
+      {#if item.hasBeenScanned}
+        {#if $isAdmin}
           <a
             href="no-ref"
             on:click|preventDefault|stopPropagation={async () => await download(item.id, item.zipDownloadUrl)}>
             Zip
           </a>
+        {:else}
+          <Icon icon={faCheckCircle} class="text-success" />
         {/if}
+      {/if}
       </div>
     </div>
   </VirtualList>
