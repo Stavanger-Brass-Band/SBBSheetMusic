@@ -4,6 +4,7 @@
   import Icon from "fa-svelte";
   import { faSearch, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
   import { get } from "svelte/store";
+  import moment from 'moment';
 
   import { isAdmin, baseUrl, musicSets, lastSetTime } from "../store";
   import Header from "../components/Header.svelte";
@@ -106,6 +107,7 @@
     margin-left: 0;
     margin-right: 0;
     font-size: 0.875rem;
+    position: relative;
   }
 
   .set-list-item:hover,
@@ -120,6 +122,38 @@
   .set-list-item.even {
     background-color: rgba(255, 255, 255, 0.05);
   }
+
+  .mobile-set-list-header{
+    padding-bottom: 8px;
+    border-bottom: 2px solid white;
+    margin-bottom: 8px;
+  }
+
+  .mobile-set-list-item{
+    position: relative;
+    padding: 10px 48px 10px 0;
+  }
+  .mobile-set-list-item > * {
+    padding:0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-set-list-item > .title{
+    font-size: 16px;
+    margin-bottom: 0.25rem;
+  }
+  .mobile-set-list-item > .subtitle{
+    font-size:12px;
+  }
+
+  .mobile-set-list-item > .action{
+    position: absolute;
+    right:0;
+    top: 12px;
+  }
+
 </style>
 
 {#if loading}
@@ -148,8 +182,8 @@
     bind:value={searchTerm} />
 </div>
 
-<div class="set-list-container">
-  <div class="set-list-header row">
+<div class="set-list-container d-none d-md-block">
+  <div class="set-list-header row" >
     <div class="col-1">Nr.</div>
     <div class="col-4">Tittel</div>
     <div class="col-3">Komponist</div>
@@ -162,6 +196,7 @@
       class="set-list-item row"
       class:clickable={$isAdmin}
       class:even={filteredSetList.indexOf(item) % 2 == 0}>
+      
       <div class="col-1">{item.archiveNumber}</div>
       <div class="col-4">{item.title}</div>
       <div class="col-3">{item.composer != null ? item.composer : ''}</div>
@@ -179,6 +214,40 @@
         {/if}
       {/if}
       </div>
+      
+    </div>
+  </VirtualList>
+</div>
+
+<div class="mobile-set-list d-block d-md-none">
+  <div class="mobile-set-list-header d-flex justify-content-between">
+    <strong class="text-left"># - Tittel</strong>
+    <strong class="text-right">{#if $isAdmin}Last ned{:else}Scannet{/if}</strong>
+  </div>
+  <VirtualList itemHeight={66} height="550px" items={filteredSetList} let:item>
+    <div
+      on:click={() => $isAdmin ? push('/set/edit/' + item.id) : null}
+      class="mobile-set-list-item"
+      class:clickable={$isAdmin}
+      class:even={filteredSetList.indexOf(item) % 2 == 0}>
+      <div class="title">{item.archiveNumber} - {item.title}</div>
+      <div class="subtitle text-muted">{item.composer != null ? item.composer : ''} {item.composer && item.arranger ? ' - ' : ''} {item.arranger != null ? 'Arr. ' + item.arranger : ''}</div>
+      {#if !item.composer && !item.arranger}
+        -
+      {/if}
+      {#if item.hasBeenScanned}
+      <div class="action">
+        {#if $isAdmin}
+          <a
+            href="no-ref"
+            on:click|preventDefault|stopPropagation={async () => await download(item.id, item.zipDownloadUrl)}>
+            Zip
+          </a>
+        {:else}
+          <Icon icon={faCheckCircle} class="text-success" />
+        {/if}
+        </div>
+      {/if}
     </div>
   </VirtualList>
 </div>

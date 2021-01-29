@@ -60,8 +60,8 @@
 
   @media screen and (max-width: 575px) {
     .main-content {
-      padding-left: 20px;
-      padding-right: 20px;
+      padding-left: 0;
+      padding-right: 0;
     }
   }
 </style>
