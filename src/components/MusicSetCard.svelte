@@ -1,5 +1,7 @@
 <script>
+  import Project from "../routes/Project.svelte";
   export let set;
+  export let project;
 </script>
 
 <style>
@@ -134,7 +136,7 @@
   }
 </style>
 
-<a class="set-card" href={'#/set/' + set.id}>
+<a class="set-card" href={'#/project/' + project.id + '/set/' + set.id}>
   <img class="set-art" src="/img/music-notes.png" alt="Music notes" />
   <div class="title">
     <h3>{set.title}</h3>

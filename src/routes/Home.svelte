@@ -1,28 +1,25 @@
 <script>
-  import auth from "../authentication.js";
-  import { get } from "svelte/store";
-  import { push } from "svelte-spa-router";
   import { onMount } from "svelte";
-  import { baseUrl, activeProjects } from "../store.js";
+  import { activeProjects } from "../store.js";
   import * as Api from "../api.js";
   import moment from "moment";
 
-  import Header from "../components/Header.svelte";
   import FancyDateView from "../components/FancyDateView.svelte";
-  import MusicSetCard from "../components/MusicSetCard.svelte";
   import LoadingSpinner from "../components/LoadingSpinner.svelte";
+  import Icon from "fa-svelte";
+  import { faArrowRight, faFolder, faFolderOpen } from "@fortawesome/free-solid-svg-icons";
 
   let loading;
 
   onMount(async () => {
-    if($activeProjects.length < 1){
+    if ($activeProjects.length < 1) {
       loading = true;
     }
 
     let data = await Api.get(`/projects`);
 
     data = data.filter(
-    project =>
+      (project) =>
         moment(project.startDate).isSameOrBefore(moment(), "day") &&
         moment(project.endDate).isSameOrAfter(moment(), "day")
     );
@@ -31,15 +28,8 @@
       (a, b) => moment(a.startDate).valueOf() - moment(b.startDate).valueOf()
     );
 
-    const setsResult = await Api.getMultiple(
-      data.map(project => `/projects/${project.id}/sets`)
-    );
 
-    for (let i = 0; i < setsResult.length; i++) {
-      data[i].sets = setsResult[i];
-    }
-
-    if($activeProjects !== data){
+    if ($activeProjects !== data) {
       $activeProjects = data;
     }
 
@@ -48,10 +38,6 @@
 </script>
 
 <style>
-  .project {
-    margin-bottom: 30px;
-  }
-
   h2 {
     margin-bottom: 30px;
   }
@@ -64,15 +50,47 @@
     margin-top: 10px;
   }
 
-  .dateview-container {
-    margin-top: 15px;
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 4px;
+    padding: 16px;
+    border: 1px solid #4e5d6c;
+    transition: all 100ms ease-out;
+    color:white;
   }
 
-  @media only screen and (min-width: 600px) {
-    .dateview-container {
-      float: right;
-      margin-top: 0;
-    }
+  .folder-icon {
+    font-size: 50px;
+    margin-bottom: 16px;
+  }
+
+  .folder-closed{
+    display:block;
+  }
+
+  .folder-open{
+    display: none;
+  }
+
+  .project-card:hover {
+    cursor: pointer;
+    border-color: #df691a;
+    box-shadow: 0px 0px 8px 2px #df691a;
+    text-decoration: none;
+  }
+
+  .project-card:hover > h4{
+    text-decoration: underline;
+  }
+
+  .project-card:hover > .folder-closed{
+    display: none;
+  }
+
+  .project-card:hover > .folder-open{
+    display: block;
   }
 </style>
 
@@ -91,29 +109,23 @@
 {#if loading}
   <LoadingSpinner />
 {:else}
-  {#each $activeProjects as project}
-    <div class="project">
-      <h2>
-        {project.name}
-        <div class="dateview-container">
-          <FancyDateView
-            fromDate={project.startDate}
-            toDate={project.endDate} />
-        </div>
-      </h2>
-      <div class="row">
-        {#if project.sets.length > 0}
-          {#each project.sets as set}
-            <div class="col-lg-4 col-6">
-              <MusicSetCard {set} />
-            </div>
-          {/each}
-        {:else}
-          <div class="col-12">
-            <em>Ingen noter tilknyttet prosjektet enda</em>
+  <h2>Aktive prosjekt</h2>
+  <div class="row">
+    {#each $activeProjects as project}
+      <div class="col-lg-3 col-md-4 col-12">
+        <a class="project-card mb-4" href={'#/project/' + project.id}>
+          <div class="folder-icon folder-closed">
+            <Icon class="text-primary" icon="{faFolder}" />
           </div>
-        {/if}
+          <div class="folder-icon folder-open">
+            <Icon class="text-primary" icon="{faFolderOpen}" />
+          </div>
+          <h4 class="mb-4">{project.name}</h4>
+          <FancyDateView
+            fromDate="{project.startDate}"
+            toDate="{project.endDate}" />
+        </a>
       </div>
-    </div>
-  {/each}
+    {/each}
+  </div>
 {/if}

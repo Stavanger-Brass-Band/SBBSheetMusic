@@ -50,7 +50,7 @@
     isSavingNewProject = false;
     if (result) {
       window.$("#newProjectModal").modal("hide");
-      push("/project/" + result.id);
+      push("/project/edit/" + result.id);
     }
   }
 
@@ -87,7 +87,7 @@
   </thead>
   <tbody>
     {#each projects as project}
-      <tr on:click={() => push('/project/' + project.id)} class="clickable">
+      <tr on:click={() => push('/project/edit/' + project.id)} class="clickable">
         <td>{project.name}</td>
         <td>{moment(project.startDate).format('DD.MM.YYYY')}</td>
         <td>{moment(project.endDate).format('DD.MM.YYYY')}</td>

@@ -15,11 +15,13 @@
   export let params = {};
 
   let set = {};
+  let project = {};
   let selectedPartForDownload = {};
   let loading = true;
 
   onMount(async () => {
     set = await Api.get(`/sheetmusic/sets/${params.id}/parts`);
+    project = await Api.get(`/projects/${params.projectId}`);
     loading = false;
   });
 
@@ -181,7 +183,10 @@
 
 <ol class="breadcrumb mb-4">
   <li class="breadcrumb-item">
-    <a href="/#">Startside</a>
+    <a href="/#">Hjem</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="{'#/project/' + project.id}">{project.name ? project.name : ''}</a>
   </li>
   <li class="breadcrumb-item active">{set.title ? set.title : ''}</li>
 </ol>
