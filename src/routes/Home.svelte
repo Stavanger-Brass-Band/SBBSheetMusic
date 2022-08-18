@@ -59,11 +59,17 @@
     border: 1px solid #4e5d6c;
     transition: all 100ms ease-out;
     color:white;
+    text-align: center;
+  }
+
+  .project-card > .title{
+    height:60px;
+    display: flex;
+    align-items:center;
   }
 
   .folder-icon {
     font-size: 50px;
-    margin-bottom: 16px;
   }
 
   .folder-closed{
@@ -81,7 +87,7 @@
     text-decoration: none;
   }
 
-  .project-card:hover > h4{
+  .project-card:hover > .title{
     text-decoration: underline;
   }
 
@@ -120,7 +126,7 @@
           <div class="folder-icon folder-open">
             <Icon class="text-primary" icon="{faFolderOpen}" />
           </div>
-          <h4 class="mb-4">{project.name}</h4>
+          <h5 class="title">{project.name}</h5>
           <FancyDateView
             fromDate="{project.startDate}"
             toDate="{project.endDate}" />
