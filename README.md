@@ -18,34 +18,24 @@ By default, the server will only respond to requests from localhost. To allow co
 
 ## Deploying to the web
 
-### With [now](https://zeit.co/now)
+Commiting to master will trigger a build in Azure Pipelines with automatic deploye to Azure App Service test environment. Approval is required for deploy to production, approvers are notified via email.
 
-Install `now` if you haven't already:
+[![Build Status](https://dev.azure.com/luffe/Sheet%20Music%20Archive%20V4/_apis/build/status/Sheet%20Music%20App?repoName=Stavanger-Brass-Band%2FSBBSheetMusic&branchName=master)](https://dev.azure.com/luffe/Sheet%20Music%20Archive%20V4/_build/latest?definitionId=4&repoName=Stavanger-Brass-Band%2FSBBSheetMusic&branchName=master)
 
-```bash
-npm install -g now
-```
+### Infrastructure
 
-Then, from within your project folder:
+#### Sheetmusic [resource group]
 
-```bash
-cd public
-now
-```
+|Name|Type|URL|Comment|
+|---|---|---|---|
+|sheetmusic-app-test|Azure App Service|https://sheetmusic-app-test.azurewebsites.net/|Test environment, running against api test environment|
+|sheetmusic-app|Azure App Service|https://medlem.stavanger-brassband.no|Production app|
+|sheetmusic-app-plan|Azure App Service Plan|N/A|Linux. Running both envs to save $|
 
-As an alternative, use the [Now desktop client](https://zeit.co/download) and simply drag the unzipped project folder to the taskbar icon.
 
-### With [surge](https://surge.sh/)
+#### Configuration
+App Service only contains one application setting:    
+``` API_BASE_URL = <url to api service>```
 
-Install `surge` if you haven't already:
-
-```bash
-npm install -g surge
-```
-
-Then, from within your project folder:
-
-```bash
-npm run build
-surge public
-```
+PS! Remember to set Configuration -> General settings -> Startup command on app service for it to serve content via Node.js:  
+``` pm2 serve /home/site/wwwroot --no-daemon ```
