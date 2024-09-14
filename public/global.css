@@ -25,3 +25,29 @@ body {
   content: "Bla gjennom";
   background-color: #df691a;
 }
+
+.form-control {
+  border-radius: 4px;
+}
+
+button.btn {
+  border-radius: 4px;
+}
+
+.modal-content {
+  border-radius: 12px;
+}
+
+.modal-header {
+  border-top-right-radius: 12px;
+  border-top-left-radius: 12px;
+}
+
+.modal-footer {
+  border-bottom-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.modal-body {
+  padding: 16px;
+}

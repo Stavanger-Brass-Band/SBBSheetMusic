@@ -1,4 +1,5 @@
 <script>
+  import { Confirm } from "svelte-confirm";
   import { onMount } from "svelte";
   import { push } from "svelte-spa-router";
   import * as Api from "../api";
@@ -104,6 +105,8 @@
       files[i].isCheckingStatus = false;
       files[i].suggestedPart = result[i];
     }
+
+    console.log(files);
 
     isUploading = false;
   }
@@ -267,40 +270,48 @@
 {:else}
   <h1 class="page-header">
     {set.title}
-    <div class="dropdown float-right">
-      <button
-        class="btn btn-secondary dropdown-toggle"
-        type="button"
-        id="dropdownMenuButton"
-        data-toggle="dropdown"
-        aria-haspopup="true"
-        aria-expanded="false" />
-      <div
-        class="dropdown-menu dropdown-menu-right"
-        aria-labelledby="dropdownMenuButton">
-        {#if set.hasBeenScanned}
+    <Confirm confirmTitle="Slett" cancelTitle="Avbryt" let:confirm="{confirmThis}" themeColor={24}> 
+      <span slot="title">
+        Er du sikker på at du vil slette notesettet?
+      </span>
+      <span slot="description">
+        Handlingen kan ikke reverseres!
+      </span>
+      <div class="dropdown float-right">
+        <button
+          class="btn btn-secondary dropdown-toggle"
+          type="button"
+          id="dropdownMenuButton"
+          data-toggle="dropdown"
+          aria-haspopup="true"
+          aria-expanded="false" />
+        <div
+          class="dropdown-menu dropdown-menu-right"
+          aria-labelledby="dropdownMenuButton">
+          {#if set.hasBeenScanned}
+            <a
+              href="no-ref"
+              class="dropdown-item"
+              on:click|preventDefault|stopPropagation={async () => await download(set.id, set.zipDownloadUrl)}>
+              Last ned alle notene
+            </a>
+          {/if}
           <a
-            href="no-ref"
             class="dropdown-item"
-            on:click|preventDefault|stopPropagation={async () => await download(set.id, set.zipDownloadUrl)}>
-            Last ned alle notene
+            href="nohref"
+            on:click|preventDefault={editSet}>
+            Rediger
           </a>
-        {/if}
-        <a
-          class="dropdown-item"
-          href="nohref"
-          on:click|preventDefault={editSet}>
-          Rediger
-        </a>
-        <div class="dropdown-divider" />
-        <a
-          class="dropdown-item"
-          href="nohref"
-          on:click|preventDefault={removeSet}>
-          Slett
-        </a>
+          <div class="dropdown-divider" />
+          <a
+            class="dropdown-item"
+            href="nohref"
+            on:click|preventDefault={confirmThis(removeSet)}>
+            Slett
+          </a>
+        </div>
       </div>
-    </div>
+    </Confirm>
     <p class="lead">
       {#if set.composer}{set.composer}{/if}
       {#if set.composer && set.arranger},{/if}
@@ -326,6 +337,13 @@
             </tr>
           </thead>
           <tbody>
+            <Confirm confirmTitle="Slett" cancelTitle="Avbryt" let:confirm="{confirmThis}" themeColor={24}> 
+              <span slot="title">
+                Er du sikker på at du vil slette noten?
+              </span>
+              <span slot="description">
+                Handlingen kan ikke reverseres!
+              </span>
             {#each set.parts as part}
               <tr>
                 <td>{part.name}</td>
@@ -345,12 +363,13 @@
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
-                    on:click={() => removePart(part)}>
+                    on:click={() => confirmThis(removePart, part)}>
                     <Icon icon={faTrash} />
                   </button>
                 </td>
               </tr>
             {/each}
+            </Confirm>
           </tbody>
         </table>
       {/if}

@@ -4,111 +4,111 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 trigger:
-- master
+  - master
 
-stages: 
-- stage: BuildAndDeployToTest
-  displayName: Build and publish to Test
-  variables:
-  - name: SVELTE_APP_API_URL
-    value: 'https://sheet-music-api-test.azurewebsites.net'
-  jobs:
-  - job: Build
-    
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '16.x'
-      displayName: 'Install Node.js'
+stages:
+  - stage: BuildAndDeployToTest
+    displayName: Build and publish to Test
+    variables:
+      - name: SVELTE_APP_API_URL
+        value: "https://sheet-music-api-test.azurewebsites.net"
+    jobs:
+      - job: Build
 
-    - script: |
-        npm install
-        npm run build
-      displayName: 'npm install and build'
-
-    - task: ArchiveFiles@2
-      displayName: 'Package files into .zip archive'
-      inputs:
-        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/public'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_test.zip'
-        replaceExistingArchive: true
-    
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'drop'
-        publishLocation: 'Container'
-
-  - deployment: DeployToTest
-    dependsOn: Build
-    condition: succeeded()
-    environment: 'App test'
-    pool:
-      vmImage: 'ubuntu-latest'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: AzureWebApp@1
-            displayName: 'Deploy package to sheetmusic-app-test'
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: NodeTool@0
             inputs:
-              azureSubscription: 'Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)'
-              appType: 'webAppLinux'
-              appName: 'sheetmusic-app-test'
-              package: '$(Pipeline.Workspace)/**/$(Build.BuildId)_test.zip'
-              runtimeStack: 'NODE|16-lts'
+              versionSpec: "20.x"
+            displayName: "Install Node.js"
 
-- stage: BuildAndDeployToProduction
-  displayName: Build and deploy to production
-  variables:
-  - name: SVELTE_APP_API_URL
-    value: 'https://sheet-music-api.azurewebsites.net'
-  jobs:
-  - job: Build
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '16.x'
-      displayName: 'Install Node.js'
+          - script: |
+              npm install
+              npm run build
+            displayName: "npm install and build"
 
-    - script: |
-        npm install
-        npm run build
-      displayName: 'npm install and build'
-
-    - task: ArchiveFiles@2
-      displayName: 'Package files into .zip archive'
-      inputs:
-        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/public'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_prod.zip'
-        replaceExistingArchive: true
-    
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'drop'
-        publishLocation: 'Container'
-  - deployment: DeployProd
-    environment: 'App production'
-    pool:
-      vmImage: 'ubuntu-latest'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: AzureWebApp@1
-            displayName: 'Deploy package to sheetmusic-app'
+          - task: ArchiveFiles@2
+            displayName: "Package files into .zip archive"
             inputs:
-              azureSubscription: 'Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)'
-              appType: 'webAppLinux'
-              appName: 'sheetmusic-app'
-              package: '$(Pipeline.Workspace)/**/$(Build.BuildId)_prod.zip'
-              runtimeStack: 'NODE|16-lts'
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/public"
+              includeRootFolder: false
+              archiveType: "zip"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_test.zip"
+              replaceExistingArchive: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName: "drop"
+              publishLocation: "Container"
+
+      - deployment: DeployToTest
+        dependsOn: Build
+        condition: succeeded()
+        environment: "App test"
+        pool:
+          vmImage: "ubuntu-latest"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: "Deploy package to sheetmusic-app-test"
+                  inputs:
+                    azureSubscription: "Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)"
+                    appType: "webAppLinux"
+                    appName: "sheetmusic-app-test"
+                    package: "$(Pipeline.Workspace)/**/$(Build.BuildId)_test.zip"
+                    runtimeStack: "NODE|20-lts"
+
+  - stage: BuildAndDeployToProduction
+    displayName: Build and deploy to production
+    variables:
+      - name: SVELTE_APP_API_URL
+        value: "https://sheet-music-api.azurewebsites.net"
+    jobs:
+      - job: Build
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "20.x"
+            displayName: "Install Node.js"
+
+          - script: |
+              npm install
+              npm run build
+            displayName: "npm install and build"
+
+          - task: ArchiveFiles@2
+            displayName: "Package files into .zip archive"
+            inputs:
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/public"
+              includeRootFolder: false
+              archiveType: "zip"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_prod.zip"
+              replaceExistingArchive: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName: "drop"
+              publishLocation: "Container"
+      - deployment: DeployProd
+        environment: "App production"
+        pool:
+          vmImage: "ubuntu-latest"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: "Deploy package to sheetmusic-app"
+                  inputs:
+                    azureSubscription: "Visual Studio Professional(8ba210c5-c187-44bb-9d0b-858282bb4487)"
+                    appType: "webAppLinux"
+                    appName: "sheetmusic-app"
+                    package: "$(Pipeline.Workspace)/**/$(Build.BuildId)_prod.zip"
+                    runtimeStack: "NODE|20-lts"

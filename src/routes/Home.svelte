@@ -54,7 +54,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-radius: 4px;
+    border-radius: 12px;
     padding: 16px;
     border: 1px solid #4e5d6c;
     transition: all 100ms ease-out;

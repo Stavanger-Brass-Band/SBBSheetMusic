@@ -1,12 +1,12 @@
-import svelte from "rollup-plugin-svelte";
-import resolve from "rollup-plugin-node-resolve";
-import commonjs from "rollup-plugin-commonjs";
 import livereload from "rollup-plugin-livereload";
-import { terser } from "rollup-plugin-terser";
-import rollup_start_dev from "./rollup_start_dev";
+import rollup_start_dev from "./rollup_start_dev.js";
 import svg from "rollup-plugin-svg-import";
 import replace from "@rollup/plugin-replace";
 import dotenv from "dotenv";
+import svelte from "rollup-plugin-svelte";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import terser from "@rollup/plugin-terser";
 
 dotenv.config();
 
@@ -22,21 +22,15 @@ export default {
   },
   plugins: [
     replace({
-      process: JSON.stringify({
-        env: {
-          SVELTE_APP_API_URL: process.env.SVELTE_APP_API_URL,
-        },
-      }),
+      preventAssignment: true,
+      "process.env.SVELTE_APP_API_URL": JSON.stringify(
+        process.env.SVELTE_APP_API_URL
+      ),
     }),
     svg({ stringify: true }),
     svelte({
-      // enable run-time checks when not in production
-      dev: !production,
-      // we'll extract any component CSS out into
-      // a separate file  better for performance
-      css: (css) => {
-        css.write("public/bundle.css");
-      },
+      emitCss: false,
+      compilerOptions: {},
     }),
 
     // If you have external dependencies installed from
@@ -46,8 +40,8 @@ export default {
     // https://github.com/rollup/rollup-plugin-commonjs
     resolve({
       browser: true,
-      dedupe: (importee) =>
-        importee === "svelte" || importee.startsWith("svelte/"),
+      exportConditions: ["svelte"],
+      extensions: [".svelte"],
     }),
     commonjs(),
 

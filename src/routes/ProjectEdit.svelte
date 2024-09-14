@@ -9,6 +9,7 @@
   import Modal from "sv-bootstrap-modal";
   import Icon from "fa-svelte";
   import moment from "moment";
+  import { Confirm } from 'svelte-confirm'
   import {
     faArrowRight,
     faSearch,
@@ -175,32 +176,40 @@
 {:else}
   <h1 class="page-header">
     {project.name}
-    <div class="dropdown float-right ml-3">
-      <button
-        class="btn btn-secondary dropdown-toggle"
-        type="button"
-        id="dropdownMenuButton"
-        data-toggle="dropdown"
-        aria-haspopup="true"
-        aria-expanded="false" />
-      <div
-        class="dropdown-menu dropdown-menu-right"
-        aria-labelledby="dropdownMenuButton">
-        <a
-          class="dropdown-item"
-          href="#"
-          on:click|preventDefault={() => (editProjectModalIsOpen = true)}>
-          Rediger
-        </a>
-        <div class="dropdown-divider" />
-        <a
-          class="dropdown-item"
-          href="#"
-          on:click|preventDefault={removeProject}>
-          Slett
-        </a>
+    <Confirm confirmTitle="Slett" cancelTitle="Avbryt" let:confirm="{confirmThis}" themeColor={24}>
+      <span slot="title">
+        Ønsker du å slette prosjektet?
+      </span>
+      <span slot="description">
+        Handlingen kan ikke reverseres!
+      </span>
+      <div class="dropdown float-right ml-3">
+        <button
+          class="btn btn-secondary dropdown-toggle"
+          type="button"
+          id="dropdownMenuButton"
+          data-toggle="dropdown"
+          aria-haspopup="true"
+          aria-expanded="false" />
+        <div
+          class="dropdown-menu dropdown-menu-right"
+          aria-labelledby="dropdownMenuButton">
+          <a
+            class="dropdown-item"
+            href="#"
+            on:click|preventDefault={() => (editProjectModalIsOpen = true)}>
+            Rediger
+          </a>
+          <div class="dropdown-divider" />
+          <a
+            class="dropdown-item"
+            href="#"
+            on:click|preventDefault={confirmThis(removeProject)}>
+            Slett
+          </a>
+        </div>
       </div>
-    </div>
+    </Confirm>
     <div class="float-right">
       <FancyDateView fromDate={project.startDate} toDate={project.endDate} />
     </div>
