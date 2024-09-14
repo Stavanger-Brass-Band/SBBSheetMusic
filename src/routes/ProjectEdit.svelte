@@ -124,12 +124,11 @@
     });
 
     if (result.status === 200) {
-      const index = sets.indexOf(set.id);
+      const index = sets.find(x => x.id === set.id);
 
       sets.splice(index, 1);
       sets = [...sets];
-    } else {
-    }
+    } 
   }
 </script>
 

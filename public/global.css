@@ -34,7 +34,9 @@ button.btn {
   border-radius: 4px;
 }
 
-.modal-content {
+.modal-content,
+.breadcrumb,
+.card {
   border-radius: 12px;
 }
 

@@ -135,6 +135,7 @@
   .grid-item {
     background-color: #4e5d6c;
     padding: 0.75rem 1.25rem;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     font-size: 18px;
@@ -170,7 +171,7 @@
 
   .download {
     position: absolute;
-    right: 16px;
+    right: 22px;
     top: 50%;
     transform: translateY(-50%);
   }
