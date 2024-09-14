@@ -89,6 +89,7 @@
     uploadComplete = false;
     isUploading = true;
     let fetchUrls = [];
+    console.log(files);
 
     for (let i = 0; i < files.length; i++) {
       files[i].isCheckingStatus = true;
@@ -105,8 +106,6 @@
       files[i].isCheckingStatus = false;
       files[i].suggestedPart = result[i];
     }
-
-    console.log(files);
 
     isUploading = false;
   }
@@ -457,8 +456,9 @@
                   id="pdfFileInput"
                   aria-describedby="fileHelp"
                   accept=".pdf"
+                  bind:files
                   on:change={onFileSelected}
-                  bind:files />
+                   />
                 <label class="custom-file-label" for="pdfFileInput">
                   Velg PDF filer
                 </label>
