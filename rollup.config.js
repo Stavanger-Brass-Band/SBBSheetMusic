@@ -31,6 +31,14 @@ export default {
     svelte({
       emitCss: false,
       compilerOptions: {},
+      onwarn: (warning, handler) => {
+        // e.g. don't warn on <marquee> elements, cos they're cool
+        if (warning.code === "a11y-distracting-elements") return;
+        if (warning.code === "a11y-click-events-have-key-events") return;
+        if (warning.code === "a11y-no-static-element-interactions") return;
+
+        handler(warning);
+      },
     }),
 
     // If you have external dependencies installed from

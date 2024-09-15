@@ -215,8 +215,8 @@
   <div class="part-grid">
     {#if set.parts && set.parts.length > 0}
       {#each set.parts as part}
-        <div
-          class="grid-item"
+        <button
+          class="btn grid-item"
           on:click|preventDefault={() => downloadPart(part)}>
           <div class="avatar">
             <img src={getPartImageUrl(part)} alt="" />
@@ -231,7 +231,7 @@
               <Icon icon={faCloudDownloadAlt} />
             {/if}
           </div>
-        </div>
+        </button>
       {/each}
     {:else}
       <em>Notene til dette settet har enda ikke blitt scannet</em>
