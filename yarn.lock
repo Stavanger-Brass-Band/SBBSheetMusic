@@ -232,6 +232,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.21.2.tgz#e4291e3c1bc637083f87936c333cdbcad22af63b"
   integrity sha512-6UUxd0+SKomjdzuAcp+HAmxw1FlGBnl1v2yEPSabtx4lBfdXHDVsW7+lQkgz9cNFJGY3AWR7+V8P5BqkD9L9nA==
 
+"@svelte-plugins/datepicker@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/@svelte-plugins/datepicker/-/datepicker-1.0.9.tgz#25e66f7f757e5fe402092877ded3930c22f69417"
+  integrity sha512-HagVB8jLUwNFbwfAcJBNURN1QMQ+qAQQjLJPH97GMqI6auo7jIxOMiSIEWpx7SxTDewHJAlH1izQy3cwBVV8oQ==
+
 "@sveltejs/svelte-virtual-list@^3.0.1":
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/@sveltejs/svelte-virtual-list/-/svelte-virtual-list-3.0.1.tgz#3784d6426508836b4471bba8ba293430e73717d8"
@@ -402,11 +407,6 @@ css-tree@^2.3.1:
   dependencies:
     mdn-data "2.0.30"
     source-map-js "^1.0.1"
-
-dayjs@^1.10.6:
-  version "1.11.13"
-  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.13.tgz#92430b0139055c3ebb60150aa13e860a4b5a366c"
-  integrity sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==
 
 deepmerge@^4.2.2:
   version "4.3.1"
@@ -594,11 +594,6 @@ jackspeak@^3.1.2:
     "@isaacs/cliui" "^8.0.2"
   optionalDependencies:
     "@pkgjs/parseargs" "^0.11.0"
-
-just-throttle@^2.3.1:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/just-throttle/-/just-throttle-2.3.1.tgz#ef4a0710073bb4b0faf7dad1bc4ccabaeec4d0e6"
-  integrity sha512-0H4miIAWZYpnpg7oD/Y/PBb77ISSHAETif5xK9EnwIgYCO6oC8ErkJxDumMUTR44shSOwptRIArRuvNuvN/hOw==
 
 kleur@^3.0.0:
   version "3.0.3"
@@ -919,16 +914,8 @@ source-map@^0.6.0:
   resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.6.1.tgz#74722af32e9614e9c287a8d0bbde48b5e2f1a263"
   integrity sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==
 
-"string-width-cjs@npm:string-width@^4.2.0":
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
-  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
-  dependencies:
-    emoji-regex "^8.0.0"
-    is-fullwidth-code-point "^3.0.0"
-    strip-ansi "^6.0.1"
-
-string-width@^4.1.0:
+"string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -946,14 +933,8 @@ string-width@^5.0.1, string-width@^5.1.2:
     emoji-regex "^9.2.2"
     strip-ansi "^7.0.1"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
-  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
-  dependencies:
-    ansi-regex "^5.0.1"
-
-strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+  name strip-ansi-cjs
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -976,14 +957,6 @@ sv-bootstrap-modal@^1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sv-bootstrap-modal/-/sv-bootstrap-modal-1.0.3.tgz#e982822118dd5bb38698d49ac5aa10d2d25b7dfc"
   integrity sha512-HJfG1ZVunXY69qvZosW251I/npI+kAMBsPC/C9dy9KFuYWPKcKlLaLdbHMN1ms7FPwhKJoJqwX/275nRSAaCiQ==
-
-svelte-calendar@^3.1.6:
-  version "3.1.6"
-  resolved "https://registry.yarnpkg.com/svelte-calendar/-/svelte-calendar-3.1.6.tgz#bdbf949f19eae199d04860da7857abb5000e8444"
-  integrity sha512-jOHiPlxBAa1LGVFQZoczdAGnCSI2RKcuQQHj32TjLbXO/P2Povx4JphPEcP7XjKj/s/jimBC6xQyFhyjD0vxbg==
-  dependencies:
-    dayjs "^1.10.6"
-    just-throttle "^2.3.1"
 
 svelte-confirm@^0.0.0:
   version "0.0.0"

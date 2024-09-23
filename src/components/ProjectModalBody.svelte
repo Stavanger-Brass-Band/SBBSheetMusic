@@ -1,23 +1,33 @@
 <script>
-  import { Datepicker } from "svelte-calendar";
+  import { DatePicker } from "@svelte-plugins/datepicker";
   import moment from "moment";
 
   export let project;
 
-  if (project.startDate) project.startDate = new Date(project.startDate);
-  if (project.endDate) project.endDate = new Date(project.endDate);
-  let formattedStartDate = "";
-  let formattedEndDate = "";
+  let startDate = new Date();
+  let endDate = new Date();
 
-  let minDate = moment()
-    .subtract(1, "year")
-    .toDate();
+  if (project.startDate) startDate = new Date(project.startDate);
+  if (project.endDate) endDate = new Date(project.endDate);
 
-  let maxDate = moment()
-    .add(3, "year")
-    .toDate();
+  let isStartOpen = false;
+  let isEndOpen = false;
 
-  let format = "DD.MM.YYYY";
+  const toggleStartDate = () => (isStartOpen = !isStartOpen);
+  const toggleEndDate = () => (isEndOpen = !isEndOpen);
+
+  const formatStartDate = (dateString) => {
+    project.startDate = moment(dateString).toDate();
+    return dateString && moment(dateString).format('DD.MM.YYYY') || '';
+  };
+
+  const formatEndDate = (dateString) => {
+    project.endDate = moment(dateString).toDate();
+    return dateString && moment(dateString).format('DD.MM.YYYY') || '';
+  };
+
+  $: formattedStartDate = formatStartDate(startDate);
+  $: formattedEndDate = formatEndDate(endDate);
 </script>
 
 <div class="modal-body">
@@ -33,45 +43,15 @@
     </div>
     <div class="form-group">
       <label for="startDate" style="width:100%">Startdato</label>
-      <Datepicker
-        format={format}
-        start={minDate}
-        end={maxDate}
-        startOfWeekIndex={1}
-        let:key 
-        let:send 
-        let:receive
-        bind:selected={project.startDate}
-        bind:formatted={formattedStartDate}>
-          <button class="form-control" in:receive|local={{ key }} out:send|local={{ key }}>
-            {#if formattedStartDate}
-              {formattedStartDate}
-            {:else}
-              Velg dato
-            {/if}
-          </button>
-      </Datepicker>
+      <DatePicker bind:isOpen={isStartOpen} bind:startDate enableFutureDates >
+        <input class="form-control" type="text" bind:value={formattedStartDate} on:click={toggleStartDate} />
+      </DatePicker>
     </div>
     <div class="form-group">
       <label for="endDate" style="width:100%">Sluttdato</label>
-      <Datepicker
-        format={format}
-        start={minDate}
-        end={maxDate}
-        startOfWeekIndex={1}
-        let:key 
-        let:send 
-        let:receive
-        bind:selected={project.endDate}
-        bind:formatted={formattedEndDate}>
-          <button class="form-control w-100 d-block" in:receive|local={{ key }} out:send|local={{ key }}>
-            {#if formattedEndDate}
-              {formattedEndDate}
-            {:else}
-              Velg dato
-            {/if}
-          </button>
-      </Datepicker>
+      <DatePicker bind:isOpen={isEndOpen} bind:startDate={endDate} enableFutureDates>
+        <input class="form-control" type="text" bind:value={formattedEndDate} on:click={toggleEndDate} />
+      </DatePicker>
     </div>
   </form>
 </div>
