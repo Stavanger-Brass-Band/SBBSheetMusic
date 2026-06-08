@@ -11,14 +11,14 @@ architecture and deployment.
 
 ## Commands
 
-| Command           | What                                              |
-| ----------------- | ------------------------------------------------- |
-| `npm run dev`     | Vite dev server on **port 5100**                  |
-| `npm run build`   | Static build to `build/`                          |
-| `npm run check`   | `svelte-kit sync` + `svelte-check` (types)        |
-| `npm run lint`    | `prettier --check` + `eslint`                     |
-| `npm run format`  | `prettier --write`                                |
-| `npm run api:gen` | Regenerate API types from the live OpenAPI specs  |
+| Command           | What                                             |
+| ----------------- | ------------------------------------------------ |
+| `npm run dev`     | Vite dev server on **port 5100**                 |
+| `npm run build`   | Static build to `build/`                         |
+| `npm run check`   | `svelte-kit sync` + `svelte-check` (types)       |
+| `npm run lint`    | `prettier --check` + `eslint`                    |
+| `npm run format`  | `prettier --write`                               |
+| `npm run api:gen` | Regenerate API types from the live OpenAPI specs |
 
 **Always run `npm run check` and `npm run lint` before considering work done.**
 Both must be clean (0 errors). Run `npm run format` to fix Prettier issues.
@@ -95,7 +95,7 @@ accent (`#EA5B0C`).
   bridge in `app.css` (`primary`→brass, `gray`→ink). Don't reach for Flowbite
   when a bespoke `ui/` component exists.
 - Icons: **`@lucide/svelte`** (PascalCase imports, e.g. `import { Download } from
-  "@lucide/svelte"`). Do not reintroduce FontAwesome or Bootstrap.
+"@lucide/svelte"`). Do not reintroduce FontAwesome or Bootstrap.
 - Dates: `src/lib/utils/date.ts` (native `Intl` with `nb-NO`). **No moment.js.**
 
 ## Routing & auth
