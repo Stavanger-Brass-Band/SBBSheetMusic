@@ -1,0 +1,226 @@
+/* SBB design-system fonts (Oswald display, Hanken Grotesk text, JetBrains Mono). */
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@import "tailwindcss";
+
+@plugin "flowbite/plugin";
+@source "../node_modules/flowbite-svelte/dist";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Bridge the SBB palette into Tailwind/Flowbite so the remaining
+   Flowbite widgets (modal, dropdown, datepicker, select) adopt the
+   tuxedo neutrals + brass accent automatically.
+   ============================================================ */
+@theme {
+  --font-text: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-sans: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-display: "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Brass — primary brand accent */
+  --color-primary-50: #fdf2e8;
+  --color-primary-100: #fae0ca;
+  --color-primary-200: #f5bf93;
+  --color-primary-300: #f09c5a;
+  --color-primary-400: #ee7e2c;
+  --color-primary-500: #ea5b0c;
+  --color-primary-600: #cc4d08;
+  --color-primary-700: #a23d0a;
+  --color-primary-800: #79300e;
+  --color-primary-900: #4e2009;
+  --color-primary-950: #321505;
+
+  /* Neutral scale remapped to the tuxedo ink/paper scale */
+  --color-gray-50: #fafaf8;
+  --color-gray-100: #f4f4f2;
+  --color-gray-200: #e5e6e8;
+  --color-gray-300: #c7c9cd;
+  --color-gray-400: #9a9ca1;
+  --color-gray-500: #6c6e73;
+  --color-gray-600: #34363b;
+  --color-gray-700: #26272b;
+  --color-gray-800: #1c1d20;
+  --color-gray-900: #141416;
+  --color-gray-950: #0b0b0c;
+}
+
+/* ============================================================
+   SBB design tokens (verbatim from the design system).
+   "Tuxedo" — black-first monochrome with a single brass accent.
+   ============================================================ */
+:root {
+  --black: #0b0b0c;
+  --ink-900: #141416;
+  --ink-800: #1c1d20;
+  --ink-700: #26272b;
+  --ink-600: #34363b;
+  --gray-500: #6c6e73;
+  --gray-400: #9a9ca1;
+  --gray-300: #c7c9cd;
+  --gray-200: #e5e6e8;
+  --gray-150: #ecedee;
+  --gray-100: #f4f4f2;
+  --gray-50: #fafaf8;
+  --white: #ffffff;
+
+  --brass-50: #fdf2e8;
+  --brass-100: #fae0ca;
+  --brass-200: #f5bf93;
+  --brass-300: #f09c5a;
+  --brass-400: #ee7e2c;
+  --brass-500: #ea5b0c;
+  --brass-600: #cc4d08;
+  --brass-700: #a23d0a;
+  --brass-800: #79300e;
+  --brass-900: #4e2009;
+
+  --green-400: #58d79e;
+  --green-500: #2e7d5b;
+  --green-100: #dcefe6;
+  --red-400: #fb7059;
+  --red-500: #c8442f;
+  --red-100: #f6ded9;
+  --blue-400: #70b8e8;
+  --blue-500: #3e6b8c;
+  --blue-100: #dce8f0;
+
+  /* Semantic aliases — STAGE / TUXEDO is the default surface. */
+  --surface-page: var(--black);
+  --surface-card: var(--ink-800);
+  --surface-sunken: var(--ink-900);
+  --surface-inverse: var(--white);
+  --surface-hover: var(--ink-700);
+
+  --text-primary: var(--white);
+  --text-secondary: var(--gray-300);
+  --text-muted: var(--gray-400);
+  --text-inverse: var(--ink-900);
+  --text-on-accent: var(--white);
+
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --border-inverse: rgba(255, 255, 255, 0.14);
+
+  --accent: var(--brass-500);
+  --accent-hover: var(--brass-400);
+  --accent-press: var(--brass-300);
+  --accent-soft: rgba(234, 91, 12, 0.16);
+  --accent-on: var(--white);
+  --focus-ring: var(--brass-500);
+
+  --success: var(--green-400);
+  --success-soft: rgba(88, 215, 158, 0.22);
+  --danger: var(--red-400);
+  --danger-soft: rgba(251, 112, 89, 0.22);
+  --info: var(--blue-400);
+  --info-soft: rgba(112, 184, 232, 0.22);
+
+  /* Type */
+  --font-display: "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --font-text: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Spacing / radii / layout */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --container-max: 1140px;
+  --header-height: 72px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 14px 34px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 0 0 4px rgba(234, 91, 12, 0.18);
+  --ring-focus: 0 0 0 3px rgba(234, 91, 12, 0.45);
+
+  --shadow-paper:
+    0 1px 1px rgba(11, 11, 12, 0.15), 0 10px 0 -5px var(--gray-150),
+    0 10px 1px -4px rgba(11, 11, 12, 0.15), 0 20px 0 -10px var(--gray-150),
+    0 20px 1px -9px rgba(11, 11, 12, 0.15);
+  --shadow-paper-hover:
+    0 1px 1px rgba(11, 11, 12, 0.15), 0 15px 0 -5px var(--gray-150),
+    0 15px 1px -4px rgba(11, 11, 12, 0.15), 0 30px 0 -10px var(--gray-150),
+    0 30px 1px -9px rgba(11, 11, 12, 0.15);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+}
+
+/* ============================================================
+   Type role utilities (from the design system).
+   ============================================================ */
+.sbb-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text-primary);
+}
+.sbb-h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 48px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.sbb-h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 36px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.sbb-h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.sbb-overline {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
+}
+.sbb-mono {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-text);
+    color: var(--text-primary);
+    background-color: var(--surface-page);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--brass-500);
+    color: #fff;
+  }
+}
+
+@keyframes sbb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

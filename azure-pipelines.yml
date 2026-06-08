@@ -10,7 +10,7 @@ stages:
   - stage: BuildAndDeployToTest
     displayName: Build and publish to Test
     variables:
-      - name: SVELTE_APP_API_URL
+      - name: PUBLIC_API_BASE_URL
         value: "https://sheet-music-api-test.azurewebsites.net"
     jobs:
       - job: Build
@@ -24,14 +24,14 @@ stages:
             displayName: "Install Node.js"
 
           - script: |
-              npm install
+              npm ci
               npm run build
-            displayName: "npm install and build"
+            displayName: "npm ci and build"
 
           - task: ArchiveFiles@2
             displayName: "Package files into .zip archive"
             inputs:
-              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/public"
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/build"
               includeRootFolder: false
               archiveType: "zip"
               archiveFile: "$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_test.zip"
@@ -65,7 +65,7 @@ stages:
   - stage: BuildAndDeployToProduction
     displayName: Build and deploy to production
     variables:
-      - name: SVELTE_APP_API_URL
+      - name: PUBLIC_API_BASE_URL
         value: "https://sheet-music-api.azurewebsites.net"
     jobs:
       - job: Build
@@ -78,14 +78,14 @@ stages:
             displayName: "Install Node.js"
 
           - script: |
-              npm install
+              npm ci
               npm run build
-            displayName: "npm install and build"
+            displayName: "npm ci and build"
 
           - task: ArchiveFiles@2
             displayName: "Package files into .zip archive"
             inputs:
-              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/public"
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/build"
               includeRootFolder: false
               archiveType: "zip"
               archiveFile: "$(Build.ArtifactStagingDirectory)/$(Build.BuildId)_prod.zip"

@@ -1,8 +1,6 @@
 {
-    "svelteSortOrder" : "options-scripts-styles-markup",
-    "svelteStrictMode": true,
-    "svelteBracketNewLine": false,
-    "svelteAllowShorthand": false,
-    "svelteIndentScriptAndStyle": true,
-    "singleQuote": false
-  }
+  "useTabs": false,
+  "singleQuote": false,
+  "plugins": ["prettier-plugin-svelte"],
+  "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
+}

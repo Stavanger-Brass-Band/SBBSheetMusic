@@ -1,0 +1,8 @@
+# Build output and generated files
+build/
+.svelte-kit/
+package-lock.json
+
+# Generated from OpenAPI specs
+src/lib/api/schema.v1.d.ts
+src/lib/api/schema.v2.d.ts
