@@ -4,7 +4,7 @@
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { isActiveProject, formatDayMonth } from "$lib/utils/date";
-  import { Spinner } from "$lib/components/ui";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let loading = $state(false);
 
@@ -36,7 +36,7 @@
 </div>
 
 {#if loading}
-  <div class="center"><Spinner label="Laster prosjekter…" /></div>
+  <LoadingSpinner label="Laster prosjekter…" />
 {:else}
   <div class="grid">
     {#each catalog.activeProjects as project (project.id)}
@@ -90,12 +90,6 @@
     line-height: 1.6;
     color: var(--text-secondary);
   }
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 64px 0;
-  }
-
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));

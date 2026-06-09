@@ -1,25 +1,27 @@
 <script lang="ts">
-  import { Spinner } from "flowbite-svelte";
+  import { Spinner } from "$lib/components/ui";
 
-  let { inline = false }: { inline?: boolean } = $props();
+  // Section/page loading indicator. Built on the bespoke ui/Spinner so the app
+  // has a single spinner implementation.
+  let { label = "", inline = false }: { label?: string; inline?: boolean } =
+    $props();
 </script>
 
-{#if inline}
-  <div class="loader-container-inline"><Spinner size="8" /></div>
-{:else}
-  <div class="loader-container"><Spinner size="10" /></div>
-{/if}
+<div class="loader" class:inline>
+  {#if inline}
+    <Spinner size={24} />
+  {:else}
+    <Spinner {label} />
+  {/if}
+</div>
 
 <style>
-  .loader-container {
-    text-align: center;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  .loader {
+    display: flex;
+    justify-content: center;
+    padding: 64px 0;
   }
-
-  .loader-container-inline {
-    text-align: center;
+  .loader.inline {
+    padding: 24px 0;
   }
 </style>

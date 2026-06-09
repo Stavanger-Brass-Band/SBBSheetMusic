@@ -11,9 +11,11 @@
   } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
+  import { downloadSetZip } from "$lib/utils/download";
   import type { MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
-  import { Button, Spinner } from "$lib/components/ui";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import { Button } from "$lib/components/ui";
 
   const PAGE = 30;
   const ORDER = [{ field: "archiveNumber", direction: 0 as const }];
@@ -67,11 +69,6 @@
   onMount(() => runSearch());
   onDestroy(() => clearTimeout(searchTimer));
 
-  async function download(id: string, url: string) {
-    const downloadToken = await sheetMusic.getZipToken(id);
-    window.location.assign(url + "?downloadToken=" + downloadToken);
-  }
-
   async function saveNewSet() {
     const result = await sheetMusic.createSet(newSet as SetRequest);
     if (result) {
@@ -104,7 +101,7 @@
 </div>
 
 {#if loading}
-  <div class="center"><Spinner label="Laster arkiv…" /></div>
+  <LoadingSpinner label="Laster arkiv…" />
 {:else if items.length === 0}
   <p class="empty">
     {searchTerm.trim()
@@ -154,7 +151,7 @@
                       title="Last ned som ZIP"
                       onclick={(e) => {
                         e.stopPropagation();
-                        download(item.id!, item.zipDownloadUrl ?? "");
+                        downloadSetZip(item.id!, item.zipDownloadUrl ?? "");
                       }}
                     >
                       <Download size={15} /> Zip
@@ -204,11 +201,6 @@
   }
   .title {
     margin: 0;
-  }
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 64px 0;
   }
   .empty {
     color: var(--text-muted);

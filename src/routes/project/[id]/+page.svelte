@@ -4,7 +4,8 @@
   import { projects as projectsApi } from "$lib/api/projects";
   import { formatRange } from "$lib/utils/date";
   import type { Project } from "$lib/types";
-  import { Breadcrumb, Badge, SetCard, Spinner } from "$lib/components/ui";
+  import { Breadcrumb, Badge, SetCard } from "$lib/components/ui";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let id = $derived(page.params.id!);
   let project = $state<Project | undefined>();
@@ -27,7 +28,7 @@
 />
 
 {#if loading || !project}
-  <div class="center"><Spinner label="Laster prosjekt…" /></div>
+  <LoadingSpinner label="Laster prosjekt…" />
 {:else}
   <div class="head">
     <h1 class="sbb-h1 title">{project.name}</h1>
@@ -56,11 +57,6 @@
 {/if}
 
 <style>
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 64px 0;
-  }
   .head {
     display: flex;
     align-items: flex-end;

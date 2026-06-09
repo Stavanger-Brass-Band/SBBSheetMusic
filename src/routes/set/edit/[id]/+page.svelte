@@ -28,9 +28,10 @@
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { parts as partsApi } from "$lib/api/parts";
   import { catalog } from "$lib/stores/catalog.svelte";
-  import { downloadPdf } from "$lib/utils/download";
+  import { downloadSetPart, downloadSetZip } from "$lib/utils/download";
   import type { MusicSet, MusicSetPart, Part, SetRequest } from "$lib/types";
   import { Breadcrumb, Button, Spinner } from "$lib/components/ui";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
@@ -99,11 +100,7 @@
   async function downloadPart(part: MusicSetPart) {
     if (selectedPartForDownload === part) return;
     selectedPartForDownload = part;
-    const token = await sheetMusic.getZipToken(id);
-    if (token) {
-      const blob = await sheetMusic.getPartPdf(id, part.name ?? "", token);
-      downloadPdf(blob, `${set.title} - ${part.name}.pdf`);
-    }
+    await downloadSetPart(id, part.name ?? "", set.title ?? "");
     selectedPartForDownload = null;
   }
 
@@ -247,8 +244,7 @@
   }
 
   async function downloadAll() {
-    const token = await sheetMusic.getZipToken(id);
-    window.location.assign(`${set.zipDownloadUrl}?downloadToken=${token}`);
+    await downloadSetZip(id, set.zipDownloadUrl ?? "");
   }
 </script>
 
@@ -292,7 +288,7 @@
 />
 
 {#if loading}
-  <div class="center"><Spinner label="Laster notesett…" /></div>
+  <LoadingSpinner label="Laster notesett…" />
 {:else}
   <div class="head">
     <div class="head__main">
@@ -568,12 +564,6 @@
 </Modal>
 
 <style>
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 64px 0;
-  }
-
   /* ---- header ---- */
   .head {
     display: flex;

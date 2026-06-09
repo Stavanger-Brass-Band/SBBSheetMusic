@@ -4,9 +4,10 @@
   import { Headphones } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { downloadPdf } from "$lib/utils/download";
+  import { downloadSetPart } from "$lib/utils/download";
   import type { MusicSet, MusicSetPart, Project } from "$lib/types";
-  import { Breadcrumb, Button, PartTile, Spinner } from "$lib/components/ui";
+  import { Breadcrumb, Button, PartTile } from "$lib/components/ui";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let setId = $derived(page.params.id!);
   let projectId = $derived(page.params.projectId!);
@@ -25,16 +26,7 @@
   async function downloadPart(part: MusicSetPart) {
     if (selectedPartForDownload === part) return;
     selectedPartForDownload = part;
-
-    const downloadToken = await sheetMusic.getZipToken(setId);
-    if (downloadToken) {
-      const blob = await sheetMusic.getPartPdf(
-        setId,
-        part.name ?? "",
-        downloadToken,
-      );
-      downloadPdf(blob, `${set.title} - ${part.name}.pdf`);
-    }
+    await downloadSetPart(setId, part.name ?? "", set.title ?? "");
     selectedPartForDownload = null;
   }
 
@@ -96,7 +88,7 @@
 />
 
 {#if loading}
-  <div class="center"><Spinner label="Laster notesett…" /></div>
+  <LoadingSpinner label="Laster notesett…" />
 {:else}
   <div class="head">
     <div>
@@ -138,11 +130,6 @@
 {/if}
 
 <style>
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 64px 0;
-  }
   .head {
     display: flex;
     align-items: flex-end;
