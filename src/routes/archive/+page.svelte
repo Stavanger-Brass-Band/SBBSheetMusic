@@ -87,10 +87,7 @@
 </script>
 
 <div class="head">
-  <div>
-    <div class="sbb-overline">Notearkiv</div>
-    <h1 class="sbb-h1 title">Arkivliste</h1>
-  </div>
+  <h1 class="sbb-h1 title">Arkivliste</h1>
   {#if auth.isAdmin}
     <Button onclick={openModal}><Plus size={17} /> Nytt notesett</Button>
   {/if}

@@ -25,6 +25,37 @@ Both must be clean (0 errors). Run `npm run format` to fix Prettier issues.
 Use the **PowerShell** tool for commands (Windows); the Bash tool prints a
 harmless `ng completion` warning.
 
+## Code quality
+
+Write clean, readable, maintainable code. These apply everywhere:
+
+- **DRY — reuse what exists.** Before writing logic, check for an existing
+  helper/component and use it: API calls go through `src/lib/api/*` (never raw
+  `fetch` in components), dates through `src/lib/utils/date.ts`, PDF downloads
+  through `src/lib/utils/download.ts`, shared UI through
+  `src/lib/components/ui/*`. If you copy-paste a block, extract it instead.
+- **Rule of three / avoid premature abstraction.** Don't build a generic
+  abstraction for a single caller. Extract a helper/component once a pattern
+  genuinely repeats (≈3×). Keep it simple (KISS) and don't add config/options
+  nothing uses (YAGNI).
+- **Small, focused units.** One component/function does one thing. If a
+  component grows past a few responsibilities or a function past a screenful,
+  split it. Prefer pure functions; isolate side effects (API, navigation).
+- **Name things well.** Descriptive, intention-revealing names in the
+  codebase's language (Norwegian UI strings, English code identifiers). No
+  abbreviations that aren't already used here.
+- **Types over `any`.** Lean on the generated API types and `src/lib/types`.
+  Don't reach for `any`/`as` to silence the checker — model the data correctly.
+- **Handle the unhappy paths.** Cover loading, empty, and error states for
+  anything async (see existing pages for the pattern). Don't leave a spinner
+  that can hang forever.
+- **Comments explain _why_, not _what_.** The code says what; a comment
+  justifies a non-obvious choice, workaround, or constraint. Delete dead code
+  and stale comments rather than commenting them out.
+- **Match the surrounding code.** Mirror nearby files' structure, naming, and
+  idioms so the codebase reads as one hand. Let Prettier/ESLint format — don't
+  hand-format against them.
+
 ## Svelte 5 conventions (this is a runes codebase)
 
 - Use **runes**: `$state`, `$derived`, `$props`, `$effect`. No legacy

@@ -7,75 +7,87 @@
     Dropdown,
     DropdownItem,
     DropdownDivider,
-    Spinner,
-    Button,
-    Label,
-    Input,
-    Helper,
     Select,
-    Fileupload,
-    Card,
-    ButtonGroup,
-    InputAddon,
-    Table,
-    TableHead,
-    TableHeadCell,
-    TableBody,
-    TableBodyRow,
-    TableBodyCell,
   } from "flowbite-svelte";
-  import { Breadcrumb } from "$lib/components/ui";
   import {
-    TrashBinOutline,
-    DownloadOutline,
-    ExclamationCircleOutline,
-    CheckCircleOutline,
-    HeadphonesOutline,
-    AnnotationOutline,
-    ChevronDownOutline,
-  } from "flowbite-svelte-icons";
+    Check,
+    EllipsisVertical,
+    Pencil,
+    Trash2,
+    Download,
+    CloudUpload,
+    Upload,
+    Headphones,
+    FileText,
+    FileMusic,
+    CircleCheck,
+    CircleAlert,
+    Plus,
+    X,
+  } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { parts as partsApi } from "$lib/api/parts";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { downloadPdf } from "$lib/utils/download";
-  import type {
-    MusicSet,
-    MusicSetPart,
-    Part,
-    SetRequest,
-    UploadFile,
-  } from "$lib/types";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import type { MusicSet, MusicSetPart, Part, SetRequest } from "$lib/types";
+  import { Breadcrumb, Button, Spinner } from "$lib/components/ui";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   let id = $derived(page.params.id!);
 
   let set = $state<MusicSet>({});
+  let catalogParts = $state<Part[]>([]);
   let loading = $state(true);
-  let uploadComplete = $state(false);
-  let uploads = $state<UploadFile[]>([]);
-  let partSelectData = $state<Part[]>([]);
-  let isUploading = $state(false);
+
+  // Per-field autosave state for the two auto-saving Settinformasjon fields.
+  type SaveState = "idle" | "saving" | "saved";
+  let recordingSave = $state<SaveState>("idle");
+  let missingSave = $state<SaveState>("idle");
+  // The details dialog has its own explicit save flow.
+  let savingDetails = $state(false);
+
   let selectedPartForDownload = $state<MusicSetPart | null>(null);
-  let editSetModalIsOpen = $state(false);
-  let savingSet = $state(false);
+  let justAdded = $state<Set<string>>(new Set());
 
-  let confirmDeleteSetOpen = $state(false);
-  let confirmDeletePartOpen = $state(false);
-  let partToDelete = $state<MusicSetPart | null>(null);
+  let isUploading = $state(false);
+  let review = $state<{ file: File; name: string; match: string }[]>([]);
+  let fileInput: HTMLInputElement;
+  let dragging = $state(false);
 
-  let partItems = $derived(
-    partSelectData.map((p) => ({ value: p.id ?? "", name: p.name ?? "" })),
+  let detailsOpen = $state(false);
+  let draft = $state<Partial<MusicSet>>({});
+  let confirmDeleteOpen = $state(false);
+  let confirmRemovePartOpen = $state(false);
+  let partToRemove = $state<MusicSetPart | null>(null);
+
+  // Add a single part by picking it from the catalog, then uploading its PDF.
+  let addOpen = $state(false);
+  let addValue = $state("");
+  let pendingPart = $state("");
+  let addFileInput: HTMLInputElement;
+  let addingName = $state<string | null>(null);
+
+  // Stemmer shows only the parts actually present on the set.
+  let presentParts = $derived(set.parts ?? []);
+  let matchedCount = $derived(review.filter((r) => r.match).length);
+  // Catalog options for the Flowbite Select pickers.
+  let catalogItems = $derived(
+    catalogParts.map((p) => ({ value: p.name ?? "", name: p.name ?? "" })),
   );
 
   onMount(async () => {
     set = await sheetMusic.getSetWithParts(id);
     const result = await partsApi.list();
     result.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-    partSelectData = result;
+    catalogParts = result;
     loading = false;
   });
+
+  function flash(names: string[]) {
+    justAdded = new Set(names);
+    setTimeout(() => (justAdded = new Set()), 1500);
+  }
 
   async function reloadParts() {
     const result = await sheetMusic.getSetWithParts(id);
@@ -84,383 +96,942 @@
     catalog.updateMusicSet(set);
   }
 
-  async function removeSet() {
-    const result = await sheetMusic.deleteSet(id);
-    if (result.status === 200) {
-      catalog.removeMusicSetById(id);
-      goto("/archive");
-    }
-  }
-
-  function askRemovePart(part: MusicSetPart) {
-    partToDelete = part;
-    confirmDeletePartOpen = true;
-  }
-
-  async function removePart() {
-    const part = partToDelete;
-    if (!part) return;
-    const result = await sheetMusic.deletePart(id, part.musicPartId ?? "");
-    if (result.status === 204) {
-      set.parts = (set.parts ?? []).filter((p) => p !== part);
-    }
-    reloadParts();
-  }
-
-  function onFilesSelected(event: Event) {
-    const list = (event.currentTarget as HTMLInputElement).files;
-    if (!list) return;
-    uploads = Array.from(list).map((file) => ({ file, name: file.name }));
-    void suggestParts();
-  }
-
-  async function suggestParts() {
-    uploadComplete = false;
-    isUploading = true;
-    uploads = uploads.map((u) => ({ ...u, isCheckingStatus: true }));
-
-    const results = await Promise.all(
-      uploads.map((u) =>
-        partsApi.suggest(
-          u.name.replace(set.title ?? "", "").replace(".pdf", ""),
-        ),
-      ),
-    );
-
-    uploads = uploads.map((u, i) => ({
-      ...u,
-      isCheckingStatus: false,
-      suggestedPart: results[i],
-    }));
-    isUploading = false;
-  }
-
-  async function uploadFiles(event: SubmitEvent) {
-    event.preventDefault();
-    isUploading = true;
-
-    for (let i = 0; i < uploads.length; i++) {
-      const u = uploads[i];
-      if (!u.suggestedPart?.name) continue;
-
-      const result = await sheetMusic.uploadPartContent(
-        set.id!,
-        u.suggestedPart.name,
-        u.file,
-      );
-
-      if (result && "success" in result) {
-        uploads[i].uploadSuccess = true;
-      } else if (result && (result as Record<string, unknown>).Status === 409) {
-        uploads[i].uploadErrorMessage =
-          "Stemmen eksiterer allerede på notesettet";
-      }
-    }
-
-    isUploading = false;
-    uploadComplete = true;
-    reloadParts();
-  }
-
-  async function showPart(part: MusicSetPart) {
+  async function downloadPart(part: MusicSetPart) {
     if (selectedPartForDownload === part) return;
     selectedPartForDownload = part;
-
-    const downloadToken = await sheetMusic.getZipToken(id);
-    if (downloadToken) {
-      const blob = await sheetMusic.getPartPdf(
-        id,
-        part.name ?? "",
-        downloadToken,
-      );
+    const token = await sheetMusic.getZipToken(id);
+    if (token) {
+      const blob = await sheetMusic.getPartPdf(id, part.name ?? "", token);
       downloadPdf(blob, `${set.title} - ${part.name}.pdf`);
     }
     selectedPartForDownload = null;
   }
 
-  async function downloadAll() {
-    const downloadToken = await sheetMusic.getZipToken(id);
-    window.location.assign(
-      `${set.zipDownloadUrl}?downloadToken=${downloadToken}`,
+  function askRemovePart(part: MusicSetPart) {
+    partToRemove = part;
+    confirmRemovePartOpen = true;
+  }
+  async function removePart() {
+    const part = partToRemove;
+    if (!part) return;
+    const res = await sheetMusic.deletePart(id, part.musicPartId ?? "");
+    if (res.status === 204) await reloadParts();
+  }
+
+  // ---- bulk upload + auto-match ----
+  async function onFilesSelected(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    review = Array.from(files).map((f) => ({
+      file: f,
+      name: f.name,
+      match: "",
+    }));
+    const results = await Promise.all(
+      review.map((r) =>
+        partsApi.suggest(
+          r.name.replace(set.title ?? "", "").replace(".pdf", ""),
+        ),
+      ),
     );
+    review = review.map((r, i) => ({ ...r, match: results[i]?.name ?? "" }));
   }
 
-  function setSuggestedPart(upload: UploadFile, partId: string) {
-    upload.suggestedPart = partSelectData.find((p) => p.id === partId);
+  function assign(i: number, value: string) {
+    review[i] = { ...review[i], match: value };
+  }
+  function dropFile(i: number) {
+    review = review.filter((_, idx) => idx !== i);
   }
 
-  async function saveSet() {
-    savingSet = true;
-    const result = await sheetMusic.updateSet(set.id!, set as SetRequest);
-    savingSet = false;
-    if (result) {
-      editSetModalIsOpen = false;
-      set.title = result.title;
-      set.arranger = result.arranger;
-      set.composer = result.composer;
-      set.archiveNumber = result.archiveNumber;
-      catalog.updateMusicSet(set);
+  async function commit() {
+    isUploading = true;
+    const added: string[] = [];
+    for (const r of review) {
+      if (!r.match) continue;
+      const res = await sheetMusic.uploadPartContent(set.id!, r.match, r.file);
+      if (res && "success" in res) added.push(r.match);
+    }
+    isUploading = false;
+    review = [];
+    await reloadParts();
+    flash(added);
+  }
+
+  // ---- add single part from catalog ----
+  function openAdd() {
+    addValue = "";
+    addOpen = true;
+  }
+  function confirmAdd() {
+    const v = addValue.trim();
+    if (!v) return;
+    pendingPart = v;
+    addOpen = false;
+    addFileInput.click();
+  }
+  async function onAddFileSelected(files: FileList | null) {
+    const file = files?.[0];
+    const part = pendingPart;
+    pendingPart = "";
+    if (!file || !part) return;
+    addingName = part;
+    try {
+      const res = await sheetMusic.uploadPartContent(set.id!, part, file);
+      if (res && "success" in res) {
+        await reloadParts();
+        flash([part]);
+      }
+    } finally {
+      addingName = null;
     }
   }
 
-  // Debounced autosave for the inline "missing parts" / "recording url" fields.
-  let saveTimeout: ReturnType<typeof setTimeout> | undefined;
-  function debouncedSave() {
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => saveSet(), 1000);
+  // ---- settinformasjon per-field autosave ----
+  let recordingTimer: ReturnType<typeof setTimeout> | undefined;
+  let missingTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function scheduleRecordingSave() {
+    recordingSave = "saving";
+    clearTimeout(recordingTimer);
+    recordingTimer = setTimeout(() => persist("recording"), 800);
+  }
+  function scheduleMissingSave() {
+    missingSave = "saving";
+    clearTimeout(missingTimer);
+    missingTimer = setTimeout(() => persist("missing"), 800);
+  }
+  async function persist(field: "recording" | "missing") {
+    const res = await sheetMusic.updateSet(set.id!, set as SetRequest);
+    const ok = !!res;
+    if (ok) catalog.updateMusicSet(set);
+    if (field === "recording") recordingSave = ok ? "saved" : "idle";
+    else missingSave = ok ? "saved" : "idle";
   }
   onDestroy(() => {
-    if (saveTimeout) clearTimeout(saveTimeout);
+    clearTimeout(recordingTimer);
+    clearTimeout(missingTimer);
   });
+
+  // ---- details dialog ----
+  function openDetails() {
+    draft = {
+      title: set.title,
+      composer: set.composer,
+      arranger: set.arranger,
+      borrowedFrom: set.borrowedFrom,
+      archiveNumber: set.archiveNumber,
+    };
+    detailsOpen = true;
+  }
+  async function saveDetails() {
+    savingDetails = true;
+    const res = await sheetMusic.updateSet(set.id!, draft as SetRequest);
+    savingDetails = false;
+    if (res) {
+      set.title = res.title;
+      set.composer = res.composer;
+      set.arranger = res.arranger;
+      set.archiveNumber = res.archiveNumber;
+      set.borrowedFrom = res.borrowedFrom ?? set.borrowedFrom;
+      catalog.updateMusicSet(set);
+      detailsOpen = false;
+    }
+  }
+
+  async function removeSet() {
+    const res = await sheetMusic.deleteSet(id);
+    if (res.status === 200) {
+      catalog.removeMusicSetById(id);
+      goto("/archive");
+    }
+  }
+
+  async function downloadAll() {
+    const token = await sheetMusic.getZipToken(id);
+    window.location.assign(`${set.zipDownloadUrl}?downloadToken=${token}`);
+  }
 </script>
+
+<!-- bulk-upload (drop / velg filer) -->
+<input
+  bind:this={fileInput}
+  type="file"
+  multiple
+  accept="application/pdf"
+  hidden
+  onchange={(e) => {
+    onFilesSelected(e.currentTarget.files);
+    e.currentTarget.value = "";
+  }}
+/>
+<!-- single-file upload for "Legg til stemme" -->
+<input
+  bind:this={addFileInput}
+  type="file"
+  accept="application/pdf"
+  hidden
+  onchange={(e) => {
+    onAddFileSelected(e.currentTarget.files);
+    e.currentTarget.value = "";
+  }}
+/>
+{#snippet saveStatus(state: SaveState)}
+  {#if state === "saving"}
+    <span class="fsave saving"><Spinner size={12} inline /> Lagrer…</span>
+  {:else if state === "saved"}
+    <span class="fsave saved"><Check size={13} /> Lagret</span>
+  {/if}
+{/snippet}
 
 <Breadcrumb
   class="mb-6"
   items={[
     { label: "Arkivliste", href: "/archive" },
-    { label: `${set.archiveNumber} - ${set.title ?? "-"}` },
+    { label: `${set.archiveNumber ?? ""} · ${set.title ?? "-"}` },
   ]}
 />
 
 {#if loading}
-  <LoadingSpinner />
+  <div class="center"><Spinner label="Laster notesett…" /></div>
 {:else}
-  <div class="mb-6 flex items-start justify-between gap-4">
-    <div>
-      <h1 class="text-3xl font-semibold">{set.title}</h1>
-      <p class="text-lg text-gray-400">
-        {#if set.composer}{set.composer}{/if}
-        {#if set.composer && set.arranger},{/if}
-        {#if set.arranger}Arr. {set.arranger}{/if}
-      </p>
+  <div class="head">
+    <div class="head__main">
+      <h1 class="sbb-h2 title">{set.title}</h1>
+      <div class="byline">
+        {set.composer ?? "—"}{set.arranger ? ` · Arr. ${set.arranger}` : ""} · Arkivnr.
+        {set.archiveNumber}
+      </div>
     </div>
-    <div class="shrink-0">
-      <Button color="alternative">
-        Handlinger<ChevronDownOutline class="ms-2 h-4 w-4" />
-      </Button>
-      <Dropdown simple>
+    <div class="head__actions">
+      <button class="kebab" aria-label="Handlinger">
+        <EllipsisVertical size={18} />
+      </button>
+      <Dropdown simple class="min-w-52">
+        <DropdownItem onclick={openDetails}>
+          <span class="menu-row"><Pencil size={16} /> Rediger detaljer</span>
+        </DropdownItem>
         {#if set.hasBeenScanned}
-          <DropdownItem onclick={downloadAll}>Last ned alle notene</DropdownItem
-          >
+          <DropdownItem onclick={downloadAll}>
+            <span class="menu-row"><Download size={16} /> Last ned alle</span>
+          </DropdownItem>
         {/if}
-        <DropdownItem onclick={() => (editSetModalIsOpen = true)}
-          >Rediger</DropdownItem
-        >
         <DropdownDivider />
-        <DropdownItem onclick={() => (confirmDeleteSetOpen = true)}
-          >Slett</DropdownItem
+        <DropdownItem
+          class="text-red-400"
+          onclick={() => (confirmDeleteOpen = true)}
         >
+          <span class="menu-row"><Trash2 size={16} /> Slett notesett</span>
+        </DropdownItem>
       </Dropdown>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
-    <div>
-      <h4 class="mb-4 text-xl font-medium">Noter</h4>
-
-      {#if !set.parts || set.parts.length < 1}
-        <em class="text-gray-400">
-          Ingen tilknyttede noter til notesettet. Last opp notefiler for å
-          knytte dem til notesettet.
-        </em>
-      {:else}
-        <Table>
-          <TableHead>
-            <TableHeadCell>Stemme</TableHeadCell>
-            <TableHeadCell class="text-right">Handlinger</TableHeadCell>
-          </TableHead>
-          <TableBody>
-            {#each set.parts as part}
-              <TableBodyRow>
-                <TableBodyCell class="font-normal">{part.name}</TableBodyCell>
-                <TableBodyCell class="text-right">
-                  <div class="inline-flex gap-2">
-                    <Button
-                      size="xs"
-                      color="alternative"
-                      onclick={(e: MouseEvent) => {
-                        e.preventDefault();
-                        showPart(part);
-                      }}
-                    >
-                      {#if selectedPartForDownload === part}
-                        <Spinner size="4" />
-                      {:else}
-                        <DownloadOutline size="sm" />
-                      {/if}
-                    </Button>
-                    <Button
-                      size="xs"
-                      color="red"
-                      onclick={() => askRemovePart(part)}
-                    >
-                      <TrashBinOutline size="sm" />
-                    </Button>
-                  </div>
-                </TableBodyCell>
-              </TableBodyRow>
+  <div class="layout">
+    <!-- Stemmer (present parts only) -->
+    <section class="col-list panel">
+      <div class="panel__head">
+        <h2>Stemmer</h2>
+        <div class="head-right">
+          <span class="sbb-mono meta">
+            {presentParts.length}
+            {presentParts.length === 1 ? "stemme" : "stemmer"}
+          </span>
+          <button class="addbtn" onclick={openAdd}>
+            <Plus size={15} /> Legg til stemme
+          </button>
+        </div>
+      </div>
+      <div class="panel__body">
+        {#if presentParts.length === 0 && !addingName}
+          <div class="empty">
+            <span class="ic"><FileMusic size={34} strokeWidth={1.9} /></span>
+            <div class="t">Ingen stemmer enda</div>
+            <div class="s">
+              Last opp PDF-filer i panelet til høyre for å komme i gang.
+            </div>
+          </div>
+        {:else}
+          <div class="stemlist">
+            {#if addingName}
+              <div class="stem adding">
+                <span class="ficon loading"><Spinner size={16} inline /></span>
+                <div class="sbody">
+                  <div class="name">Laster opp {addingName}…</div>
+                </div>
+              </div>
+            {/if}
+            {#each presentParts as part}
+              <div class="stem" class:flash={justAdded.has(part.name ?? "")}>
+                <span class="ficon"><FileText size={18} /></span>
+                <div class="sbody">
+                  <div class="name">{part.name}</div>
+                </div>
+                <span class="acts">
+                  <button
+                    class="iconbtn"
+                    title="Last ned"
+                    onclick={() => downloadPart(part)}
+                  >
+                    {#if selectedPartForDownload === part}
+                      <Spinner size={16} inline />
+                    {:else}
+                      <Download size={17} />
+                    {/if}
+                  </button>
+                  <button
+                    class="iconbtn danger"
+                    title="Fjern"
+                    onclick={() => askRemovePart(part)}
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                </span>
+              </div>
             {/each}
-          </TableBody>
-        </Table>
-      {/if}
-    </div>
-
-    <div>
-      <form class="mb-6 space-y-4">
-        <h4 class="text-xl font-medium">Settinformasjon</h4>
-        <div>
-          <Label class="mb-2">Manglende noter</Label>
-          <ButtonGroup class="w-full">
-            <InputAddon><AnnotationOutline size="sm" /></InputAddon>
-            <Input
-              value={set.missingParts ?? ""}
-              oninput={(e) => {
-                set.missingParts = (e.currentTarget as HTMLInputElement).value;
-                debouncedSave();
-              }}
-              placeholder="Manglende noter..."
-            />
-          </ButtonGroup>
-        </div>
-        <div>
-          <Label class="mb-2">Lytteeksempel</Label>
-          <ButtonGroup class="w-full">
-            <InputAddon><HeadphonesOutline size="sm" /></InputAddon>
-            <Input
-              value={set.recordingUrl ?? ""}
-              oninput={(e) => {
-                set.recordingUrl = (e.currentTarget as HTMLInputElement).value;
-                debouncedSave();
-              }}
-              placeholder="Legg inn link til lytteeksempel..."
-            />
-          </ButtonGroup>
-        </div>
-        {#if savingSet}
-          <div class="flex items-center gap-2 text-sm text-gray-400">
-            <Spinner size="4" /> Lagrer...
           </div>
         {/if}
-      </form>
+      </div>
+    </section>
 
-      <Card class="w-full max-w-none p-4">
-        <h4 class="mb-3 text-lg font-medium">Last opp noter</h4>
-        <form onsubmit={uploadFiles} class="space-y-3">
-          <div>
-            <Label for="pdfFileInput" class="mb-2">Velg PDF filer</Label>
-            <Fileupload
-              id="pdfFileInput"
-              multiple
-              accept=".pdf"
-              onchange={onFilesSelected}
-            />
-            <Helper class="mt-2">
-              Her velges alle notefilene som skal knyttes til notesettet. Kun
-              PDF filer støttes.
-            </Helper>
+    <!-- Upload -->
+    <section class="col-upload panel">
+      <div class="panel__head"><h2>Last opp stemmer</h2></div>
+      <div class="panel__body">
+        <div
+          class="drop"
+          class:drag={dragging}
+          role="button"
+          tabindex="0"
+          onclick={() => fileInput.click()}
+          onkeydown={(e) => (e.key === "Enter" ? fileInput.click() : null)}
+          ondragover={(e) => {
+            e.preventDefault();
+            dragging = true;
+          }}
+          ondragleave={() => (dragging = false)}
+          ondrop={(e) => {
+            e.preventDefault();
+            dragging = false;
+            onFilesSelected(e.dataTransfer?.files ?? null);
+          }}
+        >
+          <span class="ic"><CloudUpload size={30} /></span>
+          <div class="t">
+            Dra PDF-filer hit, eller <span class="lnk">velg filer</span>
           </div>
+          <div class="s">
+            Vi matcher hver fil til riktig stemme automatisk ut fra filnavnet.
+            Kun PDF.
+          </div>
+        </div>
 
-          {#if uploads.length > 0}
-            <div class="flex items-center justify-between">
-              <span class="font-medium">Valgte filer</span>
-              <Button
-                size="xs"
-                color="alternative"
-                onclick={(e: MouseEvent) => {
-                  e.preventDefault();
-                  uploads = [];
-                }}
-              >
-                Nullstill
+        {#if review.length > 0}
+          <div class="review">
+            <div class="review__bar">
+              <span class="sum">
+                <b>{matchedCount}</b> av {review.length} filer matchet automatisk
+              </span>
+              <Button size="sm" onclick={commit} loading={isUploading}>
+                <Plus size={15} /> Legg til
               </Button>
             </div>
-            <div class="divide-y divide-gray-700">
-              {#each uploads as upload}
-                <div class="relative py-3 pr-10">
-                  <div>{upload.name}</div>
-                  {#if upload.suggestedPart && !upload.uploadSuccess && !upload.uploadErrorMessage}
-                    <div class="mt-2">
-                      {#if upload.suggestedPart.name}
-                        <span class="text-sm text-green-400">
-                          Stemme valgt. Kontroller før opplasting
-                        </span>
-                      {:else}
-                        <span
-                          class="inline-flex items-center gap-1 text-sm text-yellow-400"
-                        >
-                          <ExclamationCircleOutline size="sm" />
-                          Kunne ikke finne en stemme basert på filnavnet. Velg fra
-                          listen
-                        </span>
-                      {/if}
-                      {#if !isUploading && !upload.uploadErrorMessage}
-                        <Select
-                          class="mt-2"
-                          items={partItems}
-                          value={upload.suggestedPart.id ?? ""}
-                          placeholder="Velg en stemme..."
-                          onchange={(e) =>
-                            setSuggestedPart(upload, e.currentTarget.value)}
-                        />
-                      {/if}
+            {#each review as row, i}
+              <div
+                class="filerow"
+                class:matched={!!row.match}
+                class:unmatched={!row.match}
+              >
+                <span class="ficon"><FileText size={18} /></span>
+                <div class="fbody">
+                  <div class="fname">{row.name}</div>
+                  {#if row.match}
+                    <div class="fstatus">
+                      <CircleCheck size={13} /> Matchet til <b>{row.match}</b>
+                    </div>
+                  {:else}
+                    <div class="fstatus">
+                      <CircleAlert size={13} /> Fant ingen stemme — søk og velg
+                    </div>
+                    <div class="assign">
+                      <Select
+                        size="sm"
+                        items={catalogItems}
+                        value={row.match}
+                        placeholder="Velg stemme…"
+                        onchange={(e) => assign(i, e.currentTarget.value)}
+                      />
                     </div>
                   {/if}
-                  {#if upload.isCheckingStatus}
-                    <small class="text-gray-400">Finner stemme...</small>
-                  {/if}
-                  {#if upload.uploadSuccess}
-                    <small class="text-green-400">
-                      Lastet opp stemme: {upload.suggestedPart?.name}
-                    </small>
-                  {/if}
-                  {#if upload.uploadErrorMessage}
-                    <small class="text-red-400"
-                      >{upload.uploadErrorMessage}</small
-                    >
-                  {/if}
-                  <div class="absolute top-1/2 right-2 -translate-y-1/2">
-                    {#if (isUploading && !upload.uploadSuccess && !upload.uploadErrorMessage) || upload.isCheckingStatus}
-                      <Spinner size="5" />
-                    {:else if upload.uploadSuccess}
-                      <CheckCircleOutline class="text-green-400" />
-                    {:else if upload.uploadErrorMessage}
-                      <ExclamationCircleOutline class="text-red-400" />
-                    {/if}
-                  </div>
                 </div>
-              {/each}
-            </div>
+                <button class="rm" title="Fjern" onclick={() => dropFile(i)}>
+                  <X size={17} />
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </section>
 
-            {#if !uploadComplete}
-              <Button type="submit" disabled={isUploading}>Last opp</Button>
-            {/if}
-          {/if}
-        </form>
-      </Card>
-    </div>
+    <!-- Settinformasjon -->
+    <aside class="col-info panel">
+      <div class="panel__head"><h2>Settinformasjon</h2></div>
+      <div class="panel__body">
+        <div class="field">
+          <div class="labelrow">
+            <label for="recordingUrl">Lytteeksempel</label>
+            {@render saveStatus(recordingSave)}
+          </div>
+          <div class="ctrl">
+            <span class="ico"><Headphones size={16} /></span>
+            <input
+              id="recordingUrl"
+              class="in has-ico"
+              type="url"
+              placeholder="Lenke til lytteeksempel…"
+              value={set.recordingUrl ?? ""}
+              oninput={(e) => {
+                set.recordingUrl = e.currentTarget.value;
+                scheduleRecordingSave();
+              }}
+            />
+          </div>
+          <span class="hint">
+            Lenke til en innspilling medlemmene kan lytte til.
+          </span>
+        </div>
+        <div class="field">
+          <div class="labelrow">
+            <label for="missingParts">Manglende noter</label>
+            {@render saveStatus(missingSave)}
+          </div>
+          <textarea
+            id="missingParts"
+            class="in"
+            placeholder="F.eks. «Mangler 2. trombone og pauker — må scannes»."
+            value={set.missingParts ?? ""}
+            oninput={(e) => {
+              set.missingParts = e.currentTarget.value;
+              scheduleMissingSave();
+            }}
+          ></textarea>
+          <span class="hint">
+            Fritekst. Vises som notis til medlemmene på settsiden.
+          </span>
+        </div>
+      </div>
+    </aside>
   </div>
 {/if}
 
 <ConfirmDialog
-  bind:open={confirmDeleteSetOpen}
+  bind:open={confirmDeleteOpen}
   title="Er du sikker på at du vil slette notesettet?"
   description="Handlingen kan ikke reverseres!"
   onconfirm={removeSet}
 />
 
 <ConfirmDialog
-  bind:open={confirmDeletePartOpen}
-  title="Er du sikker på at du vil slette noten?"
-  description="Handlingen kan ikke reverseres!"
+  bind:open={confirmRemovePartOpen}
+  title="Fjern stemme?"
+  description={`Vil du fjerne «${partToRemove?.name ?? ""}» fra notesettet? Handlingen kan ikke reverseres.`}
+  confirmTitle="Fjern"
   onconfirm={removePart}
 />
 
-<Modal title="Oppdater notesett" bind:open={editSetModalIsOpen} size="sm">
-  <MusicSetModalBody {set} />
+<Modal title="Legg til stemme" bind:open={addOpen} size="xs">
+  <div class="field" style="margin-bottom:0">
+    <label for="addInput">Velg stemme fra katalogen</label>
+    <Select
+      id="addInput"
+      items={catalogItems}
+      bind:value={addValue}
+      placeholder="Velg stemme…"
+    />
+    <span class="hint"> Velg en stemme, last så opp PDF-en for den. </span>
+  </div>
   {#snippet footer()}
-    <Button onclick={saveSet}>Lagre</Button>
-    <Button color="alternative" onclick={() => (editSetModalIsOpen = false)}>
-      Lukk
-    </Button>
+    <Button onclick={confirmAdd}><Upload size={16} /> Velg fil</Button>
+    <Button variant="ghost" onclick={() => (addOpen = false)}>Avbryt</Button>
   {/snippet}
 </Modal>
+
+<Modal title="Rediger detaljer" bind:open={detailsOpen} size="sm">
+  <MusicSetModalBody set={draft} />
+  {#snippet footer()}
+    <Button onclick={saveDetails} loading={savingDetails}>
+      <Check size={16} /> Lagre detaljer
+    </Button>
+    <Button variant="ghost" onclick={() => (detailsOpen = false)}>Avbryt</Button
+    >
+  {/snippet}
+</Modal>
+
+<style>
+  .center {
+    display: flex;
+    justify-content: center;
+    padding: 64px 0;
+  }
+
+  /* ---- header ---- */
+  .head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .head__main {
+    min-width: 0;
+  }
+  .title {
+    margin: 0;
+    font-size: 30px;
+  }
+  .byline {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+  .head__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .labelrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .fsave {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+  }
+  .fsave.saving {
+    color: var(--text-muted);
+  }
+  .fsave.saved {
+    color: var(--success);
+  }
+  .kebab {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--dur-fast);
+  }
+  .kebab:hover {
+    background: var(--surface-hover);
+  }
+  .menu-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+  }
+  .menu-row :global(svg) {
+    flex-shrink: 0;
+  }
+
+  /* ---- layout ---- */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 408px;
+    grid-template-areas:
+      "list upload"
+      "list info"
+      "list .";
+    grid-template-rows: auto auto 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .col-list {
+    grid-area: list;
+  }
+  .col-upload {
+    grid-area: upload;
+  }
+  .col-info {
+    grid-area: info;
+  }
+
+  .panel {
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+  .panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .panel__head h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--text-primary);
+  }
+  .head-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .panel__head .meta {
+    font-size: 12px;
+  }
+  .panel__body {
+    padding: 18px 20px;
+  }
+
+  .addbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 13px;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      border-color var(--dur-fast),
+      background var(--dur-fast);
+  }
+  .addbtn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* ---- stemmer (present parts) ---- */
+  .stemlist {
+    display: flex;
+    flex-direction: column;
+  }
+  .stem {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 10px;
+    margin: 0 -10px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+  }
+  .stem:last-child {
+    border-bottom: none;
+  }
+  .stem .ficon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--surface-sunken);
+    color: var(--success);
+  }
+  .stem .ficon.loading {
+    color: var(--text-muted);
+  }
+  .stem.adding .name {
+    color: var(--text-secondary);
+  }
+  .stem .sbody {
+    flex: 1;
+    min-width: 0;
+  }
+  .stem .name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  @keyframes stemFlash {
+    0% {
+      background: var(--accent-soft);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+  .stem.flash {
+    animation: stemFlash 1.4s var(--ease-out);
+  }
+  .stem .acts {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .iconbtn {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--dur-fast);
+  }
+  .iconbtn:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+  }
+  .iconbtn.danger:hover {
+    color: var(--danger);
+    background: rgba(251, 112, 89, 0.12);
+  }
+
+  /* empty state */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .empty .ic {
+    color: var(--text-muted);
+    display: inline-flex;
+    margin-bottom: 12px;
+  }
+  .empty .t {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+  }
+  .empty .s {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  /* ---- upload ---- */
+  .drop {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast),
+      background var(--dur-fast);
+  }
+  .drop:hover,
+  .drop.drag {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .drop .ic {
+    color: var(--brass-500);
+    display: inline-flex;
+    margin-bottom: 8px;
+  }
+  .drop .t {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .drop .lnk {
+    color: var(--accent);
+  }
+  .drop .s {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .review {
+    margin-top: 16px;
+  }
+  .review__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .review__bar .sum {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .review__bar .sum b {
+    color: var(--success);
+  }
+  .filerow {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    background: var(--ink-900);
+  }
+  .filerow .ficon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+  }
+  .filerow.matched .ficon {
+    color: var(--success);
+  }
+  .filerow.unmatched .ficon {
+    color: var(--brass-400);
+  }
+  .filerow .fbody {
+    flex: 1;
+    min-width: 0;
+  }
+  .filerow .fname {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .filerow .fstatus {
+    font-size: 12px;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filerow.matched .fstatus {
+    color: var(--success);
+  }
+  .filerow.unmatched .fstatus {
+    color: var(--brass-400);
+  }
+  .filerow .assign {
+    margin-top: 8px;
+  }
+  .filerow .rm {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .filerow .rm:hover {
+    color: var(--danger);
+    background: rgba(251, 112, 89, 0.12);
+  }
+
+  /* ---- fields ---- */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 16px;
+  }
+  .field:last-child {
+    margin-bottom: 0;
+  }
+  .field label {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .field .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .ctrl {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .ctrl .ico {
+    position: absolute;
+    left: 13px;
+    color: var(--text-muted);
+    display: flex;
+    pointer-events: none;
+  }
+
+  .in {
+    width: 100%;
+    font-family: var(--font-text);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition:
+      border-color var(--dur-fast),
+      box-shadow var(--dur-fast);
+  }
+  input.in {
+    height: 44px;
+    padding: 0 14px;
+  }
+  input.in.has-ico {
+    padding-left: 40px;
+  }
+  textarea.in {
+    padding: 11px 14px;
+    min-height: 70px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  .in:focus {
+    border-color: var(--accent);
+    box-shadow: var(--ring-focus);
+  }
+
+  /* ---- responsive ---- */
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "upload"
+        "list"
+        "info";
+      grid-template-rows: auto auto auto;
+      gap: 16px;
+    }
+    .title {
+      font-size: 26px;
+    }
+    input.in {
+      height: 48px;
+      font-size: 16px;
+    }
+    textarea.in {
+      font-size: 16px;
+    }
+  }
+</style>

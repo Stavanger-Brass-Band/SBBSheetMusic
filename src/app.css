@@ -219,6 +219,14 @@
   }
 }
 
+/* Toned-down placeholders app-wide, so an empty field never reads as filled.
+   Unlayered (outside @layer) so it wins over Flowbite's layered utilities. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--gray-500);
+  opacity: 1;
+}
+
 @keyframes sbb-spin {
   to {
     transform: rotate(360deg);
