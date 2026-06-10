@@ -3,10 +3,15 @@
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
+  import { ThemeProvider } from "flowbite-svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import Header from "$lib/components/Header.svelte";
 
   let { children } = $props();
+
+  // App-wide Flowbite overrides: all dialog (Modal) footers right-align their
+  // actions.
+  const flowbiteTheme = { modal: { footer: "justify-end" } };
 
   // Client-side auth gate (replaces the old App.svelte onMount redirect).
   onMount(async () => {
@@ -18,14 +23,16 @@
   });
 </script>
 
-{#if auth.isAuthenticated}
-  <Header />
-  <main class="page">
+<ThemeProvider theme={flowbiteTheme}>
+  {#if auth.isAuthenticated}
+    <Header />
+    <main class="page">
+      {@render children()}
+    </main>
+  {:else}
     {@render children()}
-  </main>
-{:else}
-  {@render children()}
-{/if}
+  {/if}
+</ThemeProvider>
 
 <style>
   .page {

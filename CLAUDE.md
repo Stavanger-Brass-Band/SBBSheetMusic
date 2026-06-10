@@ -121,10 +121,14 @@ accent (`#EA5B0C`).
   `PartTile`). The signature object is `SetCard` (white stacked-sheet card).
 - Use **Tailwind utilities** for layout/spacing; component-specific visuals go in
   scoped `<style>` referencing the tokens.
-- **Flowbite Svelte** is allowed only for overlay widgets (Modal, Dropdown,
-  Datepicker, Select). It's re-skinned to the tuxedo palette via the `@theme`
-  bridge in `app.css` (`primary`→brass, `gray`→ink). Don't reach for Flowbite
-  when a bespoke `ui/` component exists.
+- **Prefer Flowbite Svelte for overlay & complex form widgets** — Modal,
+  Dropdown, Datepicker, Select — rather than hand-rolling native equivalents
+  (e.g. use Flowbite `Datepicker`, **not** `<input type="date">`; Flowbite
+  `Select`, not a bespoke combobox). It's re-skinned to the tuxedo palette via
+  the `@theme` bridge in `app.css` (`primary`→brass, `gray`→ink). The
+  `ProjectModalBody` (name + Flowbite Datepickers) is the shared project
+  create/edit form — reuse it. Still reach for the bespoke `ui/` primitives for
+  the basics (Button, Input, Badge, …) where they exist.
 - Icons: **`@lucide/svelte`** (PascalCase imports, e.g. `import { Download } from
 "@lucide/svelte"`). Do not reintroduce FontAwesome or Bootstrap.
 - Dates: `src/lib/utils/date.ts` (native `Intl` with `nb-NO`). **No moment.js.**

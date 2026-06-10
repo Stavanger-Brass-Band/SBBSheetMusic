@@ -41,22 +41,6 @@ export function formatDmy(date: DateInput): string {
   return dmyFmt.format(new Date(date));
 }
 
-function monthShort(d: Date): string {
-  return monthShortFmt.format(d).replace(".", "");
-}
-
-/**
- * Editorial date range for project cards, e.g. `9. feb – 14. feb 2027`.
- * A single-day project renders as just `2. des 2026`.
- */
-export function formatRange(start: DateInput, end: DateInput): string {
-  const s = new Date(start);
-  const e = new Date(end);
-  const endStr = `${e.getDate()}. ${monthShort(e)} ${e.getFullYear()}`;
-  if (s.getTime() === e.getTime()) return endStr;
-  return `${s.getDate()}. ${monthShort(s)} – ${endStr}`;
-}
-
 /**
  * Noon-UTC ISO string for persisting project dates, avoiding timezone
  * day-shifts. Replaces `moment(x).hour(12).utc().format()`.

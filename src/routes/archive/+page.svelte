@@ -83,10 +83,12 @@
   }
 </script>
 
-<div class="head">
-  <h1 class="sbb-h1 title">Arkivliste</h1>
+<div class="sbb-list-head">
+  <h1 class="sbb-h1">Arkivliste</h1>
   {#if auth.isAdmin}
-    <Button onclick={openModal}><Plus size={17} /> Nytt notesett</Button>
+    <Button class="create-btn" onclick={openModal}>
+      <Plus size={17} /> Nytt notesett
+    </Button>
   {/if}
 </div>
 
@@ -109,8 +111,8 @@
       : "Arkivet er tomt."}
   </p>
 {:else}
-  <div class="table-wrap">
-    <table>
+  <div class="sbb-table-wrap">
+    <table class="sbb-table">
       <thead>
         <tr>
           <th class="c-nr">Nr.</th>
@@ -191,17 +193,6 @@
 </Modal>
 
 <style>
-  .head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .title {
-    margin: 0;
-  }
   .empty {
     color: var(--text-muted);
   }
@@ -235,46 +226,6 @@
   .search input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(234, 91, 12, 0.18);
-  }
-  .table-wrap {
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  thead th {
-    text-align: left;
-    padding: 14px 18px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    background: var(--surface-sunken);
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  tbody td {
-    padding: 14px 18px;
-    font-size: 14px;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border-subtle);
-    vertical-align: middle;
-  }
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-  tbody tr {
-    transition: background var(--dur-fast);
-  }
-  tbody tr:hover {
-    background: var(--surface-hover);
-  }
-  tr.clickable {
-    cursor: pointer;
   }
   .c-nr {
     font-family: var(--font-mono);

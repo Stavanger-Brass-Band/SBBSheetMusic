@@ -3,7 +3,6 @@
   import { goto } from "$app/navigation";
   import {
     Modal,
-    Button,
     Table,
     TableHead,
     TableHeadCell,
@@ -11,9 +10,11 @@
     TableBodyRow,
     TableBodyCell,
   } from "flowbite-svelte";
+  import { Plus } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { formatDmy, toApiDate } from "$lib/utils/date";
   import type { NewProjectRequest, Project } from "$lib/types";
+  import { Button } from "$lib/components/ui";
   import ProjectModalBody from "$lib/components/ProjectModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
@@ -22,6 +23,9 @@
   let newProject = $state<Partial<Project>>({});
   let isOpen = $state(false);
   let isSaving = $state(false);
+  let canSave = $derived(
+    !!newProject.name?.trim() && !!newProject.startDate && !!newProject.endDate,
+  );
 
   onMount(async () => {
     const data = await projectsApi.list();
@@ -36,6 +40,7 @@
   });
 
   async function saveNewProject() {
+    if (!canSave) return;
     isSaving = true;
     const body: NewProjectRequest = {
       name: newProject.name ?? null,
@@ -57,12 +62,14 @@
   }
 </script>
 
-<div class="mb-6 flex items-center justify-between">
-  <h1 class="text-3xl font-semibold">Prosjekter</h1>
-  <Button size="sm" onclick={openModal}>+ Nytt prosjekt</Button>
+<div class="sbb-list-head">
+  <h1 class="sbb-h1">Prosjekter</h1>
+  <Button class="create-btn" onclick={openModal}>
+    <Plus size={17} /> Nytt prosjekt
+  </Button>
 </div>
 
-<Table hoverable>
+<Table class="sbb-table" divClass="sbb-table-wrap">
   <TableHead>
     <TableHeadCell>Navn</TableHeadCell>
     <TableHeadCell>Startdato</TableHeadCell>
@@ -71,16 +78,12 @@
   <TableBody>
     {#each projects as project (project.id)}
       <TableBodyRow
-        class="cursor-pointer"
+        class="clickable"
         onclick={() => goto("/project/edit/" + project.id)}
       >
-        <TableBodyCell class="font-normal">{project.name}</TableBodyCell>
-        <TableBodyCell class="font-normal"
-          >{formatDmy(project.startDate)}</TableBodyCell
-        >
-        <TableBodyCell class="font-normal"
-          >{formatDmy(project.endDate)}</TableBodyCell
-        >
+        <TableBodyCell>{project.name}</TableBodyCell>
+        <TableBodyCell>{formatDmy(project.startDate)}</TableBodyCell>
+        <TableBodyCell>{formatDmy(project.endDate)}</TableBodyCell>
       </TableBodyRow>
     {/each}
   </TableBody>
@@ -90,10 +93,12 @@
   <LoadingSpinner />
 {/if}
 
-<Modal title="Nytt prosjekt" bind:open={isOpen} size="sm">
+<Modal title="Nytt prosjekt" bind:open={isOpen} size="md">
   <ProjectModalBody project={newProject} />
   {#snippet footer()}
-    <Button disabled={isSaving} onclick={saveNewProject}>Lagre</Button>
-    <Button color="alternative" onclick={() => (isOpen = false)}>Lukk</Button>
+    <Button loading={isSaving} disabled={!canSave} onclick={saveNewProject}>
+      Lagre
+    </Button>
+    <Button variant="ghost" onclick={() => (isOpen = false)}>Lukk</Button>
   {/snippet}
 </Modal>

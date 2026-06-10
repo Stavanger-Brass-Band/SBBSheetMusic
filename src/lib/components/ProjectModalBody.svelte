@@ -35,12 +35,28 @@
       placeholder="Skriv her"
     />
   </div>
-  <div>
-    <Label class="mb-2">Startdato</Label>
-    <Datepicker bind:value={startDate} locale="nb-NO" placeholder="Velg dato" />
-  </div>
-  <div>
-    <Label class="mb-2">Sluttdato</Label>
-    <Datepicker bind:value={endDate} locale="nb-NO" placeholder="Velg dato" />
+  <div class="dates">
+    <div>
+      <Label class="mb-2">Startdato</Label>
+      <Datepicker bind:value={startDate} locale="nb-NO" inline />
+    </div>
+    <div>
+      <Label class="mb-2">Sluttdato</Label>
+      <Datepicker bind:value={endDate} locale="nb-NO" inline />
+    </div>
   </div>
 </form>
+
+<style>
+  /* Two inline calendars side by side on desktop, stacked on mobile. */
+  .dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .dates {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

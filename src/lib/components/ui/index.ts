@@ -6,3 +6,4 @@ export { default as Breadcrumb } from "./Breadcrumb.svelte";
 export { default as Spinner } from "./Spinner.svelte";
 export { default as SetCard } from "./SetCard.svelte";
 export { default as PartTile } from "./PartTile.svelte";
+export { default as DateRangeBoxes } from "./DateRangeBoxes.svelte";

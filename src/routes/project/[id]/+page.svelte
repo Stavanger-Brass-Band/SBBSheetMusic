@@ -2,9 +2,13 @@
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { formatRange } from "$lib/utils/date";
   import type { Project } from "$lib/types";
-  import { Breadcrumb, Badge, SetCard } from "$lib/components/ui";
+  import {
+    Breadcrumb,
+    Badge,
+    SetCard,
+    DateRangeBoxes,
+  } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let id = $derived(page.params.id!);
@@ -34,9 +38,7 @@
     <h1 class="sbb-h1 title">{project.name}</h1>
     <div class="meta">
       <Badge variant="success" dot>Aktiv</Badge>
-      <span class="sbb-mono"
-        >{formatRange(project.startDate, project.endDate)}</span
-      >
+      <DateRangeBoxes start={project.startDate} end={project.endDate} />
     </div>
   </div>
 
@@ -72,10 +74,7 @@
   .meta {
     display: flex;
     align-items: center;
-    gap: 10px;
-  }
-  .meta .sbb-mono {
-    font-size: 13px;
+    gap: 12px;
   }
   .grid {
     display: grid;

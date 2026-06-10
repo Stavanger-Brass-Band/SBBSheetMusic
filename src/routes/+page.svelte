@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Folder, FolderOpen, ArrowRight, ChevronRight } from "@lucide/svelte";
+  import { Folder, FolderOpen, ChevronRight } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { isActiveProject, formatDayMonth } from "$lib/utils/date";
+  import { isActiveProject } from "$lib/utils/date";
+  import { DateRangeBoxes } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let loading = $state(false);
@@ -40,8 +41,6 @@
 {:else}
   <div class="grid">
     {#each catalog.activeProjects as project (project.id)}
-      {@const start = formatDayMonth(project.startDate)}
-      {@const end = formatDayMonth(project.endDate)}
       <a class="pcard" href={`/project/${project.id}`}>
         <div class="pcard__top">
           <span class="pcard__folder">
@@ -54,17 +53,7 @@
 
         <div class="pcard__name">{project.name}</div>
 
-        <div class="daterange">
-          <div class="dbox">
-            <span class="m">{start.monthShort}</span>
-            <span class="d">{start.day}</span>
-          </div>
-          <span class="arr"><ArrowRight size={18} /></span>
-          <div class="dbox">
-            <span class="m">{end.monthShort}</span>
-            <span class="d">{end.day}</span>
-          </div>
-        </div>
+        <DateRangeBoxes start={project.startDate} end={project.endDate} />
 
         <div class="pcard__foot">
           <span class="pcard__cta">Se noter</span>
@@ -145,45 +134,6 @@
     text-underline-offset: 3px;
   }
 
-  .daterange {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .dbox {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 50px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .dbox .m {
-    width: 100%;
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-secondary);
-    background: var(--surface-sunken);
-    padding: 3px 0;
-  }
-  .dbox .d {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 22px;
-    color: var(--text-primary);
-    padding: 4px 0 5px;
-    line-height: 1;
-  }
-  .daterange .arr {
-    color: var(--text-muted);
-    display: inline-flex;
-  }
-
   .pcard__foot {
     display: flex;
     align-items: center;
@@ -195,9 +145,6 @@
   .pcard__cta {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-secondary);
-  }
-  .pcard:hover .pcard__cta {
     color: var(--brass-500);
   }
   .pcard__arrow {

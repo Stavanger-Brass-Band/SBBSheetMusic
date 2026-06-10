@@ -227,6 +227,83 @@ textarea::placeholder {
   opacity: 1;
 }
 
+/* ============================================================
+   Editorial table skin (the "Arkivliste" look) for Flowbite tables.
+   Unlayered so it overrides Flowbite's layered utilities; scoped to the
+   `.sbb-table` class so it never touches other tables (e.g. the Datepicker
+   calendar). Apply with <Table class="sbb-table" divClass="sbb-table-wrap">,
+   or on a plain <table class="sbb-table"> inside a .sbb-table-wrap.
+   ============================================================ */
+.sbb-table-wrap {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.sbb-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+.sbb-table thead th {
+  text-align: left;
+  padding: 14px 18px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sbb-table tbody td {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+.sbb-table tbody tr {
+  background: var(--surface-card);
+  transition: background var(--dur-fast);
+}
+.sbb-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+.sbb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.sbb-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+/* ============================================================
+   List-page header — title on the left, a primary "create" action on
+   the right. Shared by Arkivliste / Prosjekter / Brukere so the three
+   pages stay identical. On mobile the title shrinks and the create
+   button compacts so they sit on one line.
+   ============================================================ */
+.sbb-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+@media (max-width: 640px) {
+  .sbb-list-head .sbb-h1 {
+    font-size: 30px;
+  }
+  /* `!important` to beat the bespoke Button's `.btn.md` size rule. */
+  .create-btn {
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+  }
+}
+
 @keyframes sbb-spin {
   to {
     transform: rotate(360deg);

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
-    Button,
     Table,
     TableHead,
     TableHeadCell,
@@ -9,8 +8,10 @@
     TableBodyRow,
     TableBodyCell,
   } from "flowbite-svelte";
+  import { Plus } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
   import type { User } from "$lib/types";
+  import { Button } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let users = $state<User[]>([]);
@@ -28,12 +29,14 @@
   }
 </script>
 
-<div class="mb-6 flex items-center justify-between">
-  <h1 class="text-3xl font-semibold">Brukere</h1>
-  <Button size="sm" onclick={openModal}>+ Legg til bruker</Button>
+<div class="sbb-list-head">
+  <h1 class="sbb-h1">Brukere</h1>
+  <Button class="create-btn" onclick={openModal}>
+    <Plus size={17} /> Legg til bruker
+  </Button>
 </div>
 
-<Table>
+<Table class="sbb-table" divClass="sbb-table-wrap">
   <TableHead>
     <TableHeadCell>Navn</TableHeadCell>
     <TableHeadCell>E-post</TableHeadCell>
@@ -42,9 +45,9 @@
   <TableBody>
     {#each users as user (user.id)}
       <TableBodyRow>
-        <TableBodyCell class="font-normal">{user.name}</TableBodyCell>
-        <TableBodyCell class="font-normal">{user.email}</TableBodyCell>
-        <TableBodyCell class="font-normal">{user.inactive}</TableBodyCell>
+        <TableBodyCell>{user.name}</TableBodyCell>
+        <TableBodyCell>{user.email}</TableBodyCell>
+        <TableBodyCell>{user.inactive}</TableBodyCell>
       </TableBodyRow>
     {/each}
   </TableBody>
