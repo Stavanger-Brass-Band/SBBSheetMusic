@@ -1,11 +1,13 @@
 <script lang="ts">
   import "../app.css";
   import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { ThemeProvider } from "flowbite-svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import Header from "$lib/components/Header.svelte";
+  import { pageFade } from "$lib/utils/motion";
 
   let { children } = $props();
 
@@ -26,9 +28,11 @@
 <ThemeProvider theme={flowbiteTheme}>
   {#if auth.isAuthenticated}
     <Header />
-    <main class="page">
-      {@render children()}
-    </main>
+    {#key page.url.pathname}
+      <main class="page" in:fade={pageFade()}>
+        {@render children()}
+      </main>
+    {/key}
   {:else}
     {@render children()}
   {/if}

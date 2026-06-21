@@ -1,10 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
   import { page } from "$app/state";
+  import { Music } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import type { Project } from "$lib/types";
-  import { Breadcrumb, SetCard, DateRangeBoxes } from "$lib/components/ui";
+  import {
+    Breadcrumb,
+    SetCard,
+    DateRangeBoxes,
+    EmptyState,
+  } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import { cardEnter } from "$lib/utils/motion";
 
   let id = $derived(page.params.id!);
   let project = $state<Project | undefined>();
@@ -42,17 +50,24 @@
 
   {#if project.sets && project.sets.length > 0}
     <div class="grid">
-      {#each project.sets as set (set.id)}
-        <SetCard
-          title={set.title}
-          composer={set.composer}
-          arranger={set.arranger}
-          href={`/project/${project.id}/set/${set.id}`}
-        />
+      {#each project.sets as set, index (set.id)}
+        <div in:fly={cardEnter(index)}>
+          <SetCard
+            title={set.title}
+            composer={set.composer}
+            arranger={set.arranger}
+            href={`/project/${project.id}/set/${set.id}`}
+          />
+        </div>
       {/each}
     </div>
   {:else}
-    <p class="empty">Ingen noter tilknyttet prosjektet enda.</p>
+    <EmptyState
+      title="Ingen noter enda"
+      description="Det er ikke knyttet noter til dette prosjektet enda."
+    >
+      {#snippet icon()}<Music size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
   {/if}
 {/if}
 
@@ -88,8 +103,5 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 18px 14px;
     }
-  }
-  .empty {
-    color: var(--text-muted);
   }
 </style>

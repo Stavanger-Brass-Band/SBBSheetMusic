@@ -219,6 +219,26 @@
   }
 }
 
+/* Honour the OS "reduce motion" setting: neutralise transitions and decorative
+   animations app-wide so the entrance/hover motion never causes discomfort.
+   The loading spinners (`.ring`, `.spin`) are re-enabled below — a small ring is
+   within reduced-motion tolerances and still needs to read as "in progress". */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ring,
+  .spin {
+    animation-duration: 0.7s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
 /* Toned-down placeholders app-wide, so an empty field never reads as filled.
    Unlayered (outside @layer) so it wins over Flowbite's layered utilities. */
 input::placeholder,

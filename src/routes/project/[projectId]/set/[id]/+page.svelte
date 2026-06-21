@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { page } from "$app/state";
-  import { Headphones } from "@lucide/svelte";
+  import { Headphones, ScanLine } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { downloadSetPart } from "$lib/utils/download";
   import type { MusicSet, MusicSetPart, Project } from "$lib/types";
-  import { Breadcrumb, Button, PartTile } from "$lib/components/ui";
+  import { Breadcrumb, Button, PartTile, EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let setId = $derived(page.params.id!);
@@ -14,7 +14,11 @@
 
   let set = $state<MusicSet>({});
   let project = $state<Project | undefined>();
-  let selectedPartForDownload = $state<MusicSetPart | null>(null);
+  let downloadingPart = $state<MusicSetPart | null>(null);
+  // The part whose download just finished — shows a success check that the
+  // timer below clears after a moment.
+  let completedPart = $state<MusicSetPart | null>(null);
+  let completedTimer: ReturnType<typeof setTimeout> | undefined;
   let loading = $state(true);
 
   onMount(async () => {
@@ -23,11 +27,25 @@
     loading = false;
   });
 
+  onDestroy(() => clearTimeout(completedTimer));
+
   async function downloadPart(part: MusicSetPart) {
-    if (selectedPartForDownload === part) return;
-    selectedPartForDownload = part;
-    await downloadSetPart(setId, part.name ?? "", set.title ?? "");
-    selectedPartForDownload = null;
+    if (downloadingPart === part) return;
+    downloadingPart = part;
+    try {
+      await downloadSetPart(setId, part.name ?? "", set.title ?? "");
+      completedPart = part;
+      clearTimeout(completedTimer);
+      completedTimer = setTimeout(() => (completedPart = null), 1600);
+    } finally {
+      downloadingPart = null;
+    }
+  }
+
+  function partStatus(part: MusicSetPart): "idle" | "loading" | "done" {
+    if (downloadingPart === part) return "loading";
+    if (completedPart === part) return "done";
+    return "idle";
   }
 
   function getPartImageUrl(part: MusicSetPart): string {
@@ -118,13 +136,18 @@
           <PartTile
             name={part.name}
             instrument={getPartImageUrl(part)}
-            loading={selectedPartForDownload === part}
+            status={partStatus(part)}
             onclick={() => downloadPart(part)}
           />
         {/each}
       </div>
     {:else}
-      <p class="empty">Notene til dette settet har enda ikke blitt scannet.</p>
+      <EmptyState
+        title="Ikke skannet enda"
+        description="Notene til dette settet har ikke blitt skannet inn i arkivet enda."
+      >
+        {#snippet icon()}<ScanLine size={28} strokeWidth={1.6} />{/snippet}
+      </EmptyState>
     {/if}
   </div>
 {/if}
@@ -170,9 +193,5 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
-  }
-  .empty {
-    color: var(--gray-400);
-    margin: 0;
   }
 </style>

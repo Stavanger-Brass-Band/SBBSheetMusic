@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
   import { Folder, FolderOpen, ChevronRight } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { isActiveProject } from "$lib/utils/date";
-  import { DateRangeBoxes } from "$lib/components/ui";
+  import { DateRangeBoxes, EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import { cardEnter } from "$lib/utils/motion";
 
   let loading = $state(false);
 
@@ -38,10 +40,21 @@
 
 {#if loading}
   <LoadingSpinner label="Laster prosjekter…" />
+{:else if catalog.activeProjects.length === 0}
+  <EmptyState
+    title="Ingen aktive prosjekter"
+    description="Når korpset har et aktivt prosjekt med noter, dukker det opp her."
+  >
+    {#snippet icon()}<FolderOpen size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
 {:else}
   <div class="grid">
-    {#each catalog.activeProjects as project (project.id)}
-      <a class="pcard" href={`/project/${project.id}`}>
+    {#each catalog.activeProjects as project, index (project.id)}
+      <a
+        class="pcard"
+        href={`/project/${project.id}`}
+        in:fly={cardEnter(index)}
+      >
         <div class="pcard__top">
           <span class="pcard__folder">
             <span class="f-closed"><Folder size={30} strokeWidth={1.9} /></span>

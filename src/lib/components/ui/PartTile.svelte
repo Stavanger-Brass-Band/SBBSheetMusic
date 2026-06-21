@@ -1,27 +1,31 @@
 <script lang="ts">
-  import { Download } from "@lucide/svelte";
+  import { Download, Check } from "@lucide/svelte";
   import Avatar from "./Avatar.svelte";
   import Spinner from "./Spinner.svelte";
 
+  // `status` drives the trailing icon so the central download action gets a
+  // payoff: download → spinner → a brief success check → back to download.
   let {
     name = "",
     instrument = "",
-    loading = false,
+    status = "idle",
     onclick,
   }: {
     name?: string | null;
     instrument?: string;
-    loading?: boolean;
+    status?: "idle" | "loading" | "done";
     onclick?: (e: MouseEvent) => void;
   } = $props();
 </script>
 
-<button type="button" class="tile" {onclick}>
+<button type="button" class="tile" class:done={status === "done"} {onclick}>
   <Avatar src={instrument} alt={name ?? ""} size={52} />
   <span class="name">{name}</span>
   <span class="action">
-    {#if loading}
+    {#if status === "loading"}
       <Spinner size={18} inline />
+    {:else if status === "done"}
+      <Check size={20} />
     {:else}
       <Download size={20} />
     {/if}
@@ -60,5 +64,24 @@
   }
   .tile:hover .action {
     color: var(--brass-500);
+  }
+  /* Success: the check reads green and pops in, then the parent flips back to
+     idle after a moment. */
+  .tile.done .action {
+    color: var(--success);
+    animation: tile-check-pop var(--dur-base) var(--ease-out);
+  }
+  .tile.done:hover .action {
+    color: var(--success);
+  }
+  @keyframes tile-check-pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 </style>

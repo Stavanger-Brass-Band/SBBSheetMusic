@@ -2,14 +2,22 @@
   import { onMount, onDestroy } from "svelte";
   import { goto } from "$app/navigation";
   import { Modal } from "flowbite-svelte";
-  import { Search, Plus, Download, CheckCircle } from "@lucide/svelte";
+  import {
+    Search,
+    SearchX,
+    Library,
+    Plus,
+    Download,
+    Check,
+    CheckCircle,
+  } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { downloadSetZip } from "$lib/utils/download";
   import type { MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import { Button, Spinner } from "$lib/components/ui";
+  import { Button, Spinner, EmptyState } from "$lib/components/ui";
 
   const PAGE = 30;
   const ORDER = [{ field: "archiveNumber", direction: 0 as const }];
@@ -17,13 +25,21 @@
   let searchTerm = $state("");
   let items = $state<MusicSet[]>([]);
   let skip = $state(0);
+  // `loading` is the first paint only (full-page spinner). `searching` covers
+  // every later (debounced) query — it shows an inline indicator in the search
+  // field and keeps the current results on screen, so typing never blanks the
+  // table.
   let loading = $state(true);
+  let searching = $state(false);
   let loadingMore = $state(false);
   let hasMore = $state(false);
 
   // Id of the set whose ZIP is currently being prepared (token fetch), so its
   // download button can show a spinner.
   let downloadingId = $state<string | null>(null);
+  // Id of the set whose ZIP just downloaded — shows a brief success check.
+  let completedId = $state<string | null>(null);
+  let completedTimer: ReturnType<typeof setTimeout> | undefined;
 
   let newSet = $state<Partial<MusicSet>>({});
   let isOpen = $state(false);
@@ -31,7 +47,7 @@
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
   async function runSearch() {
-    loading = true;
+    searching = true;
     skip = 0;
     const res = await sheetMusic.searchSets({
       search: searchTerm.trim() || undefined,
@@ -41,6 +57,7 @@
     });
     items = res ?? [];
     hasMore = (res?.length ?? 0) === PAGE;
+    searching = false;
     loading = false;
   }
 
@@ -68,13 +85,19 @@
     downloadingId = item.id ?? null;
     try {
       await downloadSetZip(item.id!, item.zipDownloadUrl ?? "");
+      completedId = item.id ?? null;
+      clearTimeout(completedTimer);
+      completedTimer = setTimeout(() => (completedId = null), 1600);
     } finally {
       downloadingId = null;
     }
   }
 
   onMount(() => runSearch());
-  onDestroy(() => clearTimeout(searchTimer));
+  onDestroy(() => {
+    clearTimeout(searchTimer);
+    clearTimeout(completedTimer);
+  });
 
   async function saveNewSet() {
     const result = await sheetMusic.createSet(newSet as SetRequest);
@@ -100,7 +123,13 @@
 </div>
 
 <div class="search">
-  <span class="search-icon"><Search size={18} /></span>
+  <span class="search-icon">
+    {#if searching}
+      <Spinner size={18} inline />
+    {:else}
+      <Search size={18} />
+    {/if}
+  </span>
   <input
     type="text"
     placeholder="Søk i arkivet…"
@@ -112,11 +141,21 @@
 {#if loading}
   <LoadingSpinner label="Laster arkiv…" />
 {:else if items.length === 0}
-  <p class="empty">
-    {searchTerm.trim()
-      ? `Fant ingen notesett som matcher «${searchTerm.trim()}».`
-      : "Arkivet er tomt."}
-  </p>
+  {#if searchTerm.trim()}
+    <EmptyState
+      title="Ingen treff"
+      description={`Fant ingen notesett som matcher «${searchTerm.trim()}». Prøv et annet søk.`}
+    >
+      {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
+  {:else}
+    <EmptyState
+      title="Arkivet er tomt"
+      description="Det er ingen notesett her enda."
+    >
+      {#snippet icon()}<Library size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
+  {/if}
 {:else}
   <div class="sbb-table-wrap table-view">
     <table class="sbb-table">
@@ -155,6 +194,8 @@
                   >
                     {#if downloadingId === item.id}
                       <Spinner size={15} inline /> Zip
+                    {:else if completedId === item.id}
+                      <span class="ok"><Check size={15} /></span> Zip
                     {:else}
                       <Download size={15} /> Zip
                     {/if}
@@ -203,6 +244,8 @@
               >
                 {#if downloadingId === item.id}
                   <Spinner size={15} inline /> Zip
+                {:else if completedId === item.id}
+                  <span class="ok"><Check size={15} /></span> Zip
                 {:else}
                   <Download size={15} /> Zip
                 {/if}
@@ -239,9 +282,6 @@
 </Modal>
 
 <style>
-  .empty {
-    color: var(--text-muted);
-  }
   .search {
     position: relative;
     display: flex;
@@ -315,6 +355,22 @@
   }
   .zip:disabled:hover {
     background: var(--surface-card);
+  }
+  /* Success check shown briefly inside the ZIP button after a download. */
+  .zip .ok {
+    display: inline-flex;
+    color: var(--success);
+    animation: tile-check-pop var(--dur-base) var(--ease-out);
+  }
+  @keyframes tile-check-pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
   .check {
     display: inline-flex;
