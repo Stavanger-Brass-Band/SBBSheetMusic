@@ -527,9 +527,9 @@
 
 <ConfirmDialog
   bind:open={confirmRemovePartOpen}
-  title="Fjern stemme?"
-  description={`Vil du fjerne «${partToRemove?.name ?? ""}» fra notesettet? Handlingen kan ikke reverseres.`}
-  confirmTitle="Fjern"
+  title="Slette stemmen?"
+  description={`Hele PDF-filen for «${partToRemove?.name ?? ""}» slettes permanent fra arkivet. Handlingen kan ikke reverseres.`}
+  confirmTitle="Slett"
   onconfirm={removePart}
 />
 
