@@ -3,17 +3,13 @@
   import { page } from "$app/state";
   import { projects as projectsApi } from "$lib/api/projects";
   import type { Project } from "$lib/types";
-  import {
-    Breadcrumb,
-    Badge,
-    SetCard,
-    DateRangeBoxes,
-  } from "$lib/components/ui";
+  import { Breadcrumb, SetCard, DateRangeBoxes } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let id = $derived(page.params.id!);
   let project = $state<Project | undefined>();
   let loading = $state(true);
+  let setCount = $derived(project?.sets?.length ?? 0);
 
   onMount(async () => {
     const [info, sets] = await Promise.all([
@@ -35,9 +31,11 @@
   <LoadingSpinner label="Laster prosjekt…" />
 {:else}
   <div class="head">
-    <h1 class="sbb-h1 title">{project.name}</h1>
+    <div class="head__text">
+      <h1 class="sbb-h1 title">{project.name}</h1>
+      <p class="subtitle sbb-mono">{setCount} sett</p>
+    </div>
     <div class="meta">
-      <Badge variant="success" dot>Aktiv</Badge>
       <DateRangeBoxes start={project.startDate} end={project.endDate} />
     </div>
   </div>
@@ -71,6 +69,9 @@
     margin: 0;
     font-size: 40px;
   }
+  .subtitle {
+    margin: 8px 0 0;
+  }
   .meta {
     display: flex;
     align-items: center;
@@ -80,6 +81,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 28px 24px;
+  }
+  /* On phones the 200px min collapses to a single column; force two. */
+  @media (max-width: 640px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px 14px;
+    }
   }
   .empty {
     color: var(--text-muted);

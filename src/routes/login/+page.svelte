@@ -49,11 +49,10 @@
         width="64"
         height="64"
       />
-      <span class="brand__org">Medlemssider<b>Stavanger Brass Band</b></span>
+      <span class="brand__org">Notearkiv<b>Stavanger Brass Band</b></span>
     </div>
 
     <div class="brand__center">
-      <div class="brand__kicker">Notearkiv</div>
       <h1 class="brand__title">Musikk på<br /><em>øverste hylle</em></h1>
       <p class="brand__lead">
         Logg på for å finne alle noter tilhørende korpsets aktive prosjekter —
@@ -68,7 +67,6 @@
   <section class="form-wrap">
     <form class="login" onsubmit={doLogin}>
       <div class="login__head">
-        <div class="overline">Medlemsinnlogging</div>
         <h1>Logg på</h1>
       </div>
 
@@ -207,15 +205,6 @@
   .brand__center {
     position: relative;
   }
-  .brand__kicker {
-    font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-widest);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--brass-500);
-    margin-bottom: 20px;
-  }
   .brand__title {
     font-family: var(--font-display);
     text-transform: uppercase;
@@ -260,15 +249,6 @@
     display: flex;
     flex-direction: column;
     gap: 22px;
-  }
-  .login__head .overline {
-    font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-widest);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    margin-bottom: 10px;
   }
   .login__head h1 {
     margin: 0;

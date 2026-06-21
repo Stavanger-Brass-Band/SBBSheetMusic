@@ -69,7 +69,7 @@
   </Button>
 </div>
 
-<Table class="sbb-table" divClass="sbb-table-wrap">
+<Table class="sbb-table" divClass="sbb-table-wrap table-view">
   <TableHead>
     <TableHeadCell>Navn</TableHeadCell>
     <TableHeadCell>Startdato</TableHeadCell>
@@ -88,6 +88,23 @@
     {/each}
   </TableBody>
 </Table>
+
+<!-- Mobile: the table reflows into a card list. -->
+<div class="sbb-card-list">
+  {#each projects as project (project.id)}
+    <div
+      class="sbb-card clickable"
+      onclick={() => goto("/project/edit/" + project.id)}
+    >
+      <div class="body">
+        <div class="t">{project.name}</div>
+        <div class="meta">
+          {formatDmy(project.startDate)} – {formatDmy(project.endDate)}
+        </div>
+      </div>
+    </div>
+  {/each}
+</div>
 
 {#if loading}
   <LoadingSpinner />

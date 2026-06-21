@@ -2,20 +2,14 @@
   import { onMount, onDestroy } from "svelte";
   import { goto } from "$app/navigation";
   import { Modal } from "flowbite-svelte";
-  import {
-    Search,
-    Plus,
-    Settings,
-    Download,
-    CheckCircle,
-  } from "@lucide/svelte";
+  import { Search, Plus, Download, CheckCircle } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { downloadSetZip } from "$lib/utils/download";
   import type { MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import { Button } from "$lib/components/ui";
+  import { Button, Spinner } from "$lib/components/ui";
 
   const PAGE = 30;
   const ORDER = [{ field: "archiveNumber", direction: 0 as const }];
@@ -26,6 +20,10 @@
   let loading = $state(true);
   let loadingMore = $state(false);
   let hasMore = $state(false);
+
+  // Id of the set whose ZIP is currently being prepared (token fetch), so its
+  // download button can show a spinner.
+  let downloadingId = $state<string | null>(null);
 
   let newSet = $state<Partial<MusicSet>>({});
   let isOpen = $state(false);
@@ -64,6 +62,15 @@
   function onSearchInput() {
     if (searchTimer) clearTimeout(searchTimer);
     searchTimer = setTimeout(() => runSearch(), 300);
+  }
+
+  async function downloadZip(item: MusicSet) {
+    downloadingId = item.id ?? null;
+    try {
+      await downloadSetZip(item.id!, item.zipDownloadUrl ?? "");
+    } finally {
+      downloadingId = null;
+    }
   }
 
   onMount(() => runSearch());
@@ -111,7 +118,7 @@
       : "Arkivet er tomt."}
   </p>
 {:else}
-  <div class="sbb-table-wrap">
+  <div class="sbb-table-wrap table-view">
     <table class="sbb-table">
       <thead>
         <tr>
@@ -137,28 +144,21 @@
             <td class="c-actions">
               {#if item.hasBeenScanned}
                 {#if auth.isAdmin}
-                  <span class="actions">
-                    <button
-                      class="gear"
-                      title="Rediger notesett"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        goto("/set/edit/" + item.id);
-                      }}
-                    >
-                      <Settings size={16} />
-                    </button>
-                    <button
-                      class="zip"
-                      title="Last ned som ZIP"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        downloadSetZip(item.id!, item.zipDownloadUrl ?? "");
-                      }}
-                    >
+                  <button
+                    class="zip"
+                    title="Last ned som ZIP"
+                    disabled={downloadingId === item.id}
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      downloadZip(item);
+                    }}
+                  >
+                    {#if downloadingId === item.id}
+                      <Spinner size={15} inline /> Zip
+                    {:else}
                       <Download size={15} /> Zip
-                    </button>
-                  </span>
+                    {/if}
+                  </button>
                 {:else}
                   <span class="check"><CheckCircle size={18} /></span>
                 {/if}
@@ -170,6 +170,52 @@
         {/each}
       </tbody>
     </table>
+  </div>
+
+  <!-- Mobile: the table reflows into a card list (see Archive List - Mobile design). -->
+  <div class="sbb-card-list">
+    {#each items as item (item.id)}
+      <div
+        class="sbb-card"
+        class:clickable={auth.isAdmin}
+        onclick={() => (auth.isAdmin ? goto("/set/edit/" + item.id) : null)}
+      >
+        <span class="nr">{item.archiveNumber}</span>
+        <div class="body">
+          <div class="t">{item.title}</div>
+          <div class="meta">
+            {item.composer ?? "—"}{item.arranger
+              ? " · Arr. " + item.arranger
+              : ""}
+          </div>
+        </div>
+        <div class="acts">
+          {#if item.hasBeenScanned}
+            {#if auth.isAdmin}
+              <button
+                class="zip"
+                title="Last ned som ZIP"
+                disabled={downloadingId === item.id}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  downloadZip(item);
+                }}
+              >
+                {#if downloadingId === item.id}
+                  <Spinner size={15} inline /> Zip
+                {:else}
+                  <Download size={15} /> Zip
+                {/if}
+              </button>
+            {:else}
+              <span class="check"><CheckCircle size={18} /></span>
+            {/if}
+          {:else}
+            <span class="dash">—</span>
+          {/if}
+        </div>
+      </div>
+    {/each}
   </div>
 
   <div class="footer">
@@ -244,29 +290,6 @@
     text-align: right;
     white-space: nowrap;
   }
-  .actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: flex-end;
-  }
-  .gear {
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    background: transparent;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all var(--dur-fast);
-  }
-  .gear:hover {
-    color: var(--text-primary);
-    border-color: var(--border-strong);
-  }
   .zip {
     display: inline-flex;
     align-items: center;
@@ -285,6 +308,13 @@
   }
   .zip:hover {
     background: var(--surface-hover);
+  }
+  .zip:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+  .zip:disabled:hover {
+    background: var(--surface-card);
   }
   .check {
     display: inline-flex;

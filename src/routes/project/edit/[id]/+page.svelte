@@ -214,7 +214,7 @@
   <div class="secbar">
     <h2 class="sbb-h3">
       Tilknyttede notesett
-      <span class="cnt">· {sets.length} sett</span>
+      <span class="cnt">{sets.length} sett</span>
     </h2>
     <button class="addbtn" onclick={openAdd}>
       <Plus size={16} /> Legg til notesett
@@ -251,6 +251,13 @@
       </button>
     </div>
   {/if}
+
+  <!-- Mobile: sticky primary action (see Project Edit - Mobile design). -->
+  <div class="fab">
+    <button class="fab__btn" onclick={openAdd}>
+      <Plus size={18} /> Legg til notesett
+    </button>
+  </div>
 {/if}
 
 <!-- Add-sets dialog -->
@@ -409,6 +416,10 @@
     margin-left: 8px;
     font-weight: 400;
   }
+  /* Bullet separates count from the title only while they sit inline. */
+  .cnt::before {
+    content: "· ";
+  }
   .addbtn {
     display: inline-flex;
     align-items: center;
@@ -431,6 +442,11 @@
   .addbtn:hover {
     border-color: var(--accent);
     background: var(--accent-soft);
+  }
+
+  /* Sticky mobile add action — hidden on desktop (see media query). */
+  .fab {
+    display: none;
   }
 
   /* ---- grid + add tile ---- */
@@ -635,22 +651,104 @@
     .title {
       font-size: 30px;
     }
+    /* Stack the section bar: title, count subtitle, then the add button. */
+    .secbar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .cnt {
+      display: block;
+      margin-left: 0;
+      margin-top: 4px;
+    }
+    .cnt::before {
+      content: none;
+    }
     .grid {
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: 22px 16px;
     }
-    .listhead,
-    .setrow {
-      grid-template-columns: 22px 1.4fr 1fr;
-    }
-    .listhead span:last-child,
-    .setrow .arr2,
-    .setrow .pill {
+    /* Drop the table columns: stack composer under the title as a list row. */
+    .listhead {
       display: none;
+    }
+    .setrow {
+      grid-template-columns: 22px 1fr auto;
+      grid-template-areas:
+        "chk ttl pill"
+        "chk cmp pill";
+      column-gap: 12px;
+      row-gap: 2px;
+      align-items: center;
+      padding: 13px 8px;
+    }
+    .setrow .chk {
+      grid-area: chk;
+      align-self: center;
+    }
+    .setrow .ttl {
+      grid-area: ttl;
+      font-size: 15px;
+    }
+    .setrow .cmp {
+      grid-area: cmp;
+      font-size: 12.5px;
+    }
+    .setrow .arr2 {
+      display: none;
+    }
+    .setrow .pill {
+      grid-area: pill;
+      align-self: center;
+    }
+    .setlist {
+      max-height: 56vh;
     }
     .in {
       height: 48px;
       font-size: 16px;
+    }
+  }
+
+  /* Phones: a sticky primary "add" replaces the inline one, and the grid
+     locks to two columns so it never collapses on the narrowest devices. */
+  @media (max-width: 640px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .addbtn {
+      display: none;
+    }
+    .fab {
+      display: block;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 40;
+      padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, var(--surface-page) 64%, transparent);
+    }
+    .fab__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: 50px;
+      font-family: var(--font-text);
+      font-weight: 600;
+      font-size: 15px;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--dur-fast);
+    }
+    .fab__btn:active {
+      background: var(--accent-hover);
     }
   }
 </style>

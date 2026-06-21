@@ -27,6 +27,11 @@
     align-items: center;
     gap: 10px;
   }
+  @media (max-width: 640px) {
+    .daterange {
+      gap: 5px;
+    }
+  }
   .dbox {
     display: flex;
     flex-direction: column;

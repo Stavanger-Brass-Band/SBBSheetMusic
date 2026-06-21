@@ -41,9 +41,16 @@ Write clean, readable, maintainable code. These apply everywhere:
 - **Small, focused units.** One component/function does one thing. If a
   component grows past a few responsibilities or a function past a screenful,
   split it. Prefer pure functions; isolate side effects (API, navigation).
-- **Name things well.** Descriptive, intention-revealing names in the
-  codebase's language (Norwegian UI strings, English code identifiers). No
-  abbreviations that aren't already used here.
+- **Write human-readable code — spell names out in full.** Code is read far
+  more often than it's written, so always favour clarity over brevity. Don't
+  shorten or abbreviate identifiers: prefer `index` over `idx`, `button` over
+  `btn`, `count` over `cnt`, `selectedIds` over `selIds`, `loadingMore` over
+  `ldMore`. Names should be descriptive and intention-revealing, in the
+  codebase's language (Norwegian UI strings, English code identifiers). The
+  only short forms to use are ones genuinely universal (`id`, `url`, `api`) or
+  an idiomatic loop index (`i`). This applies to variables, functions,
+  parameters, types, and CSS classes alike — and avoid single-letter or cryptic
+  names that force the reader to decode intent.
 - **Types over `any`.** Lean on the generated API types and `src/lib/types`.
   Don't reach for `any`/`as` to silence the checker — model the data correctly.
 - **Handle the unhappy paths.** Cover loading, empty, and error states for

@@ -304,6 +304,68 @@ textarea::placeholder {
   }
 }
 
+/* ============================================================
+   Responsive list — on phones the editorial .sbb-table (Arkivliste /
+   Brukere / Prosjekter) reflows into a card list. Render both: add
+   `.table-view` to the table wrapper and a sibling `.sbb-card-list` of
+   `.sbb-card` rows; they swap at 640px. A `.sbb-card` lays out an
+   optional `.nr`, a `.body` (`.t` title + `.meta`), and trailing
+   `.acts`.
+   ============================================================ */
+.sbb-card-list {
+  display: none;
+}
+@media (max-width: 640px) {
+  .table-view {
+    display: none;
+  }
+  .sbb-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+.sbb-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+.sbb-card.clickable {
+  cursor: pointer;
+}
+.sbb-card .nr {
+  flex-shrink: 0;
+  width: 36px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.sbb-card .body {
+  flex: 1;
+  min-width: 0;
+}
+.sbb-card .t {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+.sbb-card .meta {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.sbb-card .acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 @keyframes sbb-spin {
   to {
     transform: rotate(360deg);

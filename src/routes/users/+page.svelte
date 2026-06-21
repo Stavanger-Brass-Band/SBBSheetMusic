@@ -11,7 +11,7 @@
   import { Plus } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
   import type { User } from "$lib/types";
-  import { Button } from "$lib/components/ui";
+  import { Badge, Button } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let users = $state<User[]>([]);
@@ -36,7 +36,7 @@
   </Button>
 </div>
 
-<Table class="sbb-table" divClass="sbb-table-wrap">
+<Table class="sbb-table" divClass="sbb-table-wrap table-view">
   <TableHead>
     <TableHeadCell>Navn</TableHeadCell>
     <TableHeadCell>E-post</TableHeadCell>
@@ -52,6 +52,21 @@
     {/each}
   </TableBody>
 </Table>
+
+<!-- Mobile: the table reflows into a card list. -->
+<div class="sbb-card-list">
+  {#each users as user (user.id)}
+    <div class="sbb-card">
+      <div class="body">
+        <div class="t">{user.name}</div>
+        <div class="meta">{user.email}</div>
+      </div>
+      {#if user.inactive}
+        <div class="acts"><Badge variant="neutral">Inaktiv</Badge></div>
+      {/if}
+    </div>
+  {/each}
+</div>
 
 {#if loading}
   <LoadingSpinner />

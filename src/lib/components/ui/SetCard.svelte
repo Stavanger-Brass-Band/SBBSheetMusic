@@ -87,8 +87,7 @@
     z-index: 2;
     border-style: solid;
     border-width: 20px;
-    border-color: var(--ink-900) var(--ink-900) rgba(255, 255, 255, 0.35)
-      rgba(255, 255, 255, 0.35);
+    border-color: var(--ink-900) var(--ink-900) var(--white) var(--white);
     box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.18);
     transition: border-width var(--dur-slow) var(--ease-out);
     pointer-events: none;

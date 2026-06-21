@@ -327,15 +327,13 @@
     <section class="col-list panel">
       <div class="panel__head">
         <h2>Stemmer</h2>
-        <div class="head-right">
-          <span class="sbb-mono meta">
-            {presentParts.length}
-            {presentParts.length === 1 ? "stemme" : "stemmer"}
-          </span>
-          <button class="addbtn" onclick={openAdd}>
-            <Plus size={15} /> Legg til stemme
-          </button>
-        </div>
+        <span class="sbb-mono meta">
+          {presentParts.length}
+          {presentParts.length === 1 ? "stemme" : "stemmer"}
+        </span>
+        <button class="addbtn" onclick={openAdd}>
+          <Plus size={15} /> Legg til stemme
+        </button>
       </div>
       <div class="panel__body">
         {#if presentParts.length === 0 && !addingName}
@@ -665,7 +663,6 @@
   .panel__head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     padding: 18px 20px;
     border-bottom: 1px solid var(--border-subtle);
@@ -677,13 +674,25 @@
     font-size: 22px;
     color: var(--text-primary);
   }
-  .head-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
+  /* Count pushes right so it groups with the add button on wide screens. */
   .panel__head .meta {
     font-size: 12px;
+    margin-left: auto;
+  }
+  /* On phones the count drops onto its own line, under the "Stemmer" title. */
+  @media (max-width: 640px) {
+    .panel__head {
+      flex-wrap: wrap;
+      row-gap: 4px;
+    }
+    .panel__head .meta {
+      order: 3;
+      flex-basis: 100%;
+      margin-left: 0;
+    }
+    .panel__head .addbtn {
+      margin-left: auto;
+    }
   }
   .panel__body {
     padding: 18px 20px;
