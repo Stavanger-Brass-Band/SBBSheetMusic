@@ -70,6 +70,26 @@ async function postFile(
   return undefined;
 }
 
+/**
+ * POST/PUT to an endpoint that returns 200/204 with no body (e.g. user
+ * register/update). Mirrors `del`: returns the raw Response so callers can
+ * check `res.ok` — it never parses JSON, so an empty body can't throw.
+ */
+async function writeJson(
+  path: string,
+  version: ApiVersion,
+  method: "POST" | "PUT",
+  body: unknown,
+): Promise<Response> {
+  const res = await fetch(buildUrl(path, version), {
+    method,
+    headers: { ...authHeader(), ...jsonHeaders },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) auth.logout();
+  return res;
+}
+
 async function del(
   path: string,
   version: ApiVersion,
@@ -137,6 +157,12 @@ export function createClient(version: ApiVersion) {
         { method: "PUT", headers: jsonHeaders, body: JSON.stringify(body) },
         (r) => r.json() as Promise<TRes>,
       ),
+
+    postNoContent: <TReq>(path: string, body: TReq) =>
+      writeJson(path, version, "POST", body),
+
+    putNoContent: <TReq>(path: string, body: TReq) =>
+      writeJson(path, version, "PUT", body),
 
     postFile: (path: string, file: File) => postFile(path, version, file),
 

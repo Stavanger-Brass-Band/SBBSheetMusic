@@ -227,6 +227,17 @@ textarea::placeholder {
   opacity: 1;
 }
 
+/* Flowbite Dropdown items render as native <button>/<a>, which default to the
+   arrow cursor and so don't read as clickable. Restore the pointer for every
+   context-menu item. Scoped to <li> children inside the dropdown popover
+   (role="tooltip" Popper — the app uses no plain Tooltip), which is exactly
+   what DropdownItem outputs, so nothing else is affected. Unlayered so it wins
+   over Flowbite's layered utilities. */
+[role="tooltip"] li > button,
+[role="tooltip"] li > a {
+  cursor: pointer;
+}
+
 /* ============================================================
    Editorial table skin (the "Arkivliste" look) for Flowbite tables.
    Unlayered so it overrides Flowbite's layered utilities; scoped to the
