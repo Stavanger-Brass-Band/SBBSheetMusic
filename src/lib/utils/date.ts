@@ -63,3 +63,25 @@ export function isActiveProject(
     startOfDay(new Date(project.endDate)) >= today
   );
 }
+
+/** A project's lifecycle phase relative to today. */
+export type ProjectStatus = "upcoming" | "active" | "ended";
+
+/**
+ * Classify a project as not-yet-started / ongoing / finished relative to `now`
+ * (day granularity), so the UI can show a status instead of making the reader
+ * compare the from/to dates themselves.
+ */
+export function projectStatus(
+  project: { startDate?: string | null; endDate?: string | null },
+  now: Date = new Date(),
+): ProjectStatus {
+  const today = startOfDay(now);
+  if (project.startDate && startOfDay(new Date(project.startDate)) > today) {
+    return "upcoming";
+  }
+  if (project.endDate && startOfDay(new Date(project.endDate)) < today) {
+    return "ended";
+  }
+  return "active";
+}

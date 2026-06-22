@@ -127,14 +127,20 @@
     <TableHead>
       <TableHeadCell>Navn</TableHeadCell>
       <TableHeadCell>E-post</TableHeadCell>
-      <TableHeadCell>Inaktiv</TableHeadCell>
+      <TableHeadCell>Status</TableHeadCell>
     </TableHead>
     <TableBody>
       {#each filteredUsers as user (user.id)}
         <TableBodyRow class="clickable" onclick={() => openEdit(user)}>
           <TableBodyCell>{user.name}</TableBodyCell>
           <TableBodyCell>{user.email}</TableBodyCell>
-          <TableBodyCell>{user.inactive ? "Ja" : "Nei"}</TableBodyCell>
+          <TableBodyCell>
+            {#if user.inactive}
+              <Badge variant="neutral" dot>Inaktiv</Badge>
+            {:else}
+              <Badge variant="success" dot>Aktiv</Badge>
+            {/if}
+          </TableBodyCell>
         </TableBodyRow>
       {/each}
     </TableBody>
@@ -148,9 +154,13 @@
           <div class="t">{user.name}</div>
           <div class="meta">{user.email}</div>
         </div>
-        {#if user.inactive}
-          <div class="acts"><Badge variant="neutral">Inaktiv</Badge></div>
-        {/if}
+        <div class="acts">
+          {#if user.inactive}
+            <Badge variant="neutral" dot>Inaktiv</Badge>
+          {:else}
+            <Badge variant="success" dot>Aktiv</Badge>
+          {/if}
+        </div>
       </div>
     {/each}
   </div>

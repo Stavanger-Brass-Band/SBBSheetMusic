@@ -12,9 +12,21 @@
   } from "flowbite-svelte";
   import { Plus, SearchX } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { formatDmy, toApiDate } from "$lib/utils/date";
+  import { formatDmy, projectStatus, toApiDate } from "$lib/utils/date";
+  import type { ProjectStatus } from "$lib/utils/date";
   import type { NewProjectRequest, Project } from "$lib/types";
-  import { Button, EmptyState, SearchInput } from "$lib/components/ui";
+  import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
+  import type { ComponentProps } from "svelte";
+
+  // Maps a project's lifecycle phase to its status-tag label and colour.
+  const statusBadge: Record<
+    ProjectStatus,
+    { label: string; variant: ComponentProps<typeof Badge>["variant"] }
+  > = {
+    upcoming: { label: "Kommende", variant: "info" },
+    active: { label: "Aktiv", variant: "success" },
+    ended: { label: "Avsluttet", variant: "neutral" },
+  };
   import ProjectModalBody from "$lib/components/ProjectModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
@@ -97,9 +109,11 @@
       <TableHeadCell>Navn</TableHeadCell>
       <TableHeadCell>Startdato</TableHeadCell>
       <TableHeadCell>Sluttdato</TableHeadCell>
+      <TableHeadCell>Status</TableHeadCell>
     </TableHead>
     <TableBody>
       {#each filteredProjects as project (project.id)}
+        {@const status = statusBadge[projectStatus(project)]}
         <TableBodyRow
           class="clickable"
           onclick={() => goto("/project/edit/" + project.id)}
@@ -107,6 +121,9 @@
           <TableBodyCell>{project.name}</TableBodyCell>
           <TableBodyCell>{formatDmy(project.startDate)}</TableBodyCell>
           <TableBodyCell>{formatDmy(project.endDate)}</TableBodyCell>
+          <TableBodyCell>
+            <Badge variant={status.variant} dot>{status.label}</Badge>
+          </TableBodyCell>
         </TableBodyRow>
       {/each}
     </TableBody>
@@ -115,6 +132,7 @@
   <!-- Mobile: the table reflows into a card list. -->
   <div class="sbb-card-list">
     {#each filteredProjects as project (project.id)}
+      {@const status = statusBadge[projectStatus(project)]}
       <div
         class="sbb-card clickable"
         onclick={() => goto("/project/edit/" + project.id)}
@@ -124,6 +142,9 @@
           <div class="meta">
             {formatDmy(project.startDate)} – {formatDmy(project.endDate)}
           </div>
+        </div>
+        <div class="acts">
+          <Badge variant={status.variant} dot>{status.label}</Badge>
         </div>
       </div>
     {/each}
