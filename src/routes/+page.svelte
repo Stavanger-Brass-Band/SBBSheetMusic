@@ -53,7 +53,7 @@
       <a
         class="pcard"
         href={`/project/${project.id}`}
-        in:fly={cardEnter(index)}
+        in:fly|global={cardEnter(index)}
       >
         <div class="pcard__top">
           <span class="pcard__folder">

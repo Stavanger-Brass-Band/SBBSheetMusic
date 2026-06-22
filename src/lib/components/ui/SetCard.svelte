@@ -132,6 +132,22 @@
     line-height: 1.45;
     color: var(--gray-500);
   }
+  /* Keep composer/arranger to a single truncated line each so a long name
+     can't wrap and grow upward into the title — the title takes priority. */
+  .meta > div {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  /* The card shrinks on small screens but the fixed offset doesn't, leaving the
+     meta floating too high — pull it back toward the bottom edge. */
+  @media (max-width: 640px) {
+    .meta {
+      bottom: 12px;
+      left: 14px;
+      right: 14px;
+    }
+  }
   .set-card__rm {
     position: absolute;
     top: 12px;

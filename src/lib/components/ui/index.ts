@@ -8,3 +8,4 @@ export { default as SetCard } from "./SetCard.svelte";
 export { default as PartTile } from "./PartTile.svelte";
 export { default as DateRangeBoxes } from "./DateRangeBoxes.svelte";
 export { default as EmptyState } from "./EmptyState.svelte";
+export { default as SearchInput } from "./SearchInput.svelte";

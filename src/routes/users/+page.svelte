@@ -9,15 +9,28 @@
     TableBodyRow,
     TableBodyCell,
   } from "flowbite-svelte";
-  import { Plus } from "@lucide/svelte";
+  import { Plus, SearchX } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
   import type { UpdateUserRequest, User } from "$lib/types";
-  import { Badge, Button } from "$lib/components/ui";
+  import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let users = $state<User[]>([]);
   let loading = $state(true);
+
+  // Client-side search over the already-loaded list (the endpoint returns
+  // every user in one call), matching on name or e-mail.
+  let searchTerm = $state("");
+  let filteredUsers = $derived.by(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return users;
+    return users.filter(
+      (user) =>
+        (user.name ?? "").toLowerCase().includes(query) ||
+        (user.email ?? "").toLowerCase().includes(query),
+    );
+  });
 
   // Modal state, shared by create and edit. `editing` holds the user being
   // edited, or null when creating a new one. `form` is the working copy the
@@ -98,40 +111,49 @@
   </Button>
 </div>
 
-<Table class="sbb-table" divClass="sbb-table-wrap table-view">
-  <TableHead>
-    <TableHeadCell>Navn</TableHeadCell>
-    <TableHeadCell>E-post</TableHeadCell>
-    <TableHeadCell>Inaktiv</TableHeadCell>
-  </TableHead>
-  <TableBody>
-    {#each users as user (user.id)}
-      <TableBodyRow class="clickable" onclick={() => openEdit(user)}>
-        <TableBodyCell>{user.name}</TableBodyCell>
-        <TableBodyCell>{user.email}</TableBodyCell>
-        <TableBodyCell>{user.inactive ? "Ja" : "Nei"}</TableBodyCell>
-      </TableBodyRow>
-    {/each}
-  </TableBody>
-</Table>
-
-<!-- Mobile: the table reflows into a card list. -->
-<div class="sbb-card-list">
-  {#each users as user (user.id)}
-    <div class="sbb-card clickable" onclick={() => openEdit(user)}>
-      <div class="body">
-        <div class="t">{user.name}</div>
-        <div class="meta">{user.email}</div>
-      </div>
-      {#if user.inactive}
-        <div class="acts"><Badge variant="neutral">Inaktiv</Badge></div>
-      {/if}
-    </div>
-  {/each}
-</div>
+<SearchInput placeholder="Søk i brukere…" bind:value={searchTerm} />
 
 {#if loading}
   <LoadingSpinner />
+{:else if filteredUsers.length === 0 && searchTerm.trim()}
+  <EmptyState
+    title="Ingen treff"
+    description={`Fant ingen brukere som matcher «${searchTerm.trim()}». Prøv et annet søk.`}
+  >
+    {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
+{:else}
+  <Table class="sbb-table" divClass="sbb-table-wrap table-view">
+    <TableHead>
+      <TableHeadCell>Navn</TableHeadCell>
+      <TableHeadCell>E-post</TableHeadCell>
+      <TableHeadCell>Inaktiv</TableHeadCell>
+    </TableHead>
+    <TableBody>
+      {#each filteredUsers as user (user.id)}
+        <TableBodyRow class="clickable" onclick={() => openEdit(user)}>
+          <TableBodyCell>{user.name}</TableBodyCell>
+          <TableBodyCell>{user.email}</TableBodyCell>
+          <TableBodyCell>{user.inactive ? "Ja" : "Nei"}</TableBodyCell>
+        </TableBodyRow>
+      {/each}
+    </TableBody>
+  </Table>
+
+  <!-- Mobile: the table reflows into a card list. -->
+  <div class="sbb-card-list">
+    {#each filteredUsers as user (user.id)}
+      <div class="sbb-card clickable" onclick={() => openEdit(user)}>
+        <div class="body">
+          <div class="t">{user.name}</div>
+          <div class="meta">{user.email}</div>
+        </div>
+        {#if user.inactive}
+          <div class="acts"><Badge variant="neutral">Inaktiv</Badge></div>
+        {/if}
+      </div>
+    {/each}
+  </div>
 {/if}
 
 <Modal

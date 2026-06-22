@@ -3,7 +3,6 @@
   import { goto } from "$app/navigation";
   import { Modal } from "flowbite-svelte";
   import {
-    Search,
     SearchX,
     Library,
     Plus,
@@ -17,7 +16,7 @@
   import type { MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import { Button, Spinner, EmptyState } from "$lib/components/ui";
+  import { Button, Spinner, EmptyState, SearchInput } from "$lib/components/ui";
 
   const PAGE = 30;
   const ORDER = [{ field: "archiveNumber", direction: 0 as const }];
@@ -122,21 +121,12 @@
   {/if}
 </div>
 
-<div class="search">
-  <span class="search-icon">
-    {#if searching}
-      <Spinner size={18} inline />
-    {:else}
-      <Search size={18} />
-    {/if}
-  </span>
-  <input
-    type="text"
-    placeholder="Søk i arkivet…"
-    bind:value={searchTerm}
-    oninput={onSearchInput}
-  />
-</div>
+<SearchInput
+  placeholder="Søk i arkivet…"
+  bind:value={searchTerm}
+  {searching}
+  oninput={onSearchInput}
+/>
 
 {#if loading}
   <LoadingSpinner label="Laster arkiv…" />
@@ -282,37 +272,6 @@
 </Modal>
 
 <style>
-  .search {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .search-icon {
-    position: absolute;
-    left: 16px;
-    color: var(--text-muted);
-    display: flex;
-  }
-  .search input {
-    width: 100%;
-    height: 48px;
-    padding: 0 16px 0 46px;
-    font-family: var(--font-text);
-    font-size: 15px;
-    color: var(--text-primary);
-    background: var(--surface-card);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md);
-    outline: none;
-    transition:
-      border-color var(--dur-fast),
-      box-shadow var(--dur-fast);
-  }
-  .search input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(234, 91, 12, 0.18);
-  }
   .c-nr {
     font-family: var(--font-mono);
     font-size: 13px;

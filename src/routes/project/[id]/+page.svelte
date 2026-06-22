@@ -51,7 +51,7 @@
   {#if project.sets && project.sets.length > 0}
     <div class="grid">
       {#each project.sets as set, index (set.id)}
-        <div in:fly={cardEnter(index)}>
+        <div in:fly|global={cardEnter(index)}>
           <SetCard
             title={set.title}
             composer={set.composer}
@@ -96,6 +96,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 28px 24px;
+  }
+  /* A 1fr track is minmax(auto, 1fr); its auto floor is the card's min-content
+     width, so a longer title in one column makes that track refuse to shrink
+     and forces the other to absorb the deficit. min-width: 0 removes the floor
+     so both columns shrink in step and stay symmetric on narrow screens. */
+  .grid > div {
+    min-width: 0;
   }
   /* On phones the 200px min collapses to a single column; force two. */
   @media (max-width: 640px) {
