@@ -13,6 +13,7 @@
       ? [
           { id: "projects", label: "Prosjekter", href: "/projects" },
           { id: "users", label: "Brukere", href: "/users" },
+          { id: "parts", label: "Stemmekatalog", href: "/parts" },
         ]
       : []),
   ]);
@@ -29,6 +30,7 @@
     )
       return "projects";
     if (pathname.startsWith("/users")) return "users";
+    if (pathname.startsWith("/parts")) return "parts";
     return "home"; // "/", "/project/[id]", "/project/[projectId]/set/[id]"
   }
 

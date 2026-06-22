@@ -17,6 +17,20 @@ export type SetRequest = V2["schemas"]["SetRequest"];
 
 // --- Parts catalog (v1.0) ---
 export type Part = V1["schemas"]["ApiPart"];
+export type PartRequest = V1["schemas"]["PartRequest"];
+
+/**
+ * UI-only working model for the part create/edit form. `name`/`sortOrder`/
+ * `indexable` map onto `PartRequest`; `aliases` is a plain editable string
+ * array (the API exposes aliases read-only on the part and manages additions
+ * and removals through dedicated `/parts/{id}/aliases` endpoints).
+ */
+export interface PartForm {
+  name: string;
+  sortOrder: number;
+  indexable: boolean;
+  aliases: string[];
+}
 
 // --- Projects (v1.0) ---
 export type NewProjectRequest = V1["schemas"]["NewProjectRequest"];
