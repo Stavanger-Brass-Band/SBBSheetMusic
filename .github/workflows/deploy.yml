@@ -1,0 +1,56 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Build and deploy to Test
+    runs-on: ubuntu-latest
+    environment: test
+    env:
+      PUBLIC_API_BASE_URL: https://sheet-music-api-test.azurewebsites.net
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: sheetmusic-app-test
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: build
+
+  production:
+    name: Build and deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PUBLIC_API_BASE_URL: https://sheet-music-api.azurewebsites.net
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: sheetmusic-app
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: build
