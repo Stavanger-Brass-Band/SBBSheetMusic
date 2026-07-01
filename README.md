@@ -96,11 +96,11 @@ total-count), so the list uses offset paging with a "load more" control.
 
 ## Deploying to the web
 
-Committing to `master` triggers a build in Azure Pipelines with automatic deploy
-to the Azure App Service test environment. Approval is required for deploy to
-production; approvers are notified via email.
-
-[![Build Status](https://dev.azure.com/luffe/Sheet%20Music%20Archive%20V4/_apis/build/status/Sheet%20Music%20App?repoName=Stavanger-Brass-Band%2FSBBSheetMusic&branchName=master)](https://dev.azure.com/luffe/Sheet%20Music%20Archive%20V4/_build/latest?definitionId=4&repoName=Stavanger-Brass-Band%2FSBBSheetMusic&branchName=master)
+Pushing to `master` builds and deploys to the Azure App Service **test**
+environment via GitHub Actions (`.github/workflows/deploy.yml`). **Production**
+only deploys when a [release-please](https://github.com/googleapis/release-please)
+release is published — merging the release-please "release PR" tags the
+release, which triggers the production deploy job.
 
 The pipeline builds with `npm ci && npm run build` and packages the `build/`
 directory.

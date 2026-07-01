@@ -158,6 +158,21 @@ accent (`#EA5B0C`).
 - The App Service startup command **must** be `pm2 serve … --spa` or deep-link
   refreshes 404 (path-based routing). See `README.md`.
 
+## Commits & releases
+
+- PRs are **squash-merged**, so the PR title becomes the commit message on
+  `master` — it **must** follow
+  [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`,
+  `fix:`, `chore:`, `ci:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`,
+  `build:`, `revert:`). This is enforced by a PR-title-lint workflow.
+- [release-please](https://github.com/googleapis/release-please) reads those
+  commits on every push to `master` and keeps a `chore(main): release X.Y.Z`
+  PR up to date with the version bump and `CHANGELOG.md` entries. Merging that
+  PR tags the release and publishes it on GitHub.
+- Release type is `simple` (`release-please-config.json` +
+  `.release-please-manifest.json`) — the version lives in the manifest, not in
+  `package.json`'s `version` field.
+
 ## Don't
 
 - Commit/push unless asked. Don't edit generated schema files. Don't add

@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - master
+  release:
+    types:
+      - published
 
 jobs:
   test:
     name: Build and deploy to Test
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: test
     env:
@@ -32,7 +36,7 @@ jobs:
 
   production:
     name: Build and deploy to Production
-    needs: test
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     environment: production
     env:
