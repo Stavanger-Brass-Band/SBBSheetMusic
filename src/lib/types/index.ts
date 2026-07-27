@@ -11,9 +11,27 @@ import type { components as V2 } from "$lib/api/schema.v2";
  */
 
 // --- Sheetmusic (v2.0) ---
-export type MusicSet = V2["schemas"]["ApiSet"];
+/**
+ * `categories` is hand-added: the set endpoints return it on the v2 test spec,
+ * but `api:gen` generates v2 from prod, where categories are not deployed yet.
+ * Drop the intersection once prod's `ApiSet` carries the field.
+ */
+export type MusicSet = V2["schemas"]["ApiSet"] & {
+  categories?: Category[] | null;
+};
 export type MusicSetPart = V2["schemas"]["ApiSheetMusicPart"];
 export type SetRequest = V2["schemas"]["SetRequest"];
+
+// --- Categories (catalog on v1.0, set assignment on v2.0) ---
+export type Category = V1["schemas"]["ApiCategory"];
+export type CategoryRequest = V1["schemas"]["CategoryRequest"];
+export type AssignCategoryRequest = V1["schemas"]["AssignCategoryRequest"];
+
+/** UI-only working model for the category create/edit form. */
+export interface CategoryForm {
+  name: string;
+  active: boolean;
+}
 
 // --- Parts catalog (v1.0) ---
 export type Part = V1["schemas"]["ApiPart"];

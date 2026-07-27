@@ -27,9 +27,16 @@
   } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { parts as partsApi } from "$lib/api/parts";
+  import { categories as categoriesApi } from "$lib/api/categories";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { downloadSetPart, downloadSetZip } from "$lib/utils/download";
-  import type { MusicSet, MusicSetPart, Part, SetRequest } from "$lib/types";
+  import type {
+    Category,
+    MusicSet,
+    MusicSetPart,
+    Part,
+    SetRequest,
+  } from "$lib/types";
   import { Breadcrumb, Button, Spinner } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
@@ -69,8 +76,26 @@
   let addFileInput: HTMLInputElement;
   let addingName = $state<string | null>(null);
 
+  // Categories: `set.categories` is the assigned list, `categoryCatalog` every
+  // category that can be picked. Assignment saves immediately (no draft).
+  let categoryCatalog = $state<Category[]>([]);
+  let categoryPick = $state("");
+  let categoryBusy = $state(false);
+
   // Stemmer shows only the parts actually present on the set.
   let presentParts = $derived(set.parts ?? []);
+  let assignedCategories = $derived(set.categories ?? []);
+  let assignableCategories = $derived(
+    categoryCatalog
+      .filter(
+        (category) =>
+          !assignedCategories.some((assigned) => assigned.id === category.id),
+      )
+      .map((category) => ({
+        value: category.id ?? "",
+        name: category.name ?? "",
+      })),
+  );
   let matchedCount = $derived(review.filter((r) => r.match).length);
   // Catalog options for the Flowbite Select pickers.
   let catalogItems = $derived(
@@ -83,6 +108,7 @@
     result.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     catalogParts = result;
     loading = false;
+    loadCategories();
   });
 
   function flash(names: string[]) {
@@ -181,6 +207,50 @@
     } finally {
       addingName = null;
     }
+  }
+
+  // ---- kategorier ----
+  /**
+   * The category endpoints are not deployed to every environment yet, so a
+   * failure leaves the panel empty instead of breaking the editor.
+   */
+  async function loadCategories() {
+    try {
+      const [catalogResult, assigned] = await Promise.all([
+        categoriesApi.list(),
+        sheetMusic.listSetCategories(id),
+      ]);
+      categoryCatalog = (catalogResult ?? [])
+        .filter((category) => !category.inactive)
+        .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "nb-NO"));
+      set.categories = assigned ?? [];
+    } catch {
+      categoryCatalog = [];
+    }
+  }
+
+  async function assignCategory(categoryId: string) {
+    if (!categoryId) return;
+    categoryBusy = true;
+    const result = await sheetMusic.assignCategory(set.id!, categoryId);
+    if (result) {
+      set.categories = result;
+      catalog.updateMusicSet(set);
+    }
+    categoryPick = "";
+    categoryBusy = false;
+  }
+
+  async function removeCategory(category: Category) {
+    categoryBusy = true;
+    const res = await sheetMusic.removeCategory(set.id!, category.id!);
+    if (res.ok) {
+      set.categories = assignedCategories.filter(
+        (assigned) => assigned.id !== category.id,
+      );
+      catalog.updateMusicSet(set);
+    }
+    categoryBusy = false;
   }
 
   // ---- settinformasjon per-field autosave ----
@@ -471,6 +541,47 @@
     <aside class="col-info panel">
       <div class="panel__head"><h2>Settinformasjon</h2></div>
       <div class="panel__body">
+        {#if categoryCatalog.length > 0 || assignedCategories.length > 0}
+          <div class="field">
+            <div class="labelrow">
+              <label for="categoryPicker">Kategorier</label>
+              {@render saveStatus(categoryBusy ? "saving" : "idle")}
+            </div>
+            {#if assignedCategories.length === 0}
+              <p class="cat-empty">Ingen kategorier valgt.</p>
+            {:else}
+              <div class="cat-chips">
+                {#each assignedCategories as category (category.id)}
+                  <span class="cat-chip">
+                    {category.name}
+                    <button
+                      type="button"
+                      aria-label={`Fjern ${category.name}`}
+                      disabled={categoryBusy}
+                      onclick={() => removeCategory(category)}
+                    >
+                      <X size={13} />
+                    </button>
+                  </span>
+                {/each}
+              </div>
+            {/if}
+            {#if assignableCategories.length > 0}
+              <Select
+                id="categoryPicker"
+                size="sm"
+                items={assignableCategories}
+                bind:value={categoryPick}
+                placeholder="Legg til kategori…"
+                disabled={categoryBusy}
+                onchange={(e) => assignCategory(e.currentTarget.value)}
+              />
+            {/if}
+            <span class="hint">
+              Kategorier gjør settet lettere å finne i arkivlisten.
+            </span>
+          </div>
+        {/if}
         <div class="field">
           <div class="labelrow">
             <label for="recordingUrl">Lytteeksempel</label>
@@ -971,6 +1082,51 @@
     position: relative;
     display: flex;
     align-items: center;
+  }
+
+  /* ---- kategorier ---- */
+  .cat-empty {
+    margin: 0;
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  .cat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 6px 0 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+  }
+  .cat-chip button {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--dur-fast);
+  }
+  .cat-chip button:hover {
+    color: var(--danger);
+    background: var(--danger-soft);
+  }
+  .cat-chip button:disabled {
+    cursor: progress;
   }
   .ctrl .ico {
     position: absolute;
