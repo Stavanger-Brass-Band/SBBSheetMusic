@@ -4,7 +4,7 @@
   import { Mail, Lock, Check, ArrowRight } from "@lucide/svelte";
   import { Modal } from "flowbite-svelte";
   import { auth } from "$lib/stores/auth.svelte";
-  import { users as usersApi, userManagementV2 } from "$lib/api/users";
+  import { users as usersApi } from "$lib/api/users";
 
   const CONTACT_URL = "https://www.stavanger-brassband.com/styret";
 
@@ -130,15 +130,9 @@
           <span class="box"><Check size={13} /></span>
           Husk meg
         </label>
-        {#if userManagementV2}
-          <button type="button" class="link linkbtn" onclick={openForgot}>
-            Glemt passord?
-          </button>
-        {:else}
-          <a class="link" href={CONTACT_URL} target="_blank" rel="noreferrer">
-            Glemt passord?
-          </a>
-        {/if}
+        <button type="button" class="link linkbtn" onclick={openForgot}>
+          Glemt passord?
+        </button>
       </div>
 
       {#if loginErrorMessage.length > 0}
