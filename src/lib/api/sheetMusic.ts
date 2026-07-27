@@ -16,18 +16,13 @@ export const sheetMusic = {
       search?: string;
       top?: number;
       skip?: number;
-      /** OData order: field + direction (0 = ascending, 1 = descending). */
-      orderBy?: { field: string; direction: 0 | 1 }[];
     } = {},
   ) => {
     const params = new URLSearchParams();
     if (opts.search) params.set("$search", opts.search);
     // The ODataQueryParams object binds from the query string; $orderBy is an
     // array of { field, direction } → indexed form $orderBy[i].field / .direction.
-    (opts.orderBy ?? []).forEach((o, i) => {
-      params.set(`$orderBy[${i}].field`, o.field);
-      params.set(`$orderBy[${i}].direction`, String(o.direction));
-    });
+    params.set(`$orderBy`, "archiveNumber desc");
     params.set("$top", String(opts.top ?? 30));
     params.set("$skip", String(opts.skip ?? 0));
     return client.get<MusicSet[]>(`/sheetmusic/sets?${params}`);

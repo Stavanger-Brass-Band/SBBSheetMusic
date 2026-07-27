@@ -4,6 +4,173 @@
  */
 
 export interface paths {
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    Top?: number;
+                    Skip?: number;
+                    OrderBy?: components["schemas"]["ODataOrderByOption"][];
+                    "Filter.Type"?: components["schemas"]["ExpressionType"];
+                    Search?: string;
+                    Expand?: string[];
+                    HasFilter?: boolean;
+                    HasSearch?: boolean;
+                    IsEmpty?: boolean;
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CategoryRequest"];
+                    "text/json": components["schemas"]["CategoryRequest"];
+                    "application/*+json": components["schemas"]["CategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{categoryIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CategoryRequest"];
+                    "text/json": components["schemas"]["CategoryRequest"];
+                    "application/*+json": components["schemas"]["CategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/parts/index": {
         parameters: {
             query?: never;
@@ -576,6 +743,7 @@ export interface paths {
             parameters: {
                 query: {
                     queryParams?: components["schemas"]["ODataQueryParams"];
+                    category?: string;
                     /** @description The requested API version */
                     "api-version": "1.0";
                 };
@@ -849,6 +1017,115 @@ export interface paths {
                 header?: never;
                 path: {
                     setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AssignCategoryRequest"];
+                    "text/json": components["schemas"]["AssignCategoryRequest"];
+                    "application/*+json": components["schemas"]["AssignCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/categories/{categoryIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    setIdentifier: string;
+                    categoryIdentifier: string;
                 };
                 cookie?: never;
             };
@@ -1278,6 +1555,12 @@ export interface components {
             expires_in?: number;
             scope?: null | string;
         };
+        ApiCategory: {
+            /** Format: uuid */
+            id?: string;
+            name?: null | string;
+            inactive?: boolean;
+        };
         ApiPart: {
             /** Format: uuid */
             id?: string;
@@ -1306,6 +1589,7 @@ export interface components {
             zipDownloadUrl?: null | string;
             partsUrl?: null | string;
             parts?: null | components["schemas"]["ApiSheetMusicPart"][];
+            categories?: null | components["schemas"]["ApiCategory"][];
         };
         ApiSheetMusicPart: {
             /** Format: uuid */
@@ -1319,6 +1603,13 @@ export interface components {
             pdfDownloadUrl?: null | string;
             deletePartUrl?: null | string;
         };
+        AssignCategoryRequest: {
+            categoryIdentifier?: null | string;
+        };
+        CategoryRequest: {
+            name?: null | string;
+            inactive?: null | boolean;
+        };
         /**
          * Format: int32
          * @enum {integer}
@@ -1330,6 +1621,7 @@ export interface components {
             startDate?: string;
             /** Format: date-time */
             endDate?: string;
+            comments?: null | string;
         };
         ODataExpression: {
             type?: components["schemas"]["ExpressionType"];

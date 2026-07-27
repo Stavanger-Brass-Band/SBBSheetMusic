@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import { flip } from "svelte/animate";
+  import { fly } from "svelte/transition";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import {
@@ -16,10 +18,15 @@
     Search,
     Check,
     FolderOpen,
+    GripVertical,
+    ArrowUpDown,
+    CircleCheck,
   } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { toApiDate } from "$lib/utils/date";
+  import { moveItem, isSameOrder } from "$lib/utils/reorder";
+  import { reorderFlip, toastEnter } from "$lib/utils/motion";
   import type { MusicSet, Project, UpdateProjectRequest } from "$lib/types";
   import {
     Breadcrumb,
@@ -31,9 +38,9 @@
   import ProjectModalBody from "$lib/components/ProjectModalBody.svelte";
   import ProjectDescription from "$lib/components/ProjectDescription.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import SetOrderList from "$lib/components/SetOrderList.svelte";
 
   const PAGE = 30;
-  const ORDER = [{ field: "archiveNumber", direction: 0 as const }];
 
   let id = $derived(page.params.id!);
 
@@ -71,7 +78,21 @@
   let confirmRemoveOpen = $state(false);
   let setToRemove = $state<MusicSet | null>(null);
 
+  // concert order (drag and drop)
+  let draggingId = $state<string | undefined>();
+  let flashId = $state<string | undefined>();
+  let orderError = $state("");
+  let reorderOpen = $state(false);
+  let orderSaved = $state(false);
+  let orderAtDragStart: MusicSet[] = [];
+  let orderBeforeSave: MusicSet[] | undefined;
+  let flashTimer: ReturnType<typeof setTimeout> | undefined;
+  let orderSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  let orderSavedTimer: ReturnType<typeof setTimeout> | undefined;
+
   let attachedIds = $derived(new Set(sets.map((s) => s.id)));
+  let canReorder = $derived(sets.length > 1);
+  let reordering = $derived(reorderOpen && canReorder);
 
   onMount(async () => {
     const [info, projectSets] = await Promise.all([
@@ -82,7 +103,27 @@
     sets = projectSets;
     loading = false;
   });
-  onDestroy(() => clearTimeout(searchTimer));
+  onDestroy(() => {
+    clearTimeout(searchTimer);
+    clearTimeout(flashTimer);
+    clearTimeout(orderSavedTimer);
+    // Leaving mid-debounce must not drop the order the admin just arranged.
+    if (orderSaveTimer !== undefined) {
+      clearTimeout(orderSaveTimer);
+      saveOrder();
+    }
+  });
+
+  // The reorder list is the phone-only affordance, and the button that closes it
+  // goes with it — so growing past phone width has to close it too.
+  $effect(() => {
+    const phone = window.matchMedia("(max-width: 640px)");
+    const closeOnWide = () => {
+      if (!phone.matches) reorderOpen = false;
+    };
+    phone.addEventListener("change", closeOnWide);
+    return () => phone.removeEventListener("change", closeOnWide);
+  });
 
   // ---- add sets ----
   function openAdd() {
@@ -96,7 +137,6 @@
     skip = 0;
     const res = await sheetMusic.searchSets({
       search: searchTerm.trim() || undefined,
-      orderBy: ORDER,
       top: PAGE,
       skip: 0,
     });
@@ -109,7 +149,6 @@
     skip += PAGE;
     const res = await sheetMusic.searchSets({
       search: searchTerm.trim() || undefined,
-      orderBy: ORDER,
       top: PAGE,
       skip,
     });
@@ -146,6 +185,98 @@
     if (!set) return;
     const res = await projectsApi.removeSets(id, [set.id!]);
     if (res.status === 200) sets = sets.filter((s) => s.id !== set.id);
+  }
+
+  // ---- concert order ----
+  /** Ring the set that just moved, so the eye can follow it to its new place. */
+  function flashMoved(setId: string | undefined) {
+    clearTimeout(flashTimer);
+    flashId = setId;
+    flashTimer = setTimeout(() => (flashId = undefined), 900);
+  }
+  /**
+   * Coalesce the saves: a held-down arrow key or a quick run of drags should end
+   * in a single request carrying the final order, and roll back to where the run
+   * started if it fails — the grid must never show an order the server rejected.
+   */
+  function queueSaveOrder(previous: MusicSet[], movedId: string | undefined) {
+    orderBeforeSave ??= previous;
+    flashMoved(movedId);
+    clearTimeout(orderSaveTimer);
+    orderSaveTimer = setTimeout(saveOrder, 350);
+  }
+  async function saveOrder() {
+    const previous = orderBeforeSave ?? sets;
+    orderBeforeSave = undefined;
+    orderSaveTimer = undefined;
+    orderError = "";
+    const res = await projectsApi.updateSetOrder(
+      id,
+      sets.map((s) => s.id!),
+    );
+    if (res.ok) {
+      // The flash only says a card moved; this confirms it reached the archive.
+      orderSaved = true;
+      clearTimeout(orderSavedTimer);
+      orderSavedTimer = setTimeout(() => (orderSaved = false), 2600);
+    } else {
+      sets = previous;
+      orderError = "Kunne ikke lagre rekkefølgen. Prøv igjen.";
+    }
+  }
+  function applyOrder(next: MusicSet[], movedId: string | undefined) {
+    const previous = sets;
+    sets = next;
+    queueSaveOrder(previous, movedId);
+  }
+
+  function onDragStart(event: DragEvent, set: MusicSet) {
+    orderAtDragStart = sets;
+    draggingId = set.id;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", set.id ?? "");
+    }
+  }
+  // Reorder as the card travels so the grid previews the drop, and save once it
+  // is let go — saving per hovered card would fire a request per neighbour.
+  function onDragOver(
+    event: DragEvent & { currentTarget: HTMLElement },
+    hoverIndex: number,
+  ) {
+    if (!draggingId) return;
+    event.preventDefault();
+    const dragIndex = sets.findIndex((s) => s.id === draggingId);
+    if (dragIndex === -1 || dragIndex === hoverIndex) return;
+    // The grid wraps, so a card is passed either sideways or downwards: past
+    // the midpoint on either axis means the drop lands after it.
+    const rect = event.currentTarget.getBoundingClientRect();
+    const dropAfter =
+      event.clientY > rect.top + rect.height / 2 ||
+      event.clientX > rect.left + rect.width / 2;
+    // Once lifted out of the list, everything after it shifts down one.
+    const hoverAfterLift = hoverIndex > dragIndex ? hoverIndex - 1 : hoverIndex;
+    const to = dropAfter ? hoverAfterLift + 1 : hoverAfterLift;
+    if (to !== dragIndex) sets = moveItem(sets, dragIndex, to);
+  }
+  function onDragEnd() {
+    const movedId = draggingId;
+    draggingId = undefined;
+    if (isSameOrder(sets, orderAtDragStart)) return;
+    queueSaveOrder(orderAtDragStart, movedId);
+  }
+  // Keyboard equivalent of the drag, announced in the card's label.
+  function onCardKeydown(event: KeyboardEvent, index: number) {
+    if (!event.altKey) return;
+    const step =
+      event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+    if (step === 0) return;
+    // Claim the combination even at the ends of the row: Alt + arrow is the
+    // browser's Back/Forward on Windows and Linux.
+    event.preventDefault();
+    const to = index + step;
+    if (to < 0 || to >= sets.length) return;
+    applyOrder(moveItem(sets, index, to), sets[index].id);
   }
 
   // ---- edit project ----
@@ -231,10 +362,34 @@
       Tilknyttede notesett
       <span class="cnt">{sets.length} sett</span>
     </h2>
-    <button class="addbtn" onclick={openAdd}>
-      <Plus size={16} /> Legg til notesett
-    </button>
+    <div class="secbar__actions">
+      {#if canReorder}
+        <p class="orderhint">
+          <GripVertical size={13} /> Dra for å endre konsertrekkefølge
+        </p>
+        <button
+          class="reorderbtn"
+          class:active={reordering}
+          aria-pressed={reordering}
+          aria-label={reordering
+            ? "Ferdig med rekkefølgen"
+            : "Endre rekkefølge"}
+          onclick={() => (reorderOpen = !reorderOpen)}
+        >
+          {#if reordering}<Check size={18} />{:else}<ArrowUpDown
+              size={18}
+            />{/if}
+        </button>
+      {/if}
+      <button class="addbtn" onclick={openAdd}>
+        <Plus size={16} /> Legg til notesett
+      </button>
+    </div>
   </div>
+
+  {#if orderError}
+    <p class="error-message">{orderError}</p>
+  {/if}
 
   {#if sets.length === 0}
     <div class="empty">
@@ -248,17 +403,34 @@
         ><Plus size={16} /> Legg til notesett</Button
       >
     </div>
+  {:else if reordering}
+    <SetOrderList {sets} movedId={flashId} onreorder={applyOrder} />
   {:else}
     <div class="grid">
-      {#each sets as set (set.id)}
-        <SetCard
-          title={set.title}
-          composer={set.composer}
-          arranger={set.arranger}
-          href={`/set/edit/${set.id}`}
-          removable
-          onremove={() => askRemoveSet(set)}
-        />
+      {#each sets as set, index (set.id)}
+        <div
+          class="grid__item"
+          draggable={canReorder}
+          ondragstart={(event) => onDragStart(event, set)}
+          ondragover={(event) => onDragOver(event, index)}
+          ondragend={onDragEnd}
+          ondrop={(event) => event.preventDefault()}
+          onkeydown={(event) => onCardKeydown(event, index)}
+          class:moved={flashId === set.id}
+          animate:flip={draggingId === set.id ? { duration: 0 } : reorderFlip()}
+        >
+          <SetCard
+            title={set.title}
+            composer={set.composer}
+            arranger={set.arranger}
+            href={`/set/edit/${set.id}`}
+            ordinal={index + 1}
+            reorderable={canReorder}
+            dragging={draggingId === set.id}
+            removable
+            onremove={() => askRemoveSet(set)}
+          />
+        </div>
       {/each}
       <button class="addtile" onclick={openAdd}>
         <span class="ic"><Plus size={26} /></span>
@@ -269,26 +441,36 @@
 
   <!-- Mobile: sticky primary action (see Project Edit - Mobile design). -->
   <div class="fab">
-    <button class="fab__btn" onclick={openAdd}>
-      <Plus size={18} /> Legg til notesett
-    </button>
+    {#if reordering}
+      <button class="fab__btn" onclick={() => (reorderOpen = false)}>
+        <Check size={18} /> Ferdig
+      </button>
+    {:else}
+      <button class="fab__btn" onclick={openAdd}>
+        <Plus size={18} /> Legg til notesett
+      </button>
+    {/if}
   </div>
 {/if}
 
 <!-- Add-sets dialog -->
 <Modal title="Legg til notesett" bind:open={addOpen} size="lg">
+  <!-- The search field stays mounted while results load: the dialog hands it
+       the focus on open (`data-autofocus`), and swapping it out mid-search
+       would take the caret away from whoever is still typing. -->
+  <div class="setsearch">
+    <span class="ico"><Search size={16} /></span>
+    <input
+      class="in has-ico"
+      data-autofocus
+      placeholder="Søk i arkivet etter tittel, komponist eller arrangør…"
+      bind:value={searchTerm}
+      oninput={onCatalogSearchInput}
+    />
+  </div>
   {#if loadingCatalog}
     <LoadingSpinner inline />
   {:else}
-    <div class="setsearch">
-      <span class="ico"><Search size={16} /></span>
-      <input
-        class="in has-ico"
-        placeholder="Søk i arkivet etter tittel, komponist eller arrangør…"
-        bind:value={searchTerm}
-        oninput={onCatalogSearchInput}
-      />
-    </div>
     <div class="listhead">
       <span></span><span>Tittel</span><span>Komponist</span><span>Arrangør</span
       >
@@ -369,6 +551,15 @@
   confirmTitle="Fjern"
   onconfirm={removeSet}
 />
+
+{#if orderSaved}
+  <div class="toast-wrap">
+    <div class="toast" role="status" transition:fly={toastEnter()}>
+      <span class="ti"><CircleCheck size={17} /></span>
+      Konsertrekkefølgen er lagret
+    </div>
+  </div>
+{/if}
 
 <style>
   /* ---- header ---- */
@@ -462,6 +653,84 @@
     border-color: var(--accent);
     background: var(--accent-soft);
   }
+  .secbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .orderhint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+  }
+  /* Phones can't drag the cards, so they get a reorder mode instead — the
+     toggle and the hint swap places in the media query below. */
+  .reorderbtn {
+    display: none;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast),
+      color var(--dur-fast);
+  }
+  .reorderbtn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .error-message {
+    margin: 0 0 16px;
+    font-family: var(--font-text);
+    font-size: 13px;
+    color: var(--danger);
+  }
+
+  /* ---- save confirmation ---- */
+  /* A toast rather than a line in the flow: the order is saved from a drop with
+     the pointer over the grid, and an element appearing above it would shove the
+     cards out from under the cursor. The wrapper does the centring so the fly
+     transition's own transform has the toast to itself. */
+  .toast-wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 28px;
+    z-index: 60;
+    display: flex;
+    justify-content: center;
+    padding: 0 18px;
+    pointer-events: none;
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--ink-700);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .toast .ti {
+    display: inline-flex;
+    color: var(--success);
+  }
 
   /* Sticky mobile add action — hidden on desktop (see media query). */
   .fab {
@@ -473,6 +742,23 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(224px, 1fr));
     gap: 34px 28px;
+  }
+  /* A 1fr track's auto floor is the card's min-content width, which stops one
+     column shrinking and skews the row; min-width: 0 keeps them in step. */
+  .grid__item {
+    min-width: 0;
+  }
+  /* Rings the card that just moved as it lands, then fades back. */
+  .grid__item.moved {
+    animation: move-flash var(--dur-slow) var(--ease-out);
+  }
+  @keyframes move-flash {
+    from {
+      box-shadow: 0 0 0 3px var(--accent);
+    }
+    to {
+      box-shadow: none;
+    }
   }
   .addtile {
     display: flex;
@@ -666,11 +952,10 @@
     color: var(--text-secondary);
   }
 
-  @media (max-width: 720px) {
-    .title {
-      font-size: 30px;
-    }
-    /* Stack the section bar: title, count subtitle, then the add button. */
+  /* Tablets: the drag hint and the add button together are too wide to share the
+     heading's line, so stack them — title, count subtitle, then the actions.
+     Phones drop both for the compact toggle and go back to one row (below). */
+  @media (min-width: 641px) and (max-width: 720px) {
     .secbar {
       flex-direction: column;
       align-items: flex-start;
@@ -683,6 +968,12 @@
     }
     .cnt::before {
       content: none;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .title {
+      font-size: 30px;
     }
     .grid {
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -738,6 +1029,26 @@
     }
     .addbtn {
       display: none;
+    }
+    .orderhint {
+      display: none;
+    }
+    .reorderbtn {
+      display: inline-flex;
+    }
+    /* Only the compact toggle is left in the actions row here, so the heading
+       keeps it company on one line — count inline, toggle at the right edge
+       (see Project Edit - Mobile). Centred, since the icon button has no text
+       baseline to share with the heading. */
+    .secbar {
+      align-items: center;
+    }
+    .secbar h2 {
+      font-size: 19px;
+    }
+    /* Clear the sticky action bar that appears at this width. */
+    .toast-wrap {
+      bottom: calc(88px + env(safe-area-inset-bottom));
     }
     .fab {
       display: block;

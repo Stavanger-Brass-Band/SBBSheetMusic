@@ -19,7 +19,6 @@
   import { Button, Spinner, EmptyState, SearchInput } from "$lib/components/ui";
 
   const PAGE = 30;
-  const ORDER = [{ field: "archiveNumber", direction: 1 as const }];
 
   let searchTerm = $state("");
   let items = $state<MusicSet[]>([]);
@@ -50,7 +49,6 @@
     skip = 0;
     const res = await sheetMusic.searchSets({
       search: searchTerm.trim() || undefined,
-      orderBy: ORDER,
       top: PAGE,
       skip: 0,
     });
@@ -65,7 +63,6 @@
     skip += PAGE;
     const res = await sheetMusic.searchSets({
       search: searchTerm.trim() || undefined,
-      orderBy: ORDER,
       top: PAGE,
       skip,
     });

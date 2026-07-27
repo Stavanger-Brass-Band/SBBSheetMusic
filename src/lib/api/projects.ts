@@ -33,4 +33,16 @@ export const projects = {
 
   removeSets: (id: string, setIdentifiers: string[]) =>
     client.del(`/projects/${id}/sets`, { setIdentifiers }),
+
+  /**
+   * Store the concert order — the same endpoint as `addSets`, which moves any
+   * identifier already on the project to the position it holds in the list (and
+   * appends the ones that aren't), so posting every set in order reorders them.
+   * Returns the raw response: the caller already has the order on screen and
+   * only needs to know whether it stuck.
+   */
+  updateSetOrder: (id: string, setIdentifiers: string[]) =>
+    client.postNoContent<{ setIdentifiers: string[] }>(`/projects/${id}/sets`, {
+      setIdentifiers,
+    }),
 };
