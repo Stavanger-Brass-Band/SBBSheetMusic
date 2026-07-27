@@ -1,17 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import {
-    Modal,
-    Table,
-    TableHead,
-    TableHeadCell,
-    TableBody,
-    TableBodyRow,
-    TableBodyCell,
-  } from "flowbite-svelte";
-  import { Plus, SearchX } from "@lucide/svelte";
-  import { users as usersApi } from "$lib/api/users";
-  import type { UpdateUserRequest, User } from "$lib/types";
+  import { goto } from "$app/navigation";
+  import { Modal } from "flowbite-svelte";
+  import { Plus, SearchX, Check } from "@lucide/svelte";
+  import { users as usersApi, userManagementV2 } from "$lib/api/users";
+  import type { User, UserForm } from "$lib/types";
   import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
@@ -32,22 +25,20 @@
     );
   });
 
-  // Modal state, shared by create and edit. `editing` holds the user being
-  // edited, or null when creating a new one. `form` is the working copy the
-  // modal mutates in place.
+  // Create-only modal. Editing (profile, status, roles, delete) lives on the
+  // dedicated /user/edit/[id] page, reached by clicking a row.
   let isOpen = $state(false);
   let isSaving = $state(false);
-  let editing = $state<User | null>(null);
-  let form = $state<UpdateUserRequest>({});
+  let form = $state<UserForm>(emptyForm());
   let errorMessage = $state("");
 
-  // Name and e-post are always required; a password is only required when
-  // creating (on edit, blank means "keep the current password").
   let canSave = $derived(
-    !!form.name?.trim() &&
-      !!form.email?.trim() &&
-      (editing !== null || !!form.password?.trim()),
+    !!form.name.trim() && !!form.email.trim() && !!form.password.trim(),
   );
+
+  function emptyForm(): UserForm {
+    return { name: "", email: "", password: "", active: true, roles: [] };
+  }
 
   onMount(async () => {
     users = (await usersApi.list()) ?? [];
@@ -55,15 +46,7 @@
   });
 
   function openCreate() {
-    editing = null;
-    form = {};
-    errorMessage = "";
-    isOpen = true;
-  }
-
-  function openEdit(user: User) {
-    editing = user;
-    form = { name: user.name, email: user.email };
+    form = emptyForm();
     errorMessage = "";
     isOpen = true;
   }
@@ -72,29 +55,14 @@
     if (!canSave) return;
     isSaving = true;
     errorMessage = "";
-
-    let response: Response;
-    if (editing) {
-      const body: UpdateUserRequest = {
-        name: form.name ?? null,
-        email: form.email ?? null,
-      };
-      // Only send a password when one was entered, so an empty field leaves
-      // the current password untouched.
-      if (form.password?.trim()) body.password = form.password;
-      response = await usersApi.update(editing.id, body);
-    } else {
-      response = await usersApi.create({
-        name: form.name ?? null,
-        email: form.email ?? null,
-        password: form.password ?? null,
-      });
-    }
-
+    const response = await usersApi.create({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      password: form.password,
+    });
     isSaving = false;
     if (response.ok) {
       isOpen = false;
-      // The write endpoints return no body, so reload to reflect the change.
       loading = true;
       users = (await usersApi.list()) ?? [];
       loading = false;
@@ -103,6 +71,26 @@
     }
   }
 </script>
+
+{#snippet statusBadge(user: User)}
+  {#if user.inactive}
+    <Badge variant="neutral" dot>Inaktiv</Badge>
+  {:else}
+    <Badge variant="success" dot>Aktiv</Badge>
+  {/if}
+{/snippet}
+
+{#snippet roleChips(roles: string[] | null | undefined)}
+  {#if roles && roles.length}
+    <div class="chips">
+      {#each roles as role}
+        <span class="chip">{role}</span>
+      {/each}
+    </div>
+  {:else}
+    <span class="chip none">—</span>
+  {/if}
+{/snippet}
 
 <div class="sbb-list-head">
   <h1 class="sbb-h1">Brukere</h1>
@@ -123,65 +111,107 @@
     {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
 {:else}
-  <Table class="sbb-table" divClass="sbb-table-wrap table-view">
-    <TableHead>
-      <TableHeadCell>Navn</TableHeadCell>
-      <TableHeadCell>E-post</TableHeadCell>
-      <TableHeadCell>Status</TableHeadCell>
-    </TableHead>
-    <TableBody>
-      {#each filteredUsers as user (user.id)}
-        <TableBodyRow class="clickable" onclick={() => openEdit(user)}>
-          <TableBodyCell>{user.name}</TableBodyCell>
-          <TableBodyCell>{user.email}</TableBodyCell>
-          <TableBodyCell>
-            {#if user.inactive}
-              <Badge variant="neutral" dot>Inaktiv</Badge>
-            {:else}
-              <Badge variant="success" dot>Aktiv</Badge>
+  <div class="sbb-table-wrap table-view">
+    <table class="sbb-table">
+      <thead>
+        <tr>
+          <th>Navn</th>
+          <th>E-post</th>
+          {#if userManagementV2}<th class="c-roles">Roller</th>{/if}
+          <th class="c-status">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each filteredUsers as user (user.id)}
+          <tr class="clickable" onclick={() => goto(`/user/edit/${user.id}`)}>
+            <td class="c-name">{user.name}</td>
+            <td class="c-muted">{user.email}</td>
+            {#if userManagementV2}
+              <td class="c-roles">{@render roleChips(user.roles)}</td>
             {/if}
-          </TableBodyCell>
-        </TableBodyRow>
-      {/each}
-    </TableBody>
-  </Table>
+            <td class="c-status">{@render statusBadge(user)}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
 
   <!-- Mobile: the table reflows into a card list. -->
   <div class="sbb-card-list">
     {#each filteredUsers as user (user.id)}
-      <div class="sbb-card clickable" onclick={() => openEdit(user)}>
+      <div
+        class="sbb-card clickable"
+        onclick={() => goto(`/user/edit/${user.id}`)}
+      >
         <div class="body">
           <div class="t">{user.name}</div>
           <div class="meta">{user.email}</div>
-        </div>
-        <div class="acts">
-          {#if user.inactive}
-            <Badge variant="neutral" dot>Inaktiv</Badge>
-          {:else}
-            <Badge variant="success" dot>Aktiv</Badge>
+          {#if userManagementV2 && user.roles && user.roles.length}
+            <div class="card-chips">{@render roleChips(user.roles)}</div>
           {/if}
         </div>
+        <div class="acts">{@render statusBadge(user)}</div>
       </div>
     {/each}
   </div>
 {/if}
 
-<Modal
-  title={editing ? "Rediger bruker" : "Legg til bruker"}
-  bind:open={isOpen}
-  size="md"
->
-  <UserModalBody user={form} isEditing={editing !== null} />
+<Modal title="Legg til bruker" bind:open={isOpen} size="md">
+  <UserModalBody {form} isEditing={false} />
   {#if errorMessage}
     <p class="error-message">{errorMessage}</p>
   {/if}
   {#snippet footer()}
-    <Button loading={isSaving} disabled={!canSave} onclick={save}>Lagre</Button>
     <Button variant="ghost" onclick={() => (isOpen = false)}>Lukk</Button>
+    <Button loading={isSaving} disabled={!canSave} onclick={save}>
+      <Check size={16} /> Lagre
+    </Button>
   {/snippet}
 </Modal>
 
 <style>
+  .c-name {
+    font-weight: 500;
+  }
+  .c-muted {
+    color: var(--text-secondary);
+  }
+  .c-roles {
+    width: 34%;
+  }
+  .c-status {
+    width: 130px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+  }
+  .chip.none {
+    padding-left: 0;
+    color: var(--text-muted);
+    background: transparent;
+    border-color: transparent;
+  }
+  .card-chips {
+    margin-top: 8px;
+  }
+
   .error-message {
     margin-top: 16px;
     font-family: var(--font-text);

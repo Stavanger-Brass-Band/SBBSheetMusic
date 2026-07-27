@@ -1,17 +1,14 @@
 <script lang="ts">
   import { Label, Input, Helper } from "flowbite-svelte";
-  import type { UpdateUserRequest } from "$lib/types";
+  import type { UserForm } from "$lib/types";
 
-  // `user` is mutated in place; the parent owns the reactive object. We use
-  // value + oninput (rather than bind:value) because the API fields are
-  // nullable and Flowbite's Input value type does not accept null.
-  let {
-    user,
-    isEditing = false,
-  }: { user: UpdateUserRequest; isEditing?: boolean } = $props();
+  // `form` is mutated in place; the parent owns the reactive object. Status and
+  // roles are managed on the user edit page (their own endpoints), not here.
+  let { form, isEditing = false }: { form: UserForm; isEditing?: boolean } =
+    $props();
 
   const onInput = (key: "name" | "email" | "password") => (e: Event) => {
-    user[key] = (e.currentTarget as HTMLInputElement).value;
+    form[key] = (e.currentTarget as HTMLInputElement).value;
   };
 </script>
 
@@ -20,7 +17,7 @@
     <Label for="userName" class="mb-2">Navn</Label>
     <Input
       id="userName"
-      value={user.name ?? ""}
+      value={form.name}
       oninput={onInput("name")}
       placeholder="Skriv inn navn"
     />
@@ -30,7 +27,7 @@
     <Input
       id="userEmail"
       type="email"
-      value={user.email ?? ""}
+      value={form.email}
       oninput={onInput("email")}
       placeholder="Skriv inn e-post"
     />
@@ -40,7 +37,7 @@
     <Input
       id="userPassword"
       type="password"
-      value={user.password ?? ""}
+      value={form.password}
       oninput={onInput("password")}
       placeholder={isEditing
         ? "La stå tomt for å beholde"
