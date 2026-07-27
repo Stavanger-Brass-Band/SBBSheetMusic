@@ -312,86 +312,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pdf/singleSplit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pdf/smartSplit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/projects": {
         parameters: {
             query?: never;
@@ -652,7 +572,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -678,7 +597,6 @@ export interface paths {
             };
         };
         put?: never;
-        /** @deprecated */
         post: {
             parameters: {
                 query: {
@@ -721,7 +639,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -762,7 +679,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -791,7 +707,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        /** @deprecated */
         delete: {
             parameters: {
                 query: {
@@ -828,7 +743,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -869,7 +783,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -895,7 +808,6 @@ export interface paths {
                 };
             };
         };
-        /** @deprecated */
         put: {
             parameters: {
                 query: {
@@ -928,7 +840,6 @@ export interface paths {
             };
         };
         post?: never;
-        /** @deprecated */
         delete: {
             parameters: {
                 query: {
@@ -964,7 +875,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -1003,7 +913,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -1043,7 +952,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
         get: {
             parameters: {
                 query: {
@@ -1082,7 +990,6 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
         post: {
             parameters: {
                 query: {
@@ -1364,41 +1271,41 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         ApiAccessTokens: {
-            access_token?: string | null;
-            refresh_token?: string | null;
-            token_type?: string | null;
+            access_token?: null | string;
+            refresh_token?: null | string;
+            token_type?: null | string;
             /** Format: int32 */
             expires_in?: number;
-            scope?: string | null;
+            scope?: null | string;
         };
         ApiPart: {
             /** Format: uuid */
             id?: string;
-            name?: string | null;
+            name?: null | string;
             /** Format: int32 */
             sortOrder?: number;
             indexable?: boolean;
-            aliases?: string[] | null;
+            aliases?: null | string[];
         };
         ApiSet: {
             /** Format: uuid */
             id?: string;
             /** Format: int32 */
             archiveNumber?: number;
-            title?: string | null;
-            composer?: string | null;
-            arranger?: string | null;
-            soleSellingAgent?: string | null;
-            missingParts?: string | null;
-            recordingUrl?: string | null;
+            title?: null | string;
+            composer?: null | string;
+            arranger?: null | string;
+            soleSellingAgent?: null | string;
+            missingParts?: null | string;
+            recordingUrl?: null | string;
             hasBeenScanned?: boolean;
             readonly borrowed?: boolean;
-            borrowedFrom?: string | null;
+            borrowedFrom?: null | string;
             /** Format: date-time */
-            borrowedDateTime?: string | null;
-            zipDownloadUrl?: string | null;
-            partsUrl?: string | null;
-            parts?: components["schemas"]["ApiSheetMusicPart"][] | null;
+            borrowedDateTime?: null | string;
+            zipDownloadUrl?: null | string;
+            partsUrl?: null | string;
+            parts?: null | components["schemas"]["ApiSheetMusicPart"][];
         };
         ApiSheetMusicPart: {
             /** Format: uuid */
@@ -1407,10 +1314,10 @@ export interface components {
             setId?: string;
             /** Format: uuid */
             musicPartId?: string;
-            name?: string | null;
-            aliases?: string | null;
-            pdfDownloadUrl?: string | null;
-            deletePartUrl?: string | null;
+            name?: null | string;
+            aliases?: null | string;
+            pdfDownloadUrl?: null | string;
+            deletePartUrl?: null | string;
         };
         /**
          * Format: int32
@@ -1418,7 +1325,7 @@ export interface components {
          */
         ExpressionType: 0 | 1;
         NewProjectRequest: {
-            name?: string | null;
+            name?: null | string;
             /** Format: date-time */
             startDate?: string;
             /** Format: date-time */
@@ -1428,41 +1335,41 @@ export interface components {
             type?: components["schemas"]["ExpressionType"];
         };
         ODataOrderByOption: {
-            field?: string | null;
+            field?: null | string;
             direction?: components["schemas"]["SortDirection"];
         };
         ODataQueryParams: {
             /** Format: int32 */
-            $top?: number | null;
+            $top?: null | number;
             /** Format: int32 */
-            $skip?: number | null;
-            $orderBy?: components["schemas"]["ODataOrderByOption"][] | null;
+            $skip?: null | number;
+            $orderBy?: null | components["schemas"]["ODataOrderByOption"][];
             $filter?: components["schemas"]["ODataExpression"];
-            $search?: string | null;
-            $expand?: string[] | null;
+            $search?: null | string;
+            $expand?: null | string[];
             readonly hasFilter?: boolean;
             readonly hasSearch?: boolean;
             readonly isEmpty?: boolean;
         };
         PartRequest: {
-            name?: string | null;
+            name?: null | string;
             /** Format: int32 */
             sortOrder?: number;
-            indexable?: boolean | null;
+            indexable?: null | boolean;
         };
         SetCollectionRequest: {
-            setIdentifiers?: string[] | null;
+            setIdentifiers?: null | string[];
         };
         SetRequest: {
             /** Format: int32 */
-            archiveNumber?: number | null;
-            title?: string | null;
-            composer?: string | null;
-            recordingUrl?: string | null;
-            arranger?: string | null;
-            soleSellingAgent?: string | null;
-            missingParts?: string | null;
-            borrowedFrom?: string | null;
+            archiveNumber?: null | number;
+            title?: null | string;
+            composer?: null | string;
+            recordingUrl?: null | string;
+            arranger?: null | string;
+            soleSellingAgent?: null | string;
+            missingParts?: null | string;
+            borrowedFrom?: null | string;
         };
         /**
          * Format: int32
@@ -1470,24 +1377,24 @@ export interface components {
          */
         SortDirection: 0 | 1;
         UpdateProjectRequest: {
-            name?: string | null;
-            comments?: string | null;
+            name?: null | string;
+            comments?: null | string;
             /** Format: date-time */
             startDate?: string;
             /** Format: date-time */
             endDate?: string;
         };
         UpdateUserRequest: {
-            name?: string | null;
-            email?: string | null;
-            password?: string | null;
+            name?: null | string;
+            email?: null | string;
+            password?: null | string;
         };
         UserRequest: {
             /** Format: uuid */
-            id?: string | null;
-            name?: string | null;
-            email?: string | null;
-            password?: string | null;
+            id?: null | string;
+            name?: null | string;
+            email?: null | string;
+            password?: null | string;
         };
     };
     responses: never;

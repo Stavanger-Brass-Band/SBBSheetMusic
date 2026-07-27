@@ -2,7 +2,9 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { Mail, Lock, Check, ArrowRight } from "@lucide/svelte";
+  import { Modal } from "flowbite-svelte";
   import { auth } from "$lib/stores/auth.svelte";
+  import { users as usersApi, userManagementV2 } from "$lib/api/users";
 
   const CONTACT_URL = "https://www.stavanger-brassband.com/styret";
 
@@ -11,6 +13,28 @@
   let rememberMe = $state(true);
   let loginErrorMessage = $state("");
   let isLoggingIn = $state(false);
+
+  // Self-service password reset (v2 backend only). `forgotDone` shows a neutral
+  // confirmation regardless of whether the address exists, to avoid revealing
+  // which e-mails are registered.
+  let forgotOpen = $state(false);
+  let forgotEmail = $state("");
+  let forgotSending = $state(false);
+  let forgotDone = $state(false);
+
+  function openForgot() {
+    forgotEmail = email;
+    forgotDone = false;
+    forgotOpen = true;
+  }
+
+  async function doForgot() {
+    if (!forgotEmail.trim()) return;
+    forgotSending = true;
+    await usersApi.forgotPassword(forgotEmail.trim());
+    forgotSending = false;
+    forgotDone = true;
+  }
 
   onMount(() => {
     if (auth.isAuthenticated) goto("/");
@@ -106,9 +130,15 @@
           <span class="box"><Check size={13} /></span>
           Husk meg
         </label>
-        <a class="link" href={CONTACT_URL} target="_blank" rel="noreferrer">
-          Glemt passord?
-        </a>
+        {#if userManagementV2}
+          <button type="button" class="link linkbtn" onclick={openForgot}>
+            Glemt passord?
+          </button>
+        {:else}
+          <a class="link" href={CONTACT_URL} target="_blank" rel="noreferrer">
+            Glemt passord?
+          </a>
+        {/if}
       </div>
 
       {#if loginErrorMessage.length > 0}
@@ -134,6 +164,55 @@
     </form>
   </section>
 </div>
+
+<Modal title="Glemt passord?" bind:open={forgotOpen} size="xs">
+  {#if forgotDone}
+    <div class="forgot-done">
+      <span class="ok"><Check size={22} /></span>
+      <p>
+        Hvis <b>{forgotEmail.trim()}</b> er registrert, har vi sendt en e-post med
+        en lenke for å tilbakestille passordet. Sjekk innboksen din.
+      </p>
+    </div>
+  {:else}
+    <p class="forgot-lede">
+      Skriv inn e-postadressen din, så sender vi deg en lenke for å sette et
+      nytt passord.
+    </p>
+    <div class="forgot-field">
+      <label for="forgotEmail">Epost</label>
+      <div class="control">
+        <span class="ico"><Mail size={17} /></span>
+        <input
+          id="forgotEmail"
+          type="email"
+          placeholder="Skriv inn epost"
+          bind:value={forgotEmail}
+        />
+      </div>
+    </div>
+  {/if}
+  {#snippet footer()}
+    {#if forgotDone}
+      <button
+        class="btn modal-btn"
+        type="button"
+        onclick={() => (forgotOpen = false)}
+      >
+        Lukk
+      </button>
+    {:else}
+      <button
+        class="btn modal-btn"
+        type="button"
+        disabled={forgotSending || !forgotEmail.trim()}
+        onclick={doForgot}
+      >
+        {forgotSending ? "Sender…" : "Send lenke"}
+      </button>
+    {/if}
+  {/snippet}
+</Modal>
 
 <style>
   .screen {
@@ -347,6 +426,50 @@
   .link:hover {
     color: var(--accent);
   }
+  /* "Glemt passord?" as a button when the v2 self-service flow is enabled. */
+  .linkbtn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-text);
+    cursor: pointer;
+  }
+
+  /* Forgot-password modal. */
+  .forgot-lede {
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .forgot-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .forgot-field label {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .forgot-done {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .forgot-done .ok {
+    flex-shrink: 0;
+    color: var(--success);
+    display: inline-flex;
+  }
+  .modal-btn {
+    width: auto;
+    height: 42px;
+    font-size: 14px;
+  }
 
   .error {
     font-size: 14px;
@@ -452,7 +575,7 @@
     }
     .login {
       max-width: none;
-      gap: 28px;
+      gap: 22px;
     }
     .control input {
       height: 56px;

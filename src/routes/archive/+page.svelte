@@ -19,7 +19,7 @@
   import { Button, Spinner, EmptyState, SearchInput } from "$lib/components/ui";
 
   const PAGE = 30;
-  const ORDER = [{ field: "archiveNumber", direction: 0 as const }];
+  const ORDER = [{ field: "archiveNumber", direction: 1 as const }];
 
   let searchTerm = $state("");
   let items = $state<MusicSet[]>([]);

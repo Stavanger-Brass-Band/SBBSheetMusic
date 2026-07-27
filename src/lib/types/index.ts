@@ -47,16 +47,57 @@ export interface Project {
   sets?: MusicSet[];
 }
 
-// --- Users (v1.0) ---
+// --- Users ---
+// UserRequest/UpdateUserRequest are identical in v1 and v2, so the v1 aliases
+// stand. The remaining request types below exist only in the v2 spec, which
+// currently lives in the test environment and is therefore not in the
+// generated (prod) schema files — hand-authored here until `api:gen` can pull
+// v2 users from prod.
 export type UserRequest = V1["schemas"]["UserRequest"];
 export type UpdateUserRequest = V1["schemas"]["UpdateUserRequest"];
 
-/** User response shape — not defined in the OpenAPI spec, authored here. */
+/** v2 `AssignRoleRequest`. */
+export interface AssignRoleRequest {
+  roleName: string | null;
+}
+
+/** v2 `ForgotPasswordRequest`. */
+export interface ForgotPasswordRequest {
+  email: string | null;
+}
+
+/** v2 `ResetPasswordRequest`. */
+export interface ResetPasswordRequest {
+  email: string | null;
+  token: string | null;
+  newPassword: string | null;
+}
+
+/**
+ * User response shape — not defined in the OpenAPI spec, authored here.
+ * `roles` is assumed present on the v2 response (role management exists but the
+ * GET body is undefined in the spec); treated as optional so v1 responses that
+ * omit it stay valid.
+ */
 export interface User {
   id: string;
   name: string | null;
   email: string | null;
   inactive: boolean;
+  roles?: string[] | null;
+}
+
+/**
+ * UI-only working model for the user create/edit form. `active` maps onto the
+ * activate/deactivate endpoints and `roles` onto the role endpoints — both
+ * applied by diffing on save, not sent in the update body.
+ */
+export interface UserForm {
+  name: string;
+  email: string;
+  password: string;
+  active: boolean;
+  roles: string[];
 }
 
 // --- Auth (v1.0) ---
