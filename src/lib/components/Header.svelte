@@ -29,7 +29,8 @@
       pathname.startsWith("/project/edit")
     )
       return "projects";
-    if (pathname.startsWith("/users")) return "users";
+    if (pathname.startsWith("/users") || pathname.startsWith("/user/edit"))
+      return "users";
     if (pathname.startsWith("/parts")) return "parts";
     return "home"; // "/", "/project/[id]", "/project/[projectId]/set/[id]"
   }
