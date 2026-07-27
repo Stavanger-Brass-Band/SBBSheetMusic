@@ -3,7 +3,7 @@
   import { goto } from "$app/navigation";
   import { Modal } from "flowbite-svelte";
   import { Plus, SearchX, Check } from "@lucide/svelte";
-  import { users as usersApi, userManagementV2 } from "$lib/api/users";
+  import { users as usersApi } from "$lib/api/users";
   import type { User, UserForm } from "$lib/types";
   import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
@@ -117,7 +117,7 @@
         <tr>
           <th>Navn</th>
           <th>E-post</th>
-          {#if userManagementV2}<th class="c-roles">Roller</th>{/if}
+          <th class="c-roles">Roller</th>
           <th class="c-status">Status</th>
         </tr>
       </thead>
@@ -126,9 +126,7 @@
           <tr class="clickable" onclick={() => goto(`/user/edit/${user.id}`)}>
             <td class="c-name">{user.name}</td>
             <td class="c-muted">{user.email}</td>
-            {#if userManagementV2}
-              <td class="c-roles">{@render roleChips(user.roles)}</td>
-            {/if}
+            <td class="c-roles">{@render roleChips(user.roles)}</td>
             <td class="c-status">{@render statusBadge(user)}</td>
           </tr>
         {/each}
@@ -146,7 +144,7 @@
         <div class="body">
           <div class="t">{user.name}</div>
           <div class="meta">{user.email}</div>
-          {#if userManagementV2 && user.roles && user.roles.length}
+          {#if user.roles && user.roles.length}
             <div class="card-chips">{@render roleChips(user.roles)}</div>
           {/if}
         </div>

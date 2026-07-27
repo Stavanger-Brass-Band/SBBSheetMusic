@@ -4,7 +4,7 @@
   import { goto } from "$app/navigation";
   import { Modal, Checkbox } from "flowbite-svelte";
   import { Plus, X, Trash2, Check, UserX, UserCheck } from "@lucide/svelte";
-  import { users as usersApi, userManagementV2 } from "$lib/api/users";
+  import { users as usersApi } from "$lib/api/users";
   import type { UpdateUserRequest, User, UserForm } from "$lib/types";
   import { Badge, Breadcrumb, Button } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
@@ -205,90 +205,87 @@
     </div>
   </section>
 
-  {#if userManagementV2}
-    <!-- Roller -->
-    <section class="panel">
-      <h2 class="sbb-h3">Roller</h2>
-      <p class="hint">
-        Styrer brukerens tilganger — f.eks. «Admin» for
-        administratorrettigheter.
-      </p>
-      <div class="role-input">
-        <input
-          class="role-field"
-          placeholder="Skriv en rolle og trykk Enter"
-          bind:value={roleInput}
-          onkeydown={onRoleKeydown}
-          disabled={savingRole}
-        />
-        <button
-          type="button"
-          class="role-add"
-          onclick={addRole}
-          disabled={savingRole || !roleInput.trim()}
-        >
-          <Plus size={15} /> Legg til
-        </button>
-      </div>
-      {#if roleError}<p class="err">{roleError}</p>{/if}
-      {#if (user.roles ?? []).length === 0}
-        <p class="hint empty">Ingen roller tildelt.</p>
-      {:else}
-        <div class="role-chips">
-          {#each user.roles ?? [] as role (role)}
-            <span class="ed-chip">
-              {role}
-              <button
-                type="button"
-                onclick={() => removeRole(role)}
-                disabled={savingRole}
-                aria-label={`Fjern ${role}`}
-              >
-                <X size={13} />
-              </button>
-            </span>
-          {/each}
-        </div>
-      {/if}
-    </section>
-
-    <!-- Status -->
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <h2 class="sbb-h3">Status</h2>
-          <p class="hint">
-            Inaktive brukere beholdes, men kan ikke logge inn før de aktiveres
-            igjen.
-          </p>
-        </div>
-      </div>
-      {#if statusError}<p class="err">{statusError}</p>{/if}
-      <Button
-        variant={user.inactive ? "primary" : "secondary"}
-        loading={savingStatus}
-        onclick={toggleStatus}
+  <!-- Roller -->
+  <section class="panel">
+    <h2 class="sbb-h3">Roller</h2>
+    <p class="hint">
+      Styrer brukerens tilganger — f.eks. «Admin» for administratorrettigheter.
+    </p>
+    <div class="role-input">
+      <input
+        class="role-field"
+        placeholder="Skriv en rolle og trykk Enter"
+        bind:value={roleInput}
+        onkeydown={onRoleKeydown}
+        disabled={savingRole}
+      />
+      <button
+        type="button"
+        class="role-add"
+        onclick={addRole}
+        disabled={savingRole || !roleInput.trim()}
       >
-        {#if user.inactive}
-          <UserCheck size={16} /> Aktiver bruker
-        {:else}
-          <UserX size={16} /> Deaktiver bruker
-        {/if}
-      </Button>
-    </section>
+        <Plus size={15} /> Legg til
+      </button>
+    </div>
+    {#if roleError}<p class="err">{roleError}</p>{/if}
+    {#if (user.roles ?? []).length === 0}
+      <p class="hint empty">Ingen roller tildelt.</p>
+    {:else}
+      <div class="role-chips">
+        {#each user.roles ?? [] as role (role)}
+          <span class="ed-chip">
+            {role}
+            <button
+              type="button"
+              onclick={() => removeRole(role)}
+              disabled={savingRole}
+              aria-label={`Fjern ${role}`}
+            >
+              <X size={13} />
+            </button>
+          </span>
+        {/each}
+      </div>
+    {/if}
+  </section>
 
-    <!-- Faresone -->
-    <section class="panel danger">
-      <h2 class="sbb-h3">Faresone</h2>
-      <p class="hint">
-        Slett brukeren fra systemet. Uten permanent sletting deaktiveres
-        brukeren og kan gjenopprettes senere.
-      </p>
-      <Button variant="danger" onclick={askDelete}>
-        <Trash2 size={16} /> Slett bruker
-      </Button>
-    </section>
-  {/if}
+  <!-- Status -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="sbb-h3">Status</h2>
+        <p class="hint">
+          Inaktive brukere beholdes, men kan ikke logge inn før de aktiveres
+          igjen.
+        </p>
+      </div>
+    </div>
+    {#if statusError}<p class="err">{statusError}</p>{/if}
+    <Button
+      variant={user.inactive ? "primary" : "secondary"}
+      loading={savingStatus}
+      onclick={toggleStatus}
+    >
+      {#if user.inactive}
+        <UserCheck size={16} /> Aktiver bruker
+      {:else}
+        <UserX size={16} /> Deaktiver bruker
+      {/if}
+    </Button>
+  </section>
+
+  <!-- Faresone -->
+  <section class="panel danger">
+    <h2 class="sbb-h3">Faresone</h2>
+    <p class="hint">
+      Slett brukeren fra systemet. Uten permanent sletting deaktiveres brukeren
+      og kan gjenopprettes senere.
+    </p>
+    <Button variant="danger" onclick={askDelete}>
+      <Trash2 size={16} /> Slett bruker
+    </Button>
+  </section>
 {/if}
 
 <Modal bind:open={confirmOpen} size="xs">
