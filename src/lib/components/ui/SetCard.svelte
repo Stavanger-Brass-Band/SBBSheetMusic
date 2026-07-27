@@ -1,10 +1,13 @@
 <script lang="ts">
-  import { Trash2 } from "@lucide/svelte";
+  import { GripVertical, Trash2 } from "@lucide/svelte";
 
   // Signature "stacked sheet-music" card: a white sheet with a folded black
   // corner and a faint notes texture, sitting like a small stack of paper.
   // When `removable`, a remove button is overlaid (revealed on hover) — used
   // in the project editor; the rest of the card stays a link to `href`.
+  // `ordinal` adds the concert-order chip and `reorderable` the grip affordance
+  // and grab cursor; the drag itself is wired by the parent, which owns the
+  // list being reordered and passes `dragging` for the card in flight.
   let {
     title = "",
     composer = "",
@@ -13,6 +16,9 @@
     href = "#",
     removable = false,
     onremove,
+    ordinal,
+    reorderable = false,
+    dragging = false,
   }: {
     title?: string | null;
     composer?: string | null;
@@ -21,27 +27,50 @@
     href?: string;
     removable?: boolean;
     onremove?: () => void;
+    ordinal?: number;
+    reorderable?: boolean;
+    dragging?: boolean;
   } = $props();
+
+  // Reorderable cards announce where they sit and how to move them without a
+  // pointer, since the grip is a visual affordance only.
+  let linkLabel = $derived(
+    reorderable && ordinal !== undefined
+      ? `${title ?? ""} — nr. ${ordinal}. Bruk Alt + piltast for å flytte.`
+      : (title ?? ""),
+  );
 </script>
 
-<div class="set-card">
-  <a class="set-card__link" {href} aria-label={title ?? ""}></a>
+<div class="set-card" class:reorderable class:dragging>
+  <!-- The link must not become the drag source: with it out of the running the
+       browser picks up the draggable wrapper the parent puts around the card. -->
+  <a class="set-card__link" {href} aria-label={linkLabel} draggable="false"></a>
   <span class="corner"></span>
   {#if art}<img class="texture" src={art} alt="" />{/if}
 
-  {#if removable}
-    <button
-      type="button"
-      class="set-card__rm"
-      title="Fjern fra prosjektet"
-      aria-label={`Fjern ${title ?? ""}`}
-      onclick={(e) => {
-        e.preventDefault();
-        onremove?.();
-      }}
-    >
-      <Trash2 size={16} />
-    </button>
+  {#if ordinal !== undefined || reorderable || removable}
+    <div class="controls">
+      {#if ordinal !== undefined}
+        <span class="ordinal">{ordinal}</span>
+      {/if}
+      {#if reorderable}
+        <span class="grip" aria-hidden="true"><GripVertical size={15} /></span>
+      {/if}
+      {#if removable}
+        <button
+          type="button"
+          class="set-card__rm"
+          title="Fjern fra prosjektet"
+          aria-label={`Fjern ${title ?? ""}`}
+          onclick={(e) => {
+            e.preventDefault();
+            onremove?.();
+          }}
+        >
+          <Trash2 size={16} />
+        </button>
+      {/if}
+    </div>
   {/if}
 
   <div class="title">{title}</div>
@@ -148,11 +177,53 @@
       right: 14px;
     }
   }
-  .set-card__rm {
+  /* Order chip, grip and remove sit in one cluster over the sheet's corner. */
+  .controls {
     position: absolute;
     top: 12px;
     left: 12px;
     z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ordinal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 7px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--white);
+    background: var(--ink-900);
+    border-radius: var(--radius-full);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  }
+  .grip {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-full);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+    opacity: 0;
+    transform: scale(0.86);
+    transition:
+      opacity var(--dur-fast),
+      transform var(--dur-fast);
+  }
+  .set-card:hover .grip {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .set-card__rm {
     width: 32px;
     height: 32px;
     display: inline-flex;
@@ -178,5 +249,26 @@
   }
   .set-card__rm:hover {
     background: var(--red-100);
+  }
+
+  /* ---- reorder affordances ---- */
+  /* The link overlay carries the UA's pointer cursor, so it needs the grab
+     cursor spelled out too — inheriting from the card doesn't reach it. */
+  .set-card.reorderable,
+  .set-card.reorderable .set-card__link {
+    cursor: grab;
+  }
+  .set-card.reorderable:active,
+  .set-card.reorderable:active .set-card__link {
+    cursor: grabbing;
+  }
+  /* Ordered after :hover so the lifted look wins while the card is in flight. */
+  .set-card.dragging {
+    opacity: 0.42;
+    transform: rotate(-1.5deg) scale(0.98);
+    box-shadow: var(--shadow-paper-hover);
+  }
+  .set-card.dragging .corner {
+    border-width: 20px;
   }
 </style>
