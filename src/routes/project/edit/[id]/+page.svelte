@@ -29,6 +29,7 @@
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import ProjectModalBody from "$lib/components/ProjectModalBody.svelte";
+  import ProjectDescription from "$lib/components/ProjectDescription.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   const PAGE = 30;
@@ -58,6 +59,7 @@
 
   // edit dialog
   let editOpen = $state(false);
+  let editFocusDescription = $state(false);
   let savingProject = $state(false);
   let draft = $state<Partial<Project>>({});
   let canSaveEdit = $derived(
@@ -147,12 +149,16 @@
   }
 
   // ---- edit project ----
-  function openEdit() {
+  // `focusDescription` is set when the dialog is opened from the description
+  // card, so the caret lands in the field the admin came to change.
+  function openEdit(focusDescription = false) {
     draft = {
       name: project.name,
       startDate: project.startDate,
       endDate: project.endDate,
+      comments: project.comments,
     };
+    editFocusDescription = focusDescription;
     editOpen = true;
   }
   async function saveEdit() {
@@ -160,13 +166,16 @@
     savingProject = true;
     const body: UpdateProjectRequest = {
       name: draft.name,
+      comments: draft.comments?.trim() || null,
       startDate: toApiDate(draft.startDate!),
       endDate: toApiDate(draft.endDate!),
     };
     const res = await projectsApi.update(id, body);
     savingProject = false;
     if (res) {
-      project = res;
+      // The spec leaves the update response body undefined, so keep the
+      // description we just saved rather than trust it to be echoed back.
+      project = { ...res, comments: body.comments };
       editOpen = false;
     }
   }
@@ -197,7 +206,7 @@
         <EllipsisVertical size={18} />
       </button>
       <Dropdown simple class="min-w-56">
-        <DropdownItem onclick={openEdit}>
+        <DropdownItem onclick={() => openEdit()}>
           <span class="menu-row"><Pencil size={16} /> Rediger prosjekt</span>
         </DropdownItem>
         <DropdownDivider />
@@ -210,6 +219,12 @@
       </Dropdown>
     </div>
   </div>
+
+  <ProjectDescription
+    class="mb-9"
+    description={project.comments}
+    onedit={() => openEdit(true)}
+  />
 
   <div class="secbar">
     <h2 class="sbb-h3">
@@ -326,7 +341,11 @@
 
 <!-- Edit project dialog -->
 <Modal title="Rediger prosjekt" bind:open={editOpen} size="md">
-  <ProjectModalBody project={draft} />
+  <ProjectModalBody
+    project={draft}
+    withDescription
+    autofocusDescription={editFocusDescription}
+  />
   {#snippet footer()}
     <Button onclick={saveEdit} loading={savingProject} disabled={!canSaveEdit}>
       <Check size={16} /> Lagre
