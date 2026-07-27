@@ -12,6 +12,7 @@
     EmptyState,
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import ProjectDescription from "$lib/components/ProjectDescription.svelte";
   import { cardEnter } from "$lib/utils/motion";
 
   let id = $derived(page.params.id!);
@@ -47,6 +48,9 @@
       <DateRangeBoxes start={project.startDate} end={project.endDate} />
     </div>
   </div>
+
+  <!-- Sits tighter under the head than the 36px gap the grid gets. -->
+  <ProjectDescription class="-mt-3 mb-9" description={project.comments} />
 
   {#if project.sets && project.sets.length > 0}
     <div class="grid">
