@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
-  import { goto } from "$app/navigation";
+  import { onMount, onDestroy, tick } from "svelte";
+  import { beforeNavigate, goto, replaceState } from "$app/navigation";
+  import { page } from "$app/state";
   import { Modal } from "flowbite-svelte";
   import {
     SearchX,
@@ -9,20 +10,32 @@
     Download,
     Check,
     CheckCircle,
+    Tag,
   } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
+  import { categories as categoriesApi } from "$lib/api/categories";
   import { downloadSetZip } from "$lib/utils/download";
-  import type { MusicSet, SetRequest } from "$lib/types";
+  import type { Category, MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { Button, Spinner, EmptyState, SearchInput } from "$lib/components/ui";
 
   const PAGE = 30;
+  /** Ceiling when restoring `pages` from the URL — it becomes one request. */
+  const MAX_RESTORED_PAGES = 20;
+  /** Where the scroll offset is parked while the user is off the archive. */
+  const SCROLL_KEY = "archive:scroll";
 
   let searchTerm = $state("");
+  // Category filter: the name of the selected category, "" for all. It narrows
+  // the same server-side query the search field drives.
+  let selectedCategory = $state("");
+  let categoryOptions = $state<Category[]>([]);
   let items = $state<MusicSet[]>([]);
-  let skip = $state(0);
+  // Pages of results currently on screen. Mirrored in the URL, so "load more"
+  // survives leaving the page too.
+  let pagesLoaded = $state(1);
   // `loading` is the first paint only (full-page spinner). `searching` covers
   // every later (debounced) query — it shows an inline indicator in the search
   // field and keeps the current results on screen, so typing never blanks the
@@ -44,32 +57,131 @@
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
+  function fetchSets(top: number, skip: number) {
+    return sheetMusic.searchSets({
+      search: searchTerm.trim() || undefined,
+      category: selectedCategory || undefined,
+      top,
+      skip,
+    });
+  }
+
+  /**
+   * Mirror the current view into the URL, replacing the history entry so
+   * filtering never fills the back stack. Leaving the archive and coming back
+   * (or reloading, or sharing the link) then lands on the same list.
+   */
+  function syncUrl() {
+    const params: string[] = [];
+    const query = searchTerm.trim();
+    if (query) params.push(`search=${encodeURIComponent(query)}`);
+    if (selectedCategory)
+      params.push(`category=${encodeURIComponent(selectedCategory)}`);
+    if (pagesLoaded > 1) params.push(`pages=${pagesLoaded}`);
+    replaceState(
+      params.length ? `?${params.join("&")}` : page.url.pathname,
+      {},
+    );
+  }
+
   async function runSearch() {
     searching = true;
-    skip = 0;
-    const res = await sheetMusic.searchSets({
-      search: searchTerm.trim() || undefined,
-      top: PAGE,
-      skip: 0,
-    });
+    pagesLoaded = 1;
+    const res = await fetchSets(PAGE, 0);
     items = res ?? [];
     hasMore = (res?.length ?? 0) === PAGE;
+    syncUrl();
     searching = false;
     loading = false;
   }
 
   async function loadMore() {
     loadingMore = true;
-    skip += PAGE;
-    const res = await sheetMusic.searchSets({
-      search: searchTerm.trim() || undefined,
-      top: PAGE,
-      skip,
-    });
+    const res = await fetchSets(PAGE, pagesLoaded * PAGE);
     items = [...items, ...(res ?? [])];
+    pagesLoaded += 1;
     hasMore = (res?.length ?? 0) === PAGE;
+    syncUrl();
     loadingMore = false;
   }
+
+  /** First paint: rebuild whatever the URL describes in a single request. */
+  async function restoreFromUrl() {
+    const params = page.url.searchParams;
+    searchTerm = params.get("search") ?? "";
+    selectedCategory = params.get("category") ?? "";
+    pagesLoaded = parsePages(params.get("pages"));
+
+    const top = pagesLoaded * PAGE;
+    const res = await fetchSets(top, 0);
+    items = res ?? [];
+    hasMore = (res?.length ?? 0) === top;
+    loading = false;
+    restoreScroll();
+  }
+
+  function parsePages(value: string | null): number {
+    const pages = Math.trunc(Number(value));
+    if (!Number.isFinite(pages) || pages < 1) return 1;
+    return Math.min(pages, MAX_RESTORED_PAGES);
+  }
+
+  // SvelteKit restores scroll the moment the navigation completes — before the
+  // results have been fetched and rendered — so the archive keeps its own
+  // offset. Keyed by the full URL, so it only ever applies to the exact view it
+  // was taken from, and consumed once.
+  beforeNavigate(() => {
+    sessionStorage.setItem(
+      SCROLL_KEY,
+      JSON.stringify({ url: page.url.href, y: window.scrollY }),
+    );
+  });
+
+  async function restoreScroll() {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    sessionStorage.removeItem(SCROLL_KEY);
+    if (!saved) return;
+    try {
+      const { url, y } = JSON.parse(saved) as { url: string; y: number };
+      if (url !== page.url.href) return;
+      await tick();
+      window.scrollTo(0, y);
+    } catch {
+      // A malformed entry just means starting at the top of the list.
+    }
+  }
+
+  /**
+   * The category catalog drives the filter row. It is not deployed to every
+   * environment yet, so a failure just leaves the archive without a filter
+   * rather than breaking the page.
+   */
+  async function loadCategories() {
+    try {
+      const result = await categoriesApi.list();
+      categoryOptions = (result ?? [])
+        .filter((category) => !category.inactive)
+        .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "nb-NO"));
+    } catch {
+      categoryOptions = [];
+    }
+  }
+
+  // Clicking the active category clears the filter, so a chip toggles.
+  function selectCategory(name: string) {
+    selectedCategory = selectedCategory === name ? "" : name;
+    runSearch();
+  }
+
+  // "Ingen treff" covers a text search, a category filter, or both.
+  let emptyResultDescription = $derived.by(() => {
+    const query = searchTerm.trim();
+    if (query && selectedCategory)
+      return `Fant ingen notesett i «${selectedCategory}» som matcher «${query}». Prøv et annet søk eller en annen kategori.`;
+    if (query)
+      return `Fant ingen notesett som matcher «${query}». Prøv et annet søk.`;
+    return `Ingen notesett er merket med «${selectedCategory}» enda.`;
+  });
 
   // Debounce keystrokes so search hits the API at most a few times per second.
   function onSearchInput() {
@@ -89,7 +201,10 @@
     }
   }
 
-  onMount(() => runSearch());
+  onMount(() => {
+    restoreFromUrl();
+    loadCategories();
+  });
   onDestroy(() => {
     clearTimeout(searchTimer);
     clearTimeout(completedTimer);
@@ -109,6 +224,18 @@
   }
 </script>
 
+<!-- Categories sit under the title as a quiet overline so the title keeps the
+     focus in a dense list. -->
+{#snippet categoryTags(tags: Category[] | null | undefined)}
+  {#if tags?.length}
+    <span class="row-cats">
+      {#each tags as category (category.id)}
+        <span class="row-cat">{category.name}</span>
+      {/each}
+    </span>
+  {/if}
+{/snippet}
+
 <div class="sbb-list-head">
   <h1 class="sbb-h1">Arkivliste</h1>
   {#if auth.isAdmin}
@@ -125,14 +252,33 @@
   oninput={onSearchInput}
 />
 
+{#if categoryOptions.length > 0}
+  <div class="filters">
+    <span class="filters-label"><Tag size={14} /> Kategori</span>
+    <button
+      class="filter-chip"
+      class:active={!selectedCategory}
+      onclick={() => selectCategory("")}
+    >
+      Alle
+    </button>
+    {#each categoryOptions as category (category.id)}
+      <button
+        class="filter-chip"
+        class:active={selectedCategory === category.name}
+        onclick={() => selectCategory(category.name ?? "")}
+      >
+        {category.name}
+      </button>
+    {/each}
+  </div>
+{/if}
+
 {#if loading}
   <LoadingSpinner label="Laster arkiv…" />
 {:else if items.length === 0}
-  {#if searchTerm.trim()}
-    <EmptyState
-      title="Ingen treff"
-      description={`Fant ingen notesett som matcher «${searchTerm.trim()}». Prøv et annet søk.`}
-    >
+  {#if searchTerm.trim() || selectedCategory}
+    <EmptyState title="Ingen treff" description={emptyResultDescription}>
       {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
     </EmptyState>
   {:else}
@@ -162,7 +308,10 @@
             onclick={() => (auth.isAdmin ? goto("/set/edit/" + item.id) : null)}
           >
             <td class="c-nr">{item.archiveNumber}</td>
-            <td class="c-title">{item.title}</td>
+            <td class="c-title">
+              {item.title}
+              {@render categoryTags(item.categories)}
+            </td>
             <td class="c-muted">{item.composer ?? "—"}</td>
             <td class="c-muted"
               >{item.arranger ? "Arr. " + item.arranger : "—"}</td
@@ -216,6 +365,7 @@
               ? " · Arr. " + item.arranger
               : ""}
           </div>
+          {@render categoryTags(item.categories)}
         </div>
         <div class="acts">
           {#if item.hasBeenScanned}
@@ -269,6 +419,78 @@
 </Modal>
 
 <style>
+  /* ---- category filter ---- */
+  .filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .filters-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-right: 4px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .filter-chip {
+    height: 32px;
+    padding: 0 14px;
+    font-family: var(--font-text);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      color var(--dur-fast),
+      border-color var(--dur-fast),
+      background var(--dur-fast);
+  }
+  .filter-chip:hover {
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+  .filter-chip.active {
+    color: var(--accent-on);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Category tags under a set's title (table cell and mobile card alike). */
+  .row-cats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+    margin-top: 4px;
+  }
+  .row-cat {
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  /* A bullet so two names never read as one label. */
+  .row-cat + .row-cat::before {
+    content: "";
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    margin-right: 8px;
+    vertical-align: middle;
+    border-radius: 50%;
+    background: var(--gray-500);
+  }
+
   .c-nr {
     font-family: var(--font-mono);
     font-size: 13px;

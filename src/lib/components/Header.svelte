@@ -14,6 +14,7 @@
           { id: "projects", label: "Prosjekter", href: "/projects" },
           { id: "users", label: "Brukere", href: "/users" },
           { id: "parts", label: "Stemmekatalog", href: "/parts" },
+          { id: "categories", label: "Kategorier", href: "/categories" },
         ]
       : []),
   ]);
@@ -32,6 +33,7 @@
     if (pathname.startsWith("/users") || pathname.startsWith("/user/edit"))
       return "users";
     if (pathname.startsWith("/parts")) return "parts";
+    if (pathname.startsWith("/categories")) return "categories";
     return "home"; // "/", "/project/[id]", "/project/[projectId]/set/[id]"
   }
 

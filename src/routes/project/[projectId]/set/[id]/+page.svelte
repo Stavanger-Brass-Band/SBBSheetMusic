@@ -6,7 +6,13 @@
   import { projects as projectsApi } from "$lib/api/projects";
   import { downloadSetPart } from "$lib/utils/download";
   import type { MusicSet, MusicSetPart, Project } from "$lib/types";
-  import { Breadcrumb, Button, PartTile, EmptyState } from "$lib/components/ui";
+  import {
+    Badge,
+    Breadcrumb,
+    Button,
+    PartTile,
+    EmptyState,
+  } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let setId = $derived(page.params.id!);
@@ -114,6 +120,13 @@
       <div class="byline">
         {set.composer ?? ""}{set.arranger ? `  ·  Arr. ${set.arranger}` : ""}
       </div>
+      {#if set.categories?.length}
+        <div class="cats">
+          {#each set.categories as category (category.id)}
+            <Badge variant="neutral">{category.name}</Badge>
+          {/each}
+        </div>
+      {/if}
     </div>
     {#if set.recordingUrl}
       <Button
@@ -170,6 +183,12 @@
     font-size: 16px;
     color: var(--text-secondary);
     margin-top: 8px;
+  }
+  .cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
   }
   .stage {
     margin-top: 28px;

@@ -1,5 +1,10 @@
 import { createClient } from "./client";
-import type { MusicSet, SetRequest } from "$lib/types";
+import type {
+  AssignCategoryRequest,
+  Category,
+  MusicSet,
+  SetRequest,
+} from "$lib/types";
 
 const client = createClient("2.0");
 
@@ -14,12 +19,16 @@ export const sheetMusic = {
   searchSets: (
     opts: {
       search?: string;
+      category?: string;
       top?: number;
       skip?: number;
     } = {},
   ) => {
     const params = new URLSearchParams();
     if (opts.search) params.set("$search", opts.search);
+    // `category` is a plain filter alongside the OData options, and matches on
+    // the category name.
+    if (opts.category) params.set("category", opts.category);
     // The ODataQueryParams object binds from the query string; $orderBy is an
     // array of { field, direction } → indexed form $orderBy[i].field / .direction.
     params.set(`$orderBy`, "archiveNumber desc");
@@ -42,6 +51,20 @@ export const sheetMusic = {
 
   deletePart: (setId: string, partId: string) =>
     client.del(`/sheetmusic/sets/${setId}/parts/${partId}`),
+
+  /** The categories currently assigned to a set. */
+  listSetCategories: (setId: string) =>
+    client.get<Category[]>(`/sheetmusic/sets/${setId}/categories`),
+
+  /** Assigns a category; the response is the set's full category list. */
+  assignCategory: (setId: string, categoryId: string) =>
+    client.post<AssignCategoryRequest, Category[]>(
+      `/sheetmusic/sets/${setId}/categories`,
+      { categoryIdentifier: categoryId },
+    ),
+
+  removeCategory: (setId: string, categoryId: string) =>
+    client.del(`/sheetmusic/sets/${setId}/categories/${categoryId}`),
 
   getZipToken: (id: string) =>
     client.getText(`/sheetmusic/sets/${id}/zip/token`),
