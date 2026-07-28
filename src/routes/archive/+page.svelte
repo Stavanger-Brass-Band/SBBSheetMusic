@@ -25,11 +25,15 @@
   /** Ceiling when restoring `pages` from the URL — it becomes one request. */
   const MAX_RESTORED_PAGES = 20;
   /**
-   * Category chips shown before the row collapses behind "+N flere". Roughly a
-   * row on desktop and three on a phone, where an uncollapsed vocabulary of 20
-   * would push the list itself off screen.
+   * Category chips shown before the row collapses behind "+N flere". Chips wrap
+   * after about ten on a desktop but only three on a phone, so the cut-off
+   * follows the viewport — otherwise a vocabulary of 20 pushes the list itself
+   * off screen on mobile.
    */
   const VISIBLE_CATEGORY_CHIPS = 8;
+  const VISIBLE_CATEGORY_CHIPS_NARROW = 4;
+  /** The same breakpoint the table/card-list swap uses. */
+  const NARROW_VIEWPORT = "(max-width: 640px)";
   /** Where the scroll offset is parked while the user is off the archive. */
   const SCROLL_KEY = "archive:scroll";
 
@@ -39,6 +43,7 @@
   let selectedCategory = $state("");
   let categoryOptions = $state<Category[]>([]);
   let showAllCategories = $state(false);
+  let isNarrowViewport = $state(false);
   let items = $state<MusicSet[]>([]);
   // Pages of results currently on screen. Mirrored in the URL, so "load more"
   // survives leaving the page too.
@@ -185,7 +190,10 @@
 
   let visibleCategories = $derived.by(() => {
     if (showAllCategories) return categoryOptions;
-    const visible = categoryOptions.slice(0, VISIBLE_CATEGORY_CHIPS);
+    const limit = isNarrowViewport
+      ? VISIBLE_CATEGORY_CHIPS_NARROW
+      : VISIBLE_CATEGORY_CHIPS;
+    const visible = categoryOptions.slice(0, limit);
     // Keep the active filter on screen even when it sorts past the cut-off.
     const selected = categoryOptions.find(
       (category) => category.name === selectedCategory,
@@ -228,6 +236,15 @@
   onMount(() => {
     restoreFromUrl();
     loadCategories();
+
+    // Follow the breakpoint live, so rotating a phone or resizing re-folds the
+    // chip row instead of leaving the wrong cut-off behind.
+    const narrow = window.matchMedia(NARROW_VIEWPORT);
+    isNarrowViewport = narrow.matches;
+    const onViewportChange = (event: MediaQueryListEvent) =>
+      (isNarrowViewport = event.matches);
+    narrow.addEventListener("change", onViewportChange);
+    return () => narrow.removeEventListener("change", onViewportChange);
   });
   onDestroy(() => {
     clearTimeout(searchTimer);
