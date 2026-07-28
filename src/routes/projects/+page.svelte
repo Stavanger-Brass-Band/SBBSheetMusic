@@ -70,7 +70,7 @@
     if (!canSave) return;
     isSaving = true;
     const body: NewProjectRequest = {
-      name: newProject.name ?? null,
+      name: newProject.name,
       startDate: toApiDate(newProject.startDate!),
       endDate: toApiDate(newProject.endDate!),
     };

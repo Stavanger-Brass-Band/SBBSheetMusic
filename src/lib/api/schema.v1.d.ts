@@ -4,1400 +4,6 @@
  */
 
 export interface paths {
-    "/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                    /** @description Free text search across archive number, title, composer and arranger. */
-                    $search?: string;
-                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
-                    $filter?: string;
-                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
-                    $orderby?: string;
-                    /** @description Maximum number of rows to return. Must be at least 1. */
-                    $top?: number;
-                    /** @description Number of rows to skip before returning results. */
-                    $skip?: number;
-                    /** @description Comma separated list of related collections to include, for example "parts". */
-                    $expand?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiCategory"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["CategoryRequest"];
-                    "text/json": components["schemas"]["CategoryRequest"];
-                    "application/*+json": components["schemas"]["CategoryRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiCategory"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/categories/{categoryIdentifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    categoryIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiCategory"];
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    categoryIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["CategoryRequest"];
-                    "text/json": components["schemas"]["CategoryRequest"];
-                    "application/*+json": components["schemas"]["CategoryRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiCategory"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    categoryIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/parts/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    searchTerm?: string;
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/parts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                    /** @description Free text search across archive number, title, composer and arranger. */
-                    $search?: string;
-                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
-                    $filter?: string;
-                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
-                    $orderby?: string;
-                    /** @description Maximum number of rows to return. Must be at least 1. */
-                    $top?: number;
-                    /** @description Number of rows to skip before returning results. */
-                    $skip?: number;
-                    /** @description Comma separated list of related collections to include, for example "parts". */
-                    $expand?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["PartRequest"];
-                    "text/json": components["schemas"]["PartRequest"];
-                    "application/*+json": components["schemas"]["PartRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/parts/{partIdentifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"];
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["PartRequest"];
-                    "text/json": components["schemas"]["PartRequest"];
-                    "application/*+json": components["schemas"]["PartRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/parts/{partIdentifier}/aliases": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    alias?: string;
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/parts/{partIdentifier}/aliases/{alias}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    partIdentifier: string;
-                    alias: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiPart"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                    /** @description Free text search across archive number, title, composer and arranger. */
-                    $search?: string;
-                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
-                    $filter?: string;
-                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
-                    $orderby?: string;
-                    /** @description Maximum number of rows to return. Must be at least 1. */
-                    $top?: number;
-                    /** @description Number of rows to skip before returning results. */
-                    $skip?: number;
-                    /** @description Comma separated list of related collections to include, for example "parts". */
-                    $expand?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiProject"][];
-                        "application/json": components["schemas"]["ApiProject"][];
-                        "text/json": components["schemas"]["ApiProject"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["NewProjectRequest"];
-                    "text/json": components["schemas"]["NewProjectRequest"];
-                    "application/*+json": components["schemas"]["NewProjectRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiProject"];
-                        "application/json": components["schemas"]["ApiProject"];
-                        "text/json": components["schemas"]["ApiProject"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectIdentifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    projectIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiProject"];
-                        "application/json": components["schemas"]["ApiProject"];
-                        "text/json": components["schemas"]["ApiProject"];
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    projectIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["UpdateProjectRequest"];
-                    "text/json": components["schemas"]["UpdateProjectRequest"];
-                    "application/*+json": components["schemas"]["UpdateProjectRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiProject"];
-                        "application/json": components["schemas"]["ApiProject"];
-                        "text/json": components["schemas"]["ApiProject"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    projectIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectIdentifier}/sets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    projectIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiSet"][];
-                        "application/json": components["schemas"]["ApiSet"][];
-                        "text/json": components["schemas"]["ApiSet"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    projectIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["SetCollectionRequest"];
-                    "text/json": components["schemas"]["SetCollectionRequest"];
-                    "application/*+json": components["schemas"]["SetCollectionRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiSet"][];
-                        "application/json": components["schemas"]["ApiSet"][];
-                        "text/json": components["schemas"]["ApiSet"][];
-                    };
-                };
-            };
-        };
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    projectIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["SetCollectionRequest"];
-                    "text/json": components["schemas"]["SetCollectionRequest"];
-                    "application/*+json": components["schemas"]["SetCollectionRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiSet"][];
-                        "application/json": components["schemas"]["ApiSet"][];
-                        "text/json": components["schemas"]["ApiSet"][];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    category?: string;
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                    /** @description Free text search across archive number, title, composer and arranger. */
-                    $search?: string;
-                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
-                    $filter?: string;
-                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
-                    $orderby?: string;
-                    /** @description Maximum number of rows to return. Must be at least 1. */
-                    $top?: number;
-                    /** @description Number of rows to skip before returning results. */
-                    $skip?: number;
-                    /** @description Comma separated list of related collections to include, for example "parts". */
-                    $expand?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiSet"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["SetRequest"];
-                    "text/json": components["schemas"]["SetRequest"];
-                    "application/*+json": components["schemas"]["SetRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiSet"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{identifier}/parts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    identifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiSet"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/parts/{partIdentifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiSheetMusicPart"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/parts/{partIdentifier}/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    downloadToken?: string;
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiSet"];
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["SetRequest"];
-                    "text/json": components["schemas"]["SetRequest"];
-                    "application/*+json": components["schemas"]["SetRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiSet"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiCategory"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["AssignCategoryRequest"];
-                    "text/json": components["schemas"]["AssignCategoryRequest"];
-                    "application/*+json": components["schemas"]["AssignCategoryRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiCategory"][];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/categories/{categoryIdentifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                    categoryIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/zip/token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/zip": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    downloadToken?: string;
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/withoutFiles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{identifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    identifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sheetmusic/sets/{setIdentifier}/parts/{partIdentifier}/content": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @deprecated */
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    setIdentifier: string;
-                    partIdentifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/token": {
         parameters: {
             query?: never;
@@ -1407,6 +13,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Authenticate using legacy HMAC password hash and receive a JWT token. */
         post: {
             parameters: {
                 query: {
@@ -1417,9 +24,10 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description The username and password to authenticate with */
+            requestBody: {
                 content: {
-                    "multipart/form-data": {
+                    "application/x-www-form-urlencoded": {
                         grant_type?: string;
                         username?: string;
                         password?: string;
@@ -1428,7 +36,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description The access token */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1456,6 +64,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Register a new user using legacy password hashing. */
         post: {
             parameters: {
                 query: {
@@ -1466,7 +75,8 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description Details about the new user */
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["UserRequest"];
                     "text/json": components["schemas"]["UserRequest"];
@@ -1496,6 +106,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Get a user by ID or "me" for the current user. */
         get: {
             parameters: {
                 query: {
@@ -1504,13 +115,14 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description The guid of the user, or "me" for the current user */
                     identifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The user matching the identifier */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1519,6 +131,7 @@ export interface paths {
                 };
             };
         };
+        /** Update a user's password using legacy password hashing. */
         put: {
             parameters: {
                 query: {
@@ -1527,11 +140,13 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description The guid of the user to update */
                     identifier: string;
                 };
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description The new password */
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["UpdateUserRequest"];
                     "text/json": components["schemas"]["UpdateUserRequest"];
@@ -1539,7 +154,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description Password was updated successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1562,6 +177,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Get all users. */
         get: {
             parameters: {
                 query: {
@@ -1574,7 +190,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description A list of all users */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1591,17 +207,1576 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets a list of all available categories. OData filtering is supported, e.g. $filter=name eq 'march'. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A list of categories matching filter, or all categories. Empty list if no matching results */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Adds a new category.
+         *     Requires Administrator privileges.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Details about the new category */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategoryRequest"];
+                    "text/json": components["schemas"]["CategoryRequest"];
+                    "application/*+json": components["schemas"]["CategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description Details about the newly created category */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{categoryIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets details about the category identified by categoryIdentifier. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the category. Either guid or name */
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The category matching the identifier */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"];
+                    };
+                };
+            };
+        };
+        /**
+         * Updates the category identified by categoryIdentifier.
+         *     Requires Administrator privileges.
+         */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the category. Either guid or name */
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description Updated details for the category */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategoryRequest"];
+                    "text/json": components["schemas"]["CategoryRequest"];
+                    "application/*+json": components["schemas"]["CategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description The updated category */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Deletes the category identified by categoryIdentifier.
+         *     Requires Administrator privileges.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the category. Either guid or name */
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gets complete list of sheet music sets (without parts), or the ones matching queryParams.Search.Search if provided
+         *     Use ZipDownloadUrl for complete parts download and PartsUrl to list parts
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Optional. Filter sets by category, identified by guid or name */
+                    category?: string;
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A list of sets matching filter, or all sets. Empty list if no matching results */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSet"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Adds a new set to the list (without parts).
+         *     ID, number and scanned is optional. Number will be next in sequence if not specified.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Information about the new set */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetRequest"];
+                    "text/json": components["schemas"]["SetRequest"];
+                    "application/*+json": components["schemas"]["SetRequest"];
+                };
+            };
+            responses: {
+                /** @description The newly created set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSet"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{identifier}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists parts for set with identifier */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Set information including its parts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSet"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/parts/{partIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single part for a set */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                    /** @description A value uniquely identifying part. Either guid or part name */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The part matching the identifiers */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSheetMusicPart"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Deletes the PDF content and the relationship for partIdentifier of set with setIdentifier. */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                    /** @description Name of the part to add */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 204 if successfull, 404 if not found, 500 if something bad happens */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/parts/{partIdentifier}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets the PDF file for set with setIdentifier, part with partIdentifier */
+        get: {
+            parameters: {
+                query: {
+                    /** @description A token to prove you are authorized for download */
+                    downloadToken?: string;
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                    /** @description A value uniquely identifying part. Either guid or part name */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The PDF file content */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets information about a single set, either by guid, number or title. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The set matching the identifier */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSet"];
+                    };
+                };
+            };
+        };
+        /** Updates information about a set. PS! All properties will be updated, omitted once are nulled out. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description Update set parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetRequest"];
+                    "text/json": components["schemas"]["SetRequest"];
+                    "application/*+json": components["schemas"]["SetRequest"];
+                };
+            };
+            responses: {
+                /** @description The updated set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSet"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Deletes the set with setIdentifier, including all the parts and files */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Set was deleted successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets the categories assigned to set with setIdentifier */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of categories assigned to the set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Assigns a category to set with setIdentifier */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The category to assign, identified by guid or name */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssignCategoryRequest"];
+                    "text/json": components["schemas"]["AssignCategoryRequest"];
+                    "application/*+json": components["schemas"]["AssignCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description The updated list of categories assigned to the set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/categories/{categoryIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Removes a category from set with setIdentifier */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                    /** @description A value uniquely identifying category. Either guid or name */
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 204 if successfull, 404 if set, category or the assignment was not found */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/zip/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Authorized a set for download, allowing a single download for the one with the token. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The generated download token */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gets the part collection for a set as a zip file.
+         *     Accepts anonymous requests, but they must provide a download token that is validated to be able to download.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description A token for proving that user is allowed to download this set */
+                    downloadToken?: string;
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The zipped collection of parts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/zip": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/withoutFiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Analyzes the assigned parts and compares them with the blob storage content.
+         *     If a non-empty file does not exists, the set is listed in results
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The sets with parts that are assigned, but a file is not present */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload all parts for set with identifier identifier as zip file */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The file that has all parts. Needs to be a zip file. */
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Parts were uploaded successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/parts/{partIdentifier}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds the PDF content for partIdentifier of set with setIdentifier. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                    /** @description Name of the part to add */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The PDF file for the part */
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Part content was added successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets a list of all projects. OData filtering is supported, e.g. $filter=name eq 'Christmas concert'. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A list of projects matching filter, or all projects. Empty list if no matching results */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"][];
+                        "application/json": components["schemas"]["ApiProject"][];
+                        "text/json": components["schemas"]["ApiProject"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Adds a new project.
+         *     Requires Administrator privileges.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Details about the new project */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NewProjectRequest"];
+                    "text/json": components["schemas"]["NewProjectRequest"];
+                    "application/*+json": components["schemas"]["NewProjectRequest"];
+                };
+            };
+            responses: {
+                /** @description Details about the newly created project */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"];
+                        "application/json": components["schemas"]["ApiProject"];
+                        "text/json": components["schemas"]["ApiProject"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets details about the project identified by projectIdentifier. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the project. Either guid or name */
+                    projectIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The project matching the identifier */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"];
+                        "application/json": components["schemas"]["ApiProject"];
+                        "text/json": components["schemas"]["ApiProject"];
+                    };
+                };
+            };
+        };
+        /**
+         * Updates the project identified by projectIdentifier. PS! Provide all values, those not provided will be set to null.
+         *     Requires Administrator privileges.
+         */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the project. Either guid or name */
+                    projectIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description Updated details for the project */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateProjectRequest"];
+                    "text/json": components["schemas"]["UpdateProjectRequest"];
+                    "application/*+json": components["schemas"]["UpdateProjectRequest"];
+                };
+            };
+            responses: {
+                /** @description The updated project */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"];
+                        "application/json": components["schemas"]["ApiProject"];
+                        "text/json": components["schemas"]["ApiProject"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Deletes the project identified by projectIdentifier. */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the project. Either guid or name */
+                    projectIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectIdentifier}/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets the sets assigned to the project identified by projectIdentifier. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the project. Either guid or name */
+                    projectIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of sets assigned to the project */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"][];
+                        "application/json": components["schemas"]["ApiSet"][];
+                        "text/json": components["schemas"]["ApiSet"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Assigns the given sets to a project. The order of List&lt;string&gt; SetCollectionRequest.SetIdentifiers determines
+         *     the sort order of those sets - sets already assigned to the project are moved to match their position in the
+         *     list, so this endpoint also covers reordering the sets currently assigned to a project.
+         *     Requires Administrator privileges.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the project. Either guid or name */
+                    projectIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The identifiers (guid, archive number or title) of the sets to assign, in the desired order */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetCollectionRequest"];
+                    "text/json": components["schemas"]["SetCollectionRequest"];
+                    "application/*+json": components["schemas"]["SetCollectionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"][];
+                        "application/json": components["schemas"]["ApiSet"][];
+                        "text/json": components["schemas"]["ApiSet"][];
+                    };
+                };
+            };
+        };
+        /**
+         * Removes the given sets from a project.
+         *     Requires Administrator privileges.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying the project. Either guid or name */
+                    projectIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The identifiers (guid, archive number or title) of the sets to unassign */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetCollectionRequest"];
+                    "text/json": components["schemas"]["SetCollectionRequest"];
+                    "application/*+json": components["schemas"]["SetCollectionRequest"];
+                };
+            };
+            responses: {
+                /** @description The updated list of sets assigned to the project */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"][];
+                        "application/json": components["schemas"]["ApiSet"][];
+                        "text/json": components["schemas"]["ApiSet"][];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parts/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search for a part through the Part index.
+         *     Requires Administrator privileges.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The search term to use when searching */
+                    searchTerm?: string;
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The best match for the part */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Rebuild the part index manually.
+         *     Whenever a change is done that requires rebuild, a rebuild is triggered.
+         *     This needn't be invoked unless you did some manual changes in the database.
+         *     Requires Administrator privileges.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gets a list of all Parts. OData filtering is supported, e.g. $filter=name eq 'partitur'.
+         *     Use $expand=aliases to include the enabled aliases of each part.
+         *     Requires Administrator privileges.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A list of parts matching filter, or all parts. Empty list if no matching results */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Add a new part.
+         *     Requires Administrator privileges.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Details about the new part */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PartRequest"];
+                    "text/json": components["schemas"]["PartRequest"];
+                    "application/*+json": components["schemas"]["PartRequest"];
+                };
+            };
+            responses: {
+                /** @description Details about the newly created part */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parts/{partIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gets details about part identified by partIdentifier.
+         *     Requires Administrator privileges.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description Identifier (name, alias or Guid) of the part */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Part information including list of aliases */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"];
+                    };
+                };
+            };
+        };
+        /**
+         * Updates information about part identified by partIdentifier PS! Provide all values, those not provided will be set to null.
+         *     Requires Administrator privileges.
+         */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description Identifier (name, alias or Guid) of the part */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description Request body containing all properties */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PartRequest"];
+                    "text/json": components["schemas"]["PartRequest"];
+                    "application/*+json": components["schemas"]["PartRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated part information including list of aliases */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Deletes part identified by partIdentifier permanently.
+         *     Requires Administrator privileges.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description Identifier (name, alias or Guid) of the part. Case insensitive for part names. */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parts/{partIdentifier}/aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adds alias to part identified by partIdentifier.
+         *     Requires Administrator privileges.
+         */
+        post: {
+            parameters: {
+                query: {
+                    /** @description An alias the part is also known as */
+                    alias?: string;
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description Identifier (name, alias or Guid) of the part */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated part information including list of aliases */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parts/{partIdentifier}/aliases/{alias}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete alias from part identified by partIdentifier.
+         *     Requires Administrator privileges.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path: {
+                    /** @description Identifier (name, alias or Guid) of the part */
+                    partIdentifier: string;
+                    /** @description An alias the part is also known as */
+                    alias: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated part information including list of aliases */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiPart"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         ApiAccessTokens: {
-            access_token?: null | string;
-            refresh_token?: null | string;
-            token_type?: null | string;
+            access_token?: string;
+            refresh_token?: string;
+            token_type?: string;
             /** Format: int32 */
-            expires_in?: number;
-            scope?: null | string;
+            expires_in?: number | string;
+            scope?: string;
         };
         ApiCategory: {
             /** Format: uuid */
@@ -1612,16 +1787,16 @@ export interface components {
         ApiPart: {
             /** Format: uuid */
             id?: string;
-            name?: null | string;
+            name?: string;
             /** Format: int32 */
-            sortOrder?: number;
+            sortOrder?: number | string;
             indexable?: boolean;
-            aliases?: null | string[];
+            aliases?: string[];
         };
         ApiProject: {
             /** Format: uuid */
             id?: string;
-            name?: null | string;
+            name?: string;
             comments?: null | string;
             /** Format: date-time */
             startDate?: string;
@@ -1629,10 +1804,16 @@ export interface components {
             endDate?: string;
         };
         ApiSet: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Identifier in DB
+             */
             id?: string;
-            /** Format: int32 */
-            archiveNumber?: number;
+            /**
+             * Format: int32
+             * @description Number in physical archive
+             */
+            archiveNumber?: number | string;
             title?: null | string;
             composer?: null | string;
             arranger?: null | string;
@@ -1640,14 +1821,18 @@ export interface components {
             missingParts?: null | string;
             recordingUrl?: null | string;
             hasBeenScanned?: boolean;
-            readonly borrowed?: boolean;
+            borrowed?: boolean;
             borrowedFrom?: null | string;
             /** Format: date-time */
             borrowedDateTime?: null | string;
-            zipDownloadUrl?: null | string;
-            partsUrl?: null | string;
+            /** @description Download pdf of parts for set on this URL */
+            zipDownloadUrl?: string;
+            /** @description List parts of set on this URL */
+            partsUrl?: string;
+            /** @description A list of parts for the set, if included */
             parts?: null | components["schemas"]["ApiSheetMusicPart"][];
-            categories?: null | components["schemas"]["ApiCategory"][];
+            /** @description The categories assigned to this set */
+            categories?: components["schemas"]["ApiCategory"][];
         };
         ApiSheetMusicPart: {
             /** Format: uuid */
@@ -1656,25 +1841,24 @@ export interface components {
             setId?: string;
             /** Format: uuid */
             musicPartId?: string;
-            name?: null | string;
+            name?: string;
             aliases?: null | string;
             pdfDownloadUrl?: null | string;
             deletePartUrl?: null | string;
         };
         AssignCategoryRequest: {
-            categoryIdentifier?: null | string;
+            /** @description Identifier (guid or name) of the category to assign */
+            categoryIdentifier?: string;
         };
         CategoryRequest: {
-            name?: null | string;
+            name?: string;
             inactive?: null | boolean;
         };
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        ExpressionType: 0 | 1;
+        ExpressionType: number;
+        /** Format: binary */
+        IFormFile: string;
         NewProjectRequest: {
-            name?: null | string;
+            name?: string;
             /** Format: date-time */
             startDate?: string;
             /** Format: date-time */
@@ -1685,35 +1869,35 @@ export interface components {
             type?: components["schemas"]["ExpressionType"];
         };
         ODataOrderByOption: {
-            field?: null | string;
+            field?: string;
             direction?: components["schemas"]["SortDirection"];
         };
         ODataQueryParams: {
             /** Format: int32 */
-            $top?: null | number;
+            $top?: null | number | string;
             /** Format: int32 */
-            $skip?: null | number;
-            $orderBy?: null | components["schemas"]["ODataOrderByOption"][];
-            $filter?: components["schemas"]["ODataExpression"];
+            $skip?: null | number | string;
+            $orderBy?: components["schemas"]["ODataOrderByOption"][];
+            $filter?: null | components["schemas"]["ODataExpression"];
             $search?: null | string;
-            $expand?: null | string[];
-            readonly hasFilter?: boolean;
-            readonly hasSearch?: boolean;
-            readonly isEmpty?: boolean;
+            $expand?: string[];
+            hasFilter?: boolean;
+            hasSearch?: boolean;
+            isEmpty?: boolean;
         };
         PartRequest: {
-            name?: null | string;
+            name?: string;
             /** Format: int32 */
-            sortOrder?: number;
+            sortOrder?: number | string;
             indexable?: null | boolean;
         };
         SetCollectionRequest: {
-            setIdentifiers?: null | string[];
+            setIdentifiers?: string[];
         };
         SetRequest: {
             /** Format: int32 */
-            archiveNumber?: null | number;
-            title?: null | string;
+            archiveNumber?: null | number | string;
+            title?: string;
             composer?: null | string;
             recordingUrl?: null | string;
             arranger?: null | string;
@@ -1721,13 +1905,9 @@ export interface components {
             missingParts?: null | string;
             borrowedFrom?: null | string;
         };
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        SortDirection: 0 | 1;
+        SortDirection: number;
         UpdateProjectRequest: {
-            name?: null | string;
+            name?: string;
             comments?: null | string;
             /** Format: date-time */
             startDate?: string;
@@ -1735,16 +1915,16 @@ export interface components {
             endDate?: string;
         };
         UpdateUserRequest: {
-            name?: null | string;
-            email?: null | string;
-            password?: null | string;
+            name?: string;
+            email?: string;
+            password?: string;
         };
         UserRequest: {
             /** Format: uuid */
             id?: null | string;
-            name?: null | string;
-            email?: null | string;
-            password?: null | string;
+            name?: string;
+            email?: string;
+            password?: string;
         };
     };
     responses: never;

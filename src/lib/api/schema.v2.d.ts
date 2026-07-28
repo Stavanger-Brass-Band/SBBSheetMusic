@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/pdf/singleSplit": {
+    "/token": {
         parameters: {
             query?: never;
             header?: never;
@@ -13,19 +13,74 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Authenticate using Identity and receive a JWT token. */
         post: {
             parameters: {
-                query?: never;
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description The username and password to authenticate with */
+            requestBody: {
                 content: {
-                    "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
+                    "application/x-www-form-urlencoded": {
+                        grant_type?: string;
+                        username?: string;
+                        password?: string;
+                        refresh_token?: string;
                     };
+                };
+            };
+            responses: {
+                /** @description The access token */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiAccessTokens"];
+                        "application/json": components["schemas"]["ApiAccessTokens"];
+                        "text/json": components["schemas"]["ApiAccessTokens"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register a new user. User is created as inactive and must be activated by an admin. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Details about the new user */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserRequest"];
+                    "text/json": components["schemas"]["UserRequest"];
+                    "application/*+json": components["schemas"]["UserRequest"];
                 };
             };
             responses: {
@@ -44,7 +99,242 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pdf/smartSplit": {
+    "/users/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a user by ID or "me" for the current user. Admins can view any user; other users may only view themselves. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user, or "me" for the current user */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The user details, including assigned roles */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /** Update a user's password. Admins can update any user. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to update */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateUserRequest"];
+                    "text/json": components["schemas"]["UpdateUserRequest"];
+                    "application/*+json": components["schemas"]["UpdateUserRequest"];
+                };
+            };
+            responses: {
+                /** @description Password was updated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all users. Admin only. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A list of all users */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Activate a user, allowing them to log in. Admin only. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to activate */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User was activated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Deactivate a user, preventing them from logging in. Admin only. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to deactivate */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User was deactivated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign a role to a user. Admin only. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to assign the role to */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description The name of the role to assign */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssignRoleRequest"];
+                    "text/json": components["schemas"]["AssignRoleRequest"];
+                    "application/*+json": components["schemas"]["AssignRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description Role was assigned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/roles/{roleName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -53,23 +343,158 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        post?: never;
+        /** Remove a role from a user. Admin only. */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to remove the role from */
+                    id: string;
+                    /** @description The name of the role to remove */
+                    roleName: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a user. Defaults to a soft delete (deactivation). Pass hardDelete=true to permanently remove the user. Admin only. */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description If true, permanently removes the user instead of deactivating it */
+                    hardDelete?: boolean;
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to delete */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a password reset email. Always returns 200 to prevent user enumeration.
+         *     Rate limited per client IP to prevent abuse of the outbound email flow.
+         */
         post: {
             parameters: {
-                query?: never;
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description The email address of the user requesting a reset */
+            requestBody: {
                 content: {
-                    "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
-                    };
+                    "application/json": components["schemas"]["ForgotPasswordRequest"];
+                    "text/json": components["schemas"]["ForgotPasswordRequest"];
+                    "application/*+json": components["schemas"]["ForgotPasswordRequest"];
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description Request was accepted (regardless of whether the email is registered) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset a user's password using a token received via email. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description The email, reset token and new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResetPasswordRequest"];
+                    "text/json": components["schemas"]["ResetPasswordRequest"];
+                    "application/*+json": components["schemas"]["ResetPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description Password was reset successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -91,12 +516,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Gets complete list of sheet music sets (without parts), or the ones matching queryParams.Search.Search if provided
+         *     Use ZipDownloadUrl for complete parts download and PartsUrl to list parts
+         */
         get: {
             parameters: {
                 query: {
-                    queryParams?: components["schemas"]["ODataQueryParams"];
+                    /** @description Optional. Filter sets by category, identified by guid or name */
+                    category?: string;
                     /** @description The requested API version */
                     "api-version": "2.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
                 };
                 header?: never;
                 path?: never;
@@ -104,7 +546,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description A list of sets matching filter, or all sets. Empty list if no matching results */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -116,6 +558,10 @@ export interface paths {
             };
         };
         put?: never;
+        /**
+         * Adds a new set to the list (without parts).
+         *     ID, number and scanned is optional. Number will be next in sequence if not specified.
+         */
         post: {
             parameters: {
                 query: {
@@ -126,7 +572,8 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description Information about the new set */
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["SetRequest"];
                     "text/json": components["schemas"]["SetRequest"];
@@ -134,7 +581,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description The newly created set */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -158,6 +605,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Lists parts for set with identifier */
         get: {
             parameters: {
                 query: {
@@ -166,13 +614,14 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     identifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Set information including its parts */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -198,6 +647,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Get a single part for a set */
         get: {
             parameters: {
                 query: {
@@ -206,14 +656,16 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
+                    /** @description A value uniquely identifying part. Either guid or part name */
                     partIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The part matching the identifiers */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -226,6 +678,7 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        /** Deletes the PDF content and the relationship for partIdentifier of set with setIdentifier. */
         delete: {
             parameters: {
                 query: {
@@ -234,14 +687,16 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
+                    /** @description Name of the part to add */
                     partIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description 204 if successfull, 404 if not found, 500 if something bad happens */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -262,28 +717,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Gets the PDF file for set with setIdentifier, part with partIdentifier */
         get: {
             parameters: {
                 query: {
+                    /** @description A token to prove you are authorized for download */
                     downloadToken?: string;
                     /** @description The requested API version */
                     "api-version": "2.0";
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
+                    /** @description A value uniquely identifying part. Either guid or part name */
                     partIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The PDF file content */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/pdf": unknown;
+                    };
                 };
             };
         };
@@ -302,6 +763,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Gets information about a single set, either by guid, number or title. */
         get: {
             parameters: {
                 query: {
@@ -310,13 +772,14 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The set matching the identifier */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -327,6 +790,7 @@ export interface paths {
                 };
             };
         };
+        /** Updates information about a set. PS! All properties will be updated, omitted once are nulled out. */
         put: {
             parameters: {
                 query: {
@@ -335,11 +799,13 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
                 };
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description Update set parameters */
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["SetRequest"];
                     "text/json": components["schemas"]["SetRequest"];
@@ -347,7 +813,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description The updated set */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -359,6 +825,7 @@ export interface paths {
             };
         };
         post?: never;
+        /** Deletes the set with setIdentifier, including all the parts and files */
         delete: {
             parameters: {
                 query: {
@@ -367,13 +834,131 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Set was deleted successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets the categories assigned to set with setIdentifier */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of categories assigned to the set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Assigns a category to set with setIdentifier */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The category to assign, identified by guid or name */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssignCategoryRequest"];
+                    "text/json": components["schemas"]["AssignCategoryRequest"];
+                    "application/*+json": components["schemas"]["AssignCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description The updated list of categories assigned to the set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiCategory"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setIdentifier}/categories/{categoryIdentifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Removes a category from set with setIdentifier */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
+                    setIdentifier: string;
+                    /** @description A value uniquely identifying category. Either guid or name */
+                    categoryIdentifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 204 if successfull, 404 if set, category or the assignment was not found */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -394,6 +979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Authorized a set for download, allowing a single download for the one with the token. */
         get: {
             parameters: {
                 query: {
@@ -402,13 +988,14 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The generated download token */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -432,27 +1019,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Gets the part collection for a set as a zip file.
+         *     Accepts anonymous requests, but they must provide a download token that is validated to be able to download.
+         */
         get: {
             parameters: {
                 query: {
+                    /** @description A token for proving that user is allowed to download this set */
                     downloadToken?: string;
                     /** @description The requested API version */
                     "api-version": "2.0";
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The zipped collection of parts */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/zip": unknown;
+                    };
                 };
             };
         };
@@ -471,6 +1066,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Analyzes the assigned parts and compares them with the blob storage content.
+         *     If a non-empty file does not exists, the set is listed in results
+         */
         get: {
             parameters: {
                 query: {
@@ -483,12 +1082,14 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description The sets with parts that are assigned, but a file is not present */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -509,6 +1110,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Upload all parts for set with identifier identifier as zip file */
         post: {
             parameters: {
                 query: {
@@ -517,20 +1119,21 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     identifier: string;
                 };
                 cookie?: never;
             };
-            requestBody?: {
+            /** @description The file that has all parts. Needs to be a zip file. */
+            requestBody: {
                 content: {
                     "multipart/form-data": {
-                        /** Format: binary */
-                        file?: string;
+                        file?: components["schemas"]["IFormFile"];
                     };
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description Parts were uploaded successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -554,6 +1157,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Adds the PDF content for partIdentifier of set with setIdentifier. */
         post: {
             parameters: {
                 query: {
@@ -562,14 +1166,16 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title */
                     setIdentifier: string;
+                    /** @description Name of the part to add */
                     partIdentifier: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Part content was added successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -588,25 +1194,50 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ApiSet: {
+        ApiAccessTokens: {
+            access_token?: string;
+            refresh_token?: string;
+            token_type?: string;
+            /** Format: int32 */
+            expires_in?: number | string;
+            scope?: string;
+        };
+        ApiCategory: {
             /** Format: uuid */
             id?: string;
-            /** Format: int32 */
-            archiveNumber?: number;
-            title?: string | null;
-            composer?: string | null;
-            arranger?: string | null;
-            soleSellingAgent?: string | null;
-            missingParts?: string | null;
-            recordingUrl?: string | null;
+            name?: null | string;
+            inactive?: boolean;
+        };
+        ApiSet: {
+            /**
+             * Format: uuid
+             * @description Identifier in DB
+             */
+            id?: string;
+            /**
+             * Format: int32
+             * @description Number in physical archive
+             */
+            archiveNumber?: number | string;
+            title?: null | string;
+            composer?: null | string;
+            arranger?: null | string;
+            soleSellingAgent?: null | string;
+            missingParts?: null | string;
+            recordingUrl?: null | string;
             hasBeenScanned?: boolean;
-            readonly borrowed?: boolean;
-            borrowedFrom?: string | null;
+            borrowed?: boolean;
+            borrowedFrom?: null | string;
             /** Format: date-time */
-            borrowedDateTime?: string | null;
-            zipDownloadUrl?: string | null;
-            partsUrl?: string | null;
-            parts?: components["schemas"]["ApiSheetMusicPart"][] | null;
+            borrowedDateTime?: null | string;
+            /** @description Download pdf of parts for set on this URL */
+            zipDownloadUrl?: string;
+            /** @description List parts of set on this URL */
+            partsUrl?: string;
+            /** @description A list of parts for the set, if included */
+            parts?: null | components["schemas"]["ApiSheetMusicPart"][];
+            /** @description The categories assigned to this set */
+            categories?: components["schemas"]["ApiCategory"][];
         };
         ApiSheetMusicPart: {
             /** Format: uuid */
@@ -615,52 +1246,73 @@ export interface components {
             setId?: string;
             /** Format: uuid */
             musicPartId?: string;
-            name?: string | null;
-            aliases?: string | null;
-            pdfDownloadUrl?: string | null;
-            deletePartUrl?: string | null;
+            name?: string;
+            aliases?: null | string;
+            pdfDownloadUrl?: null | string;
+            deletePartUrl?: null | string;
         };
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        ExpressionType: 0 | 1;
+        AssignCategoryRequest: {
+            /** @description Identifier (guid or name) of the category to assign */
+            categoryIdentifier?: string;
+        };
+        AssignRoleRequest: {
+            roleName?: string;
+        };
+        ExpressionType: number;
+        ForgotPasswordRequest: {
+            email?: string;
+        };
+        /** Format: binary */
+        IFormFile: string;
         ODataExpression: {
             type?: components["schemas"]["ExpressionType"];
         };
         ODataOrderByOption: {
-            field?: string | null;
+            field?: string;
             direction?: components["schemas"]["SortDirection"];
         };
         ODataQueryParams: {
             /** Format: int32 */
-            $top?: number | null;
+            $top?: null | number | string;
             /** Format: int32 */
-            $skip?: number | null;
-            $orderBy?: components["schemas"]["ODataOrderByOption"][] | null;
-            $filter?: components["schemas"]["ODataExpression"];
-            $search?: string | null;
-            $expand?: string[] | null;
-            readonly hasFilter?: boolean;
-            readonly hasSearch?: boolean;
-            readonly isEmpty?: boolean;
+            $skip?: null | number | string;
+            $orderBy?: components["schemas"]["ODataOrderByOption"][];
+            $filter?: null | components["schemas"]["ODataExpression"];
+            $search?: null | string;
+            $expand?: string[];
+            hasFilter?: boolean;
+            hasSearch?: boolean;
+            isEmpty?: boolean;
+        };
+        ResetPasswordRequest: {
+            email?: string;
+            token?: string;
+            newPassword?: string;
         };
         SetRequest: {
             /** Format: int32 */
-            archiveNumber?: number | null;
-            title?: string | null;
-            composer?: string | null;
-            recordingUrl?: string | null;
-            arranger?: string | null;
-            soleSellingAgent?: string | null;
-            missingParts?: string | null;
-            borrowedFrom?: string | null;
+            archiveNumber?: null | number | string;
+            title?: string;
+            composer?: null | string;
+            recordingUrl?: null | string;
+            arranger?: null | string;
+            soleSellingAgent?: null | string;
+            missingParts?: null | string;
+            borrowedFrom?: null | string;
         };
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        SortDirection: 0 | 1;
+        SortDirection: number;
+        UpdateUserRequest: {
+            name?: string;
+            email?: string;
+            password?: string;
+        };
+        UserRequest: {
+            /** Format: uuid */
+            id?: null | string;
+            name?: string;
+            email?: string;
+            password?: string;
+        };
     };
     responses: never;
     parameters: never;

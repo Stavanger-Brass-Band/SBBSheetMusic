@@ -7,8 +7,11 @@ single-page app (static SPA) talking to the Sheetmusic API.
 
 - **SvelteKit** (Svelte 5 / runes) built with **Vite**, output as a static SPA
   via `@sveltejs/adapter-static` (`fallback: index.html`, `ssr = false`).
-- **TypeScript** throughout. API types are generated from the backend's OpenAPI
-  specs with `openapi-typescript` (see `npm run api:gen`).
+- **TypeScript** throughout. API types are generated with `openapi-typescript`
+  from the backend's OpenAPI documents — `/openapi/1.0.json` and
+  `/openapi/2.0.json` on the test environment, browsable as Scalar docs at
+  [`/scalar`](https://sheet-music-api-test.azurewebsites.net/scalar/) (see
+  `npm run api:gen`).
 - **Tailwind CSS v4** + the **SBB "Tuxedo" design system** — a black-first,
   monochrome look with a single brass accent (`#EA5B0C`), Oswald / Hanken Grotesk
   / JetBrains Mono type, and bespoke components in `src/lib/components/ui/`.

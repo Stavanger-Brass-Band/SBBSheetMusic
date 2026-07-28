@@ -1,15 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import { Modal } from "flowbite-svelte";
-  import {
-    Plus,
-    SearchX,
-    ListMusic,
-    Pencil,
-    Trash2,
-    AlertTriangle,
-    Check,
-  } from "@lucide/svelte";
+  import { Plus, SearchX, ListMusic, Pencil, Check } from "@lucide/svelte";
   import { parts as partsApi } from "$lib/api/parts";
   import type { Part, PartForm, PartRequest } from "$lib/types";
   import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
@@ -42,23 +35,12 @@
     allParts.filter((part) => part.indexable).length,
   );
 
-  // Create/edit modal. `editing` holds the part being edited, or null when
-  // creating. `form` is the working copy the modal mutates in place.
+  // Create-only modal. Editing (details, aliases, delete) lives on the
+  // dedicated /part/edit/[id] page, reached by clicking a row.
   let isOpen = $state(false);
   let isSaving = $state(false);
-  let editing = $state<Part | null>(null);
-  let form = $state<PartForm>({
-    name: "",
-    sortOrder: 0,
-    indexable: true,
-    aliases: [],
-  });
+  let form = $state<PartForm>({ name: "", sortOrder: 0, indexable: true });
   let errorMessage = $state("");
-
-  // Delete confirmation.
-  let confirmOpen = $state(false);
-  let isDeleting = $state(false);
-  let deleteError = $state("");
 
   let canSave = $derived(!!form.name.trim());
 
@@ -66,10 +48,6 @@
     allParts = (await partsApi.list()) ?? [];
     loading = false;
   });
-
-  async function reload() {
-    allParts = (await partsApi.list()) ?? [];
-  }
 
   // New parts get the next free slot, leaving gaps to reorder between.
   function nextOrder(): number {
@@ -79,39 +57,13 @@
   }
 
   function openCreate() {
-    editing = null;
-    form = { name: "", sortOrder: nextOrder(), indexable: true, aliases: [] };
+    form = { name: "", sortOrder: nextOrder(), indexable: true };
     errorMessage = "";
     isOpen = true;
   }
 
-  function openEdit(part: Part) {
-    editing = part;
-    form = {
-      name: part.name ?? "",
-      sortOrder: part.sortOrder ?? 0,
-      indexable: part.indexable ?? false,
-      aliases: [...(part.aliases ?? [])],
-    };
-    errorMessage = "";
-    isOpen = true;
-  }
-
-  // Aliases live behind their own endpoints, so diff the draft against the
-  // original and add/remove only what changed.
-  async function syncAliases(id: string, original: string[], next: string[]) {
-    const nextLower = next.map((alias) => alias.toLowerCase());
-    const originalLower = original.map((alias) => alias.toLowerCase());
-    for (const alias of original) {
-      if (!nextLower.includes(alias.toLowerCase()))
-        await partsApi.removeAlias(id, alias);
-    }
-    for (const alias of next) {
-      if (!originalLower.includes(alias.toLowerCase()))
-        await partsApi.addAlias(id, alias);
-    }
-  }
-
+  // Aliases can only be attached once the part exists, so hand off to the edit
+  // page on success — that's where they're managed.
   async function save() {
     if (!canSave) return;
     isSaving = true;
@@ -122,45 +74,14 @@
       indexable: form.indexable,
     };
     try {
-      if (editing) {
-        const updated = await partsApi.update(editing.id!, body);
-        if (!updated) throw new Error("update failed");
-        await syncAliases(editing.id!, editing.aliases ?? [], form.aliases);
-      } else {
-        const created = await partsApi.create(body);
-        if (!created?.id) throw new Error("create failed");
-        await syncAliases(created.id, [], form.aliases);
-      }
-      await reload();
+      const created = await partsApi.create(body);
+      if (!created?.id) throw new Error("create failed");
       isOpen = false;
+      goto(`/part/edit/${created.id}`);
     } catch {
       errorMessage = "Kunne ikke lagre stemmen. Prøv igjen.";
-      // Reflect whatever did persist (e.g. the part saved but an alias failed).
-      await reload();
     } finally {
       isSaving = false;
-    }
-  }
-
-  function askDelete() {
-    // Mirror the design: the edit dialog steps aside for the confirmation.
-    deleteError = "";
-    isOpen = false;
-    confirmOpen = true;
-  }
-
-  async function confirmDelete() {
-    if (!editing) return;
-    isDeleting = true;
-    deleteError = "";
-    const response = await partsApi.remove(editing.id!);
-    isDeleting = false;
-    if (response.ok) {
-      confirmOpen = false;
-      editing = null;
-      await reload();
-    } else {
-      deleteError = "Kunne ikke slette stemmen. Prøv igjen.";
     }
   }
 </script>
@@ -235,7 +156,7 @@
       </thead>
       <tbody>
         {#each filtered as part (part.id)}
-          <tr class="clickable" onclick={() => openEdit(part)}>
+          <tr class="clickable" onclick={() => goto(`/part/edit/${part.id}`)}>
             <td class="c-order">{part.sortOrder}</td>
             <td class="c-name">{part.name}</td>
             <td class="c-aliases">{@render aliasChips(part.aliases ?? [])}</td>
@@ -252,7 +173,10 @@
   <!-- Mobile: the table reflows into a card list. -->
   <div class="sbb-card-list">
     {#each filtered as part (part.id)}
-      <div class="sbb-card clickable" onclick={() => openEdit(part)}>
+      <div
+        class="sbb-card clickable"
+        onclick={() => goto(`/part/edit/${part.id}`)}
+      >
         <span class="nr">{part.sortOrder}</span>
         <div class="body">
           <div class="t">{part.name}</div>
@@ -269,54 +193,16 @@
   </p>
 {/if}
 
-<Modal
-  title={editing ? "Rediger stemme" : "Ny stemme"}
-  bind:open={isOpen}
-  size="md"
->
+<Modal title="Ny stemme" bind:open={isOpen} size="md">
   <PartModalBody {form} />
+  <p class="modal-note">Aliaser legges til etter at stemmen er opprettet.</p>
   {#if errorMessage}
     <p class="error-message">{errorMessage}</p>
   {/if}
   {#snippet footer()}
-    {#if editing}
-      <Button
-        variant="ghost"
-        onclick={askDelete}
-        style="margin-right:auto;color:var(--danger)"
-      >
-        <Trash2 size={16} /> Slett
-      </Button>
-    {/if}
     <Button variant="ghost" onclick={() => (isOpen = false)}>Lukk</Button>
     <Button loading={isSaving} disabled={!canSave} onclick={save}>
       <Check size={16} /> Lagre
-    </Button>
-  {/snippet}
-</Modal>
-
-<Modal bind:open={confirmOpen} size="xs">
-  <div class="confirm-body">
-    <span class="danger-ico"><Trash2 size={22} /></span>
-    <h3>Slette stemme?</h3>
-    <p>«{editing?.name}» fjernes fra katalogen.</p>
-    <div class="warn">
-      <span class="wi"><AlertTriangle size={17} /></span>
-      <span>
-        Å fjerne en stemme kan påvirke eksisterende automatisk gjenkjenning.
-        Filer som tidligere matchet på dette navnet eller aliasene blir ikke
-        lenger gjenkjent automatisk.
-      </span>
-    </div>
-    {#if deleteError}
-      <p class="error-message">{deleteError}</p>
-    {/if}
-  </div>
-  {#snippet footer()}
-    <Button variant="ghost" onclick={() => (confirmOpen = false)}>Avbryt</Button
-    >
-    <Button variant="danger" loading={isDeleting} onclick={confirmDelete}>
-      <Trash2 size={16} /> Slett stemme
     </Button>
   {/snippet}
 </Modal>
@@ -428,49 +314,10 @@
     color: var(--danger);
   }
 
-  /* Delete confirmation. */
-  .confirm-body {
-    text-align: center;
-  }
-  .danger-ico {
-    width: 46px;
-    height: 46px;
-    border-radius: 999px;
-    background: var(--danger-soft);
-    color: var(--danger);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 16px;
-  }
-  .confirm-body h3 {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 22px;
-    margin: 0 0 8px;
-  }
-  .confirm-body p {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.55;
-  }
-  .confirm-body .warn {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    text-align: left;
-    margin-top: 18px;
-    padding: 13px 15px;
-    background: var(--danger-soft);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-  .confirm-body .warn .wi {
-    color: var(--danger);
-    flex-shrink: 0;
-    margin-top: 1px;
+  .modal-note {
+    margin-top: 16px;
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--text-muted);
   }
 </style>
