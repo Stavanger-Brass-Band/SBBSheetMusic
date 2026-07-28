@@ -24,6 +24,12 @@
   const PAGE = 30;
   /** Ceiling when restoring `pages` from the URL — it becomes one request. */
   const MAX_RESTORED_PAGES = 20;
+  /**
+   * Category chips shown before the row collapses behind "+N flere". Roughly a
+   * row on desktop and three on a phone, where an uncollapsed vocabulary of 20
+   * would push the list itself off screen.
+   */
+  const VISIBLE_CATEGORY_CHIPS = 8;
   /** Where the scroll offset is parked while the user is off the archive. */
   const SCROLL_KEY = "archive:scroll";
 
@@ -32,6 +38,7 @@
   // the same server-side query the search field drives.
   let selectedCategory = $state("");
   let categoryOptions = $state<Category[]>([]);
+  let showAllCategories = $state(false);
   let items = $state<MusicSet[]>([]);
   // Pages of results currently on screen. Mirrored in the URL, so "load more"
   // survives leaving the page too.
@@ -167,11 +174,28 @@
     }
   }
 
-  // Clicking the active category clears the filter, so a chip toggles.
+  // Clicking the active category clears the filter, so a chip toggles. Picking
+  // one also folds the row back up, so the results are never pushed off screen
+  // by an expanded list of chips.
   function selectCategory(name: string) {
     selectedCategory = selectedCategory === name ? "" : name;
+    showAllCategories = false;
     runSearch();
   }
+
+  let visibleCategories = $derived.by(() => {
+    if (showAllCategories) return categoryOptions;
+    const visible = categoryOptions.slice(0, VISIBLE_CATEGORY_CHIPS);
+    // Keep the active filter on screen even when it sorts past the cut-off.
+    const selected = categoryOptions.find(
+      (category) => category.name === selectedCategory,
+    );
+    if (selected && !visible.includes(selected)) visible.push(selected);
+    return visible;
+  });
+  let hiddenCategoryCount = $derived(
+    categoryOptions.length - visibleCategories.length,
+  );
 
   // "Ingen treff" covers a text search, a category filter, or both.
   let emptyResultDescription = $derived.by(() => {
@@ -262,7 +286,7 @@
     >
       Alle
     </button>
-    {#each categoryOptions as category (category.id)}
+    {#each visibleCategories as category (category.id)}
       <button
         class="filter-chip"
         class:active={selectedCategory === category.name}
@@ -271,6 +295,21 @@
         {category.name}
       </button>
     {/each}
+    {#if hiddenCategoryCount > 0}
+      <button
+        class="filter-chip toggle"
+        onclick={() => (showAllCategories = true)}
+      >
+        +{hiddenCategoryCount} flere
+      </button>
+    {:else if showAllCategories}
+      <button
+        class="filter-chip toggle"
+        onclick={() => (showAllCategories = false)}
+      >
+        Vis færre
+      </button>
+    {/if}
   </div>
 {/if}
 
@@ -462,6 +501,17 @@
     color: var(--accent-on);
     background: var(--accent);
     border-color: var(--accent);
+  }
+  /* The expand/collapse control reads as a link, not another category. */
+  .filter-chip.toggle {
+    padding: 0 6px;
+    color: var(--text-muted);
+    border-color: transparent;
+  }
+  .filter-chip.toggle:hover {
+    color: var(--text-primary);
+    border-color: transparent;
+    text-decoration: underline;
   }
 
   /* Category tags under a set's title (table cell and mobile card alike). */
