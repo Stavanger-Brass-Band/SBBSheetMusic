@@ -5,19 +5,22 @@ import type { components as V2 } from "$lib/api/schema.v2";
  * App-facing type aliases over the OpenAPI-generated schemas.
  * Regenerate the schemas with `npm run api:gen` when the backend changes.
  *
- * Sheetmusic-set types come from the v2.0 spec; projects/users/parts/auth
- * come from v1.0. Where the spec leaves a response body undefined, a minimal
- * supplementary interface is authored below from observed usage.
+ * Sheetmusic-set and user types come from the v2.0 document; projects, parts,
+ * categories and auth from v1.0. Where the document leaves a response body
+ * undefined, a minimal supplementary interface is authored below from observed
+ * usage.
+ *
+ * The documents declare every `int32` as `["integer","string"]` — a
+ * `JsonNumberHandling.AllowReadingFromString` artifact of .NET's schema
+ * exporter — so `openapi-typescript` widens those fields to `number | string`.
+ * The API only ever sends numbers, so the numeric fields the app sorts on and
+ * assigns to are pinned back to `number` with `Omit` below. Drop those
+ * overrides once the documents stop widening them.
  */
 
 // --- Sheetmusic (v2.0) ---
-/**
- * `categories` is hand-added: the set endpoints return it on the v2 test spec,
- * but `api:gen` generates v2 from prod, where categories are not deployed yet.
- * Drop the intersection once prod's `ApiSet` carries the field.
- */
-export type MusicSet = V2["schemas"]["ApiSet"] & {
-  categories?: Category[] | null;
+export type MusicSet = Omit<V2["schemas"]["ApiSet"], "archiveNumber"> & {
+  archiveNumber?: number;
 };
 export type MusicSetPart = V2["schemas"]["ApiSheetMusicPart"];
 export type SetRequest = V2["schemas"]["SetRequest"];
@@ -34,20 +37,22 @@ export interface CategoryForm {
 }
 
 // --- Parts catalog (v1.0) ---
-export type Part = V1["schemas"]["ApiPart"];
-export type PartRequest = V1["schemas"]["PartRequest"];
+export type Part = Omit<V1["schemas"]["ApiPart"], "sortOrder"> & {
+  sortOrder?: number;
+};
+export type PartRequest = Omit<V1["schemas"]["PartRequest"], "sortOrder"> & {
+  sortOrder?: number;
+};
 
 /**
- * UI-only working model for the part create/edit form. `name`/`sortOrder`/
- * `indexable` map onto `PartRequest`; `aliases` is a plain editable string
- * array (the API exposes aliases read-only on the part and manages additions
- * and removals through dedicated `/parts/{id}/aliases` endpoints).
+ * UI-only working model for the part create/edit form, mapping onto
+ * `PartRequest`. Aliases are not here: the API manages them through dedicated
+ * `/parts/{id}/aliases` endpoints, applied one at a time on the part edit page.
  */
 export interface PartForm {
   name: string;
   sortOrder: number;
   indexable: boolean;
-  aliases: string[];
 }
 
 // --- Projects (v1.0) ---
@@ -64,31 +69,15 @@ export type Project = V1["schemas"]["ApiProject"] & {
   sets?: MusicSet[];
 };
 
-// --- Users ---
-// UserRequest/UpdateUserRequest are identical in v1 and v2, so the v1 aliases
-// stand. The remaining request types below exist only in the v2 spec, which
-// currently lives in the test environment and is therefore not in the
-// generated (prod) schema files — hand-authored here until `api:gen` can pull
-// v2 users from prod.
-export type UserRequest = V1["schemas"]["UserRequest"];
-export type UpdateUserRequest = V1["schemas"]["UpdateUserRequest"];
-
-/** v2 `AssignRoleRequest`. */
-export interface AssignRoleRequest {
-  roleName: string | null;
-}
-
-/** v2 `ForgotPasswordRequest`. */
-export interface ForgotPasswordRequest {
-  email: string | null;
-}
-
-/** v2 `ResetPasswordRequest`. */
-export interface ResetPasswordRequest {
-  email: string | null;
-  token: string | null;
-  newPassword: string | null;
-}
+// --- Users (v2.0) ---
+// User management runs on v2 throughout, so these all alias the v2 schema —
+// including the role and password-reset bodies that previously had to be
+// hand-authored while `api:gen` pulled v2 from prod.
+export type UserRequest = V2["schemas"]["UserRequest"];
+export type UpdateUserRequest = V2["schemas"]["UpdateUserRequest"];
+export type AssignRoleRequest = V2["schemas"]["AssignRoleRequest"];
+export type ForgotPasswordRequest = V2["schemas"]["ForgotPasswordRequest"];
+export type ResetPasswordRequest = V2["schemas"]["ResetPasswordRequest"];
 
 /**
  * User response shape — not defined in the OpenAPI spec, authored here.
