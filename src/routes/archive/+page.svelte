@@ -24,6 +24,16 @@
   const PAGE = 30;
   /** Ceiling when restoring `pages` from the URL — it becomes one request. */
   const MAX_RESTORED_PAGES = 20;
+  /**
+   * Category chips shown before the row collapses behind "+N flere". Chips wrap
+   * after about ten on a desktop but only three on a phone, so the cut-off
+   * follows the viewport — otherwise a vocabulary of 20 pushes the list itself
+   * off screen on mobile.
+   */
+  const VISIBLE_CATEGORY_CHIPS = 8;
+  const VISIBLE_CATEGORY_CHIPS_NARROW = 4;
+  /** The same breakpoint the table/card-list swap uses. */
+  const NARROW_VIEWPORT = "(max-width: 640px)";
   /** Where the scroll offset is parked while the user is off the archive. */
   const SCROLL_KEY = "archive:scroll";
 
@@ -32,6 +42,8 @@
   // the same server-side query the search field drives.
   let selectedCategory = $state("");
   let categoryOptions = $state<Category[]>([]);
+  let showAllCategories = $state(false);
+  let isNarrowViewport = $state(false);
   let items = $state<MusicSet[]>([]);
   // Pages of results currently on screen. Mirrored in the URL, so "load more"
   // survives leaving the page too.
@@ -167,11 +179,31 @@
     }
   }
 
-  // Clicking the active category clears the filter, so a chip toggles.
+  // Clicking the active category clears the filter, so a chip toggles. Picking
+  // one also folds the row back up, so the results are never pushed off screen
+  // by an expanded list of chips.
   function selectCategory(name: string) {
     selectedCategory = selectedCategory === name ? "" : name;
+    showAllCategories = false;
     runSearch();
   }
+
+  let visibleCategories = $derived.by(() => {
+    if (showAllCategories) return categoryOptions;
+    const limit = isNarrowViewport
+      ? VISIBLE_CATEGORY_CHIPS_NARROW
+      : VISIBLE_CATEGORY_CHIPS;
+    const visible = categoryOptions.slice(0, limit);
+    // Keep the active filter on screen even when it sorts past the cut-off.
+    const selected = categoryOptions.find(
+      (category) => category.name === selectedCategory,
+    );
+    if (selected && !visible.includes(selected)) visible.push(selected);
+    return visible;
+  });
+  let hiddenCategoryCount = $derived(
+    categoryOptions.length - visibleCategories.length,
+  );
 
   // "Ingen treff" covers a text search, a category filter, or both.
   let emptyResultDescription = $derived.by(() => {
@@ -204,6 +236,15 @@
   onMount(() => {
     restoreFromUrl();
     loadCategories();
+
+    // Follow the breakpoint live, so rotating a phone or resizing re-folds the
+    // chip row instead of leaving the wrong cut-off behind.
+    const narrow = window.matchMedia(NARROW_VIEWPORT);
+    isNarrowViewport = narrow.matches;
+    const onViewportChange = (event: MediaQueryListEvent) =>
+      (isNarrowViewport = event.matches);
+    narrow.addEventListener("change", onViewportChange);
+    return () => narrow.removeEventListener("change", onViewportChange);
   });
   onDestroy(() => {
     clearTimeout(searchTimer);
@@ -262,7 +303,7 @@
     >
       Alle
     </button>
-    {#each categoryOptions as category (category.id)}
+    {#each visibleCategories as category (category.id)}
       <button
         class="filter-chip"
         class:active={selectedCategory === category.name}
@@ -271,6 +312,21 @@
         {category.name}
       </button>
     {/each}
+    {#if hiddenCategoryCount > 0}
+      <button
+        class="filter-chip toggle"
+        onclick={() => (showAllCategories = true)}
+      >
+        +{hiddenCategoryCount} flere
+      </button>
+    {:else if showAllCategories}
+      <button
+        class="filter-chip toggle"
+        onclick={() => (showAllCategories = false)}
+      >
+        Vis færre
+      </button>
+    {/if}
   </div>
 {/if}
 
@@ -313,9 +369,7 @@
               {@render categoryTags(item.categories)}
             </td>
             <td class="c-muted">{item.composer ?? "—"}</td>
-            <td class="c-muted"
-              >{item.arranger ? "Arr. " + item.arranger : "—"}</td
-            >
+            <td class="c-muted">{item.arranger ?? "—"}</td>
             <td class="c-actions">
               {#if item.hasBeenScanned}
                 {#if auth.isAdmin}
@@ -464,6 +518,17 @@
     color: var(--accent-on);
     background: var(--accent);
     border-color: var(--accent);
+  }
+  /* The expand/collapse control reads as a link, not another category. */
+  .filter-chip.toggle {
+    padding: 0 6px;
+    color: var(--text-muted);
+    border-color: transparent;
+  }
+  .filter-chip.toggle:hover {
+    color: var(--text-primary);
+    border-color: transparent;
+    text-decoration: underline;
   }
 
   /* Category tags under a set's title (table cell and mobile card alike). */
