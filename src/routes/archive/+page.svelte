@@ -313,9 +313,7 @@
               {@render categoryTags(item.categories)}
             </td>
             <td class="c-muted">{item.composer ?? "—"}</td>
-            <td class="c-muted"
-              >{item.arranger ? "Arr. " + item.arranger : "—"}</td
-            >
+            <td class="c-muted">{item.arranger ?? "—"}</td>
             <td class="c-actions">
               {#if item.hasBeenScanned}
                 {#if auth.isAdmin}
