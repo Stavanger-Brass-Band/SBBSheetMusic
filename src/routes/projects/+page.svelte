@@ -12,7 +12,12 @@
   } from "flowbite-svelte";
   import { Plus, SearchX } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { formatDmy, projectStatus, toApiDate } from "$lib/utils/date";
+  import {
+    dateSortValue,
+    formatDmy,
+    projectStatus,
+    toApiDate,
+  } from "$lib/utils/date";
   import type { ProjectStatus } from "$lib/utils/date";
   import type { NewProjectRequest, Project } from "$lib/types";
   import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
@@ -54,8 +59,7 @@
     const data = await projectsApi.list();
     if (data) {
       data.sort(
-        (a, b) =>
-          new Date(b.startDate).valueOf() - new Date(a.startDate).valueOf(),
+        (a, b) => dateSortValue(b.startDate) - dateSortValue(a.startDate),
       );
     }
     projects = data ?? [];

@@ -55,15 +55,14 @@ export type NewProjectRequest = V1["schemas"]["NewProjectRequest"];
 export type UpdateProjectRequest = V1["schemas"]["UpdateProjectRequest"];
 export type SetCollectionRequest = V1["schemas"]["SetCollectionRequest"];
 
-/** Project response shape — not defined in the OpenAPI spec, authored here. */
-export interface Project {
-  id: string;
-  name: string | null;
-  startDate: string;
-  endDate: string;
-  comments?: string | null;
+/**
+ * `sets` is composed client-side: `ApiProject` carries the project's own fields
+ * only, so the pages that need its music sets fetch `/projects/{id}/sets` and
+ * attach the result here.
+ */
+export type Project = V1["schemas"]["ApiProject"] & {
   sets?: MusicSet[];
-}
+};
 
 // --- Users ---
 // UserRequest/UpdateUserRequest are identical in v1 and v2, so the v1 aliases

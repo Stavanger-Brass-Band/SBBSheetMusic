@@ -14,17 +14,20 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    Top?: number;
-                    Skip?: number;
-                    OrderBy?: components["schemas"]["ODataOrderByOption"][];
-                    "Filter.Type"?: components["schemas"]["ExpressionType"];
-                    Search?: string;
-                    Expand?: string[];
-                    HasFilter?: boolean;
-                    HasSearch?: boolean;
-                    IsEmpty?: boolean;
                     /** @description The requested API version */
                     "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
                 };
                 header?: never;
                 path?: never;
@@ -240,17 +243,20 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    Top?: number;
-                    Skip?: number;
-                    OrderBy?: components["schemas"]["ODataOrderByOption"][];
-                    "Filter.Type"?: components["schemas"]["ExpressionType"];
-                    Search?: string;
-                    Expand?: string[];
-                    HasFilter?: boolean;
-                    HasSearch?: boolean;
-                    IsEmpty?: boolean;
                     /** @description The requested API version */
                     "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
                 };
                 header?: never;
                 path?: never;
@@ -489,17 +495,20 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    Top?: number;
-                    Skip?: number;
-                    OrderBy?: components["schemas"]["ODataOrderByOption"][];
-                    "Filter.Type"?: components["schemas"]["ExpressionType"];
-                    Search?: string;
-                    Expand?: string[];
-                    HasFilter?: boolean;
-                    HasSearch?: boolean;
-                    IsEmpty?: boolean;
                     /** @description The requested API version */
                     "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
                 };
                 header?: never;
                 path?: never;
@@ -512,7 +521,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"][];
+                        "application/json": components["schemas"]["ApiProject"][];
+                        "text/json": components["schemas"]["ApiProject"][];
+                    };
                 };
             };
         };
@@ -540,7 +553,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"];
+                        "application/json": components["schemas"]["ApiProject"];
+                        "text/json": components["schemas"]["ApiProject"];
+                    };
                 };
             };
         };
@@ -576,7 +593,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"];
+                        "application/json": components["schemas"]["ApiProject"];
+                        "text/json": components["schemas"]["ApiProject"];
+                    };
                 };
             };
         };
@@ -605,7 +626,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiProject"];
+                        "application/json": components["schemas"]["ApiProject"];
+                        "text/json": components["schemas"]["ApiProject"];
+                    };
                 };
             };
         };
@@ -664,7 +689,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"][];
+                        "application/json": components["schemas"]["ApiSet"][];
+                        "text/json": components["schemas"]["ApiSet"][];
+                    };
                 };
             };
         };
@@ -694,7 +723,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"][];
+                        "application/json": components["schemas"]["ApiSet"][];
+                        "text/json": components["schemas"]["ApiSet"][];
+                    };
                 };
             };
         };
@@ -723,7 +756,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"][];
+                        "application/json": components["schemas"]["ApiSet"][];
+                        "text/json": components["schemas"]["ApiSet"][];
+                    };
                 };
             };
         };
@@ -742,10 +779,21 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    queryParams?: components["schemas"]["ODataQueryParams"];
                     category?: string;
                     /** @description The requested API version */
                     "api-version": "1.0";
+                    /** @description Free text search across archive number, title, composer and arranger. */
+                    $search?: string;
+                    /** @description OData filter expression, for example "title eq 'Fanfare'" or "archiveNumber gt 100". */
+                    $filter?: string;
+                    /** @description Comma separated sort clauses on the format "field [asc|desc]", for example "composer asc,title desc". */
+                    $orderby?: string;
+                    /** @description Maximum number of rows to return. Must be at least 1. */
+                    $top?: number;
+                    /** @description Number of rows to skip before returning results. */
+                    $skip?: number;
+                    /** @description Comma separated list of related collections to include, for example "parts". */
+                    $expand?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1569,6 +1617,16 @@ export interface components {
             sortOrder?: number;
             indexable?: boolean;
             aliases?: null | string[];
+        };
+        ApiProject: {
+            /** Format: uuid */
+            id?: string;
+            name?: null | string;
+            comments?: null | string;
+            /** Format: date-time */
+            startDate?: string;
+            /** Format: date-time */
+            endDate?: string;
         };
         ApiSet: {
             /** Format: uuid */

@@ -3,7 +3,11 @@
   import { formatDayMonth } from "$lib/utils/date";
 
   // The signature two-box date-range motif: [MMM / DD] → [MMM / DD].
-  let { start, end }: { start: string; end: string } = $props();
+  let {
+    start,
+    end,
+  }: { start: string | null | undefined; end: string | null | undefined } =
+    $props();
 
   let from = $derived(formatDayMonth(start));
   let to = $derived(formatDayMonth(end));

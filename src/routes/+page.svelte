@@ -4,7 +4,7 @@
   import { Folder, FolderOpen, ChevronRight } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { isActiveProject } from "$lib/utils/date";
+  import { dateSortValue, isActiveProject } from "$lib/utils/date";
   import { DateRangeBoxes, EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { cardEnter } from "$lib/utils/motion";
@@ -20,10 +20,7 @@
 
     const active = data
       .filter((project) => isActiveProject(project))
-      .sort(
-        (a, b) =>
-          new Date(a.startDate).valueOf() - new Date(b.startDate).valueOf(),
-      );
+      .sort((a, b) => dateSortValue(a.startDate) - dateSortValue(b.startDate));
 
     catalog.setActiveProjects(active);
     loading = false;

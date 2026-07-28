@@ -138,7 +138,7 @@
     const part = partToRemove;
     if (!part) return;
     const res = await sheetMusic.deletePart(id, part.musicPartId ?? "");
-    if (res.status === 204) await reloadParts();
+    if (res.ok) await reloadParts();
   }
 
   // ---- bulk upload + auto-match ----

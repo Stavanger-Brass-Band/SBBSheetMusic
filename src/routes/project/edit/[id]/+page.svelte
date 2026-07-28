@@ -184,7 +184,7 @@
     const set = setToRemove;
     if (!set) return;
     const res = await projectsApi.removeSets(id, [set.id!]);
-    if (res.status === 200) sets = sets.filter((s) => s.id !== set.id);
+    if (res.ok) sets = sets.filter((s) => s.id !== set.id);
   }
 
   // ---- concert order ----
@@ -314,7 +314,7 @@
   // ---- delete project ----
   async function removeProject() {
     const res = await projectsApi.remove(id);
-    if (res.status === 204) goto("/projects");
+    if (res.ok) goto("/projects");
   }
 </script>
 

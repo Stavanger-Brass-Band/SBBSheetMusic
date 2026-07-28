@@ -29,9 +29,8 @@ export const sheetMusic = {
     // `category` is a plain filter alongside the OData options, and matches on
     // the category name.
     if (opts.category) params.set("category", opts.category);
-    // The ODataQueryParams object binds from the query string; $orderBy is an
-    // array of { field, direction } → indexed form $orderBy[i].field / .direction.
-    params.set(`$orderBy`, "archiveNumber desc");
+    // $orderby takes comma separated "field [asc|desc]" clauses.
+    params.set("$orderby", "archiveNumber desc");
     params.set("$top", String(opts.top ?? 30));
     params.set("$skip", String(opts.skip ?? 0));
     return client.get<MusicSet[]>(`/sheetmusic/sets?${params}`);

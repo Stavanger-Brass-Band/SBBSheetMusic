@@ -105,12 +105,14 @@ Global state is **rune-class singletons** in `src/lib/stores/*.svelte.ts`:
   parts → **v1.0**.
 - App-facing types live in `src/lib/types/` as aliases over the generated
   `components["schemas"]`, plus a few hand-authored types where the spec leaves
-  responses undefined (`Project`, `User`).
-- **v2 OData query options** (archive search/paging): `$search`, `$top`, `$skip`,
-  and `$orderBy` serialized in indexed form
-  (`$orderBy[0].field=archiveNumber&$orderBy[0].direction=0`). **`direction: 0`
-  is descending.** The endpoint returns a bare array (no total) → offset paging
-  with "load more".
+  responses undefined (`User`, and the v2-only user request bodies).
+- **OData query options** — flat query-string params on every collection
+  endpoint (sets, projects, parts, categories): `$search` (free text), `$filter`
+  (e.g. `archiveNumber gt 100`), `$orderby` (comma separated `field [asc|desc]`,
+  e.g. `composer asc,title desc`), `$top`, `$skip`, `$expand` (related
+  collections, e.g. `parts`). The sets endpoint also takes a plain `category`
+  param matching on category name. Responses are bare arrays (no total-count
+  envelope) → offset paging with "load more".
 
 ## Styling & design system
 

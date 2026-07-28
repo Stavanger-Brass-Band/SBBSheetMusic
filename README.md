@@ -89,10 +89,12 @@ and parts. Types are generated from both specs into `src/lib/api/schema.v1.d.ts`
 and `schema.v2.d.ts`.
 
 The archive uses the v2 sets endpoint's **OData query options** for server-side
-search and paging — `$search`, `$top`, `$skip`, and `$orderBy` (serialized in
-indexed form, e.g. `$orderBy[0].field=archiveNumber&$orderBy[0].direction=0`,
-where **direction `0` = descending**). The endpoint returns a bare array (no
-total-count), so the list uses offset paging with a "load more" control.
+search and paging. They are flat query-string params, available on every
+collection endpoint: `$search` (free text), `$filter` (e.g.
+`archiveNumber gt 100`), `$orderby` (comma separated `field [asc|desc]`, e.g.
+`composer asc,title desc`), `$top`, `$skip` and `$expand` (related collections,
+e.g. `parts`). The endpoint returns a bare array (no total-count), so the list
+uses offset paging with a "load more" control.
 
 ## Deploying to the web
 
