@@ -15,6 +15,11 @@ const dmyFmt = new Intl.DateTimeFormat(LOCALE, {
 });
 
 type DateInput = string | number | Date;
+/** The API leaves every date optional, so the formatters take nothing too. */
+type OptionalDateInput = DateInput | null | undefined;
+
+/** Stands in for a date the API left unset, rather than "Invalid Date". */
+const NO_DATE = "—";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -22,11 +27,14 @@ function startOfDay(date: Date): Date {
   return d;
 }
 
-/** `{ day, monthShort }` for the FancyDateView boxes (e.g. `07`, `jun`). */
-export function formatDayMonth(date: DateInput): {
+/** `{ day, monthShort }` for the DateRangeBoxes boxes (e.g. `07`, `jun`). */
+export function formatDayMonth(date: OptionalDateInput): {
   day: string;
   monthShort: string;
 } {
+  if (date === null || date === undefined) {
+    return { day: NO_DATE, monthShort: "" };
+  }
   const d = new Date(date);
   return {
     day: dayFmt.format(d),
@@ -37,8 +45,20 @@ export function formatDayMonth(date: DateInput): {
 }
 
 /** `DD.MM.YYYY` (e.g. `07.06.2026`). */
-export function formatDmy(date: DateInput): string {
+export function formatDmy(date: OptionalDateInput): string {
+  if (date === null || date === undefined) return NO_DATE;
   return dmyFmt.format(new Date(date));
+}
+
+/**
+ * Sortable timestamp for a possibly-unset API date. A missing or unparseable
+ * date collapses to 0 so it sorts to one end instead of poisoning every
+ * comparison it takes part in with `NaN`.
+ */
+export function dateSortValue(date: OptionalDateInput): number {
+  if (date === null || date === undefined) return 0;
+  const value = new Date(date).valueOf();
+  return Number.isNaN(value) ? 0 : value;
 }
 
 /**
