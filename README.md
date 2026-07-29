@@ -118,11 +118,11 @@ it). Production still packages `build/` to the App Service via
 
 #### Sheetmusic [resource group]
 
-| Name                | Type                   | URL                                            | Comment                                                |
-| ------------------- | ---------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-| sheetmusic-app-test | Azure Static Web App (Free) | _see Azure portal_                       | Test environment, running against api test environment |
-| sheetmusic-app      | Azure App Service      | https://noter.stavanger-brassband.no           | Production app (not yet migrated)                      |
-| sheetmusic-app-plan | Azure App Service Plan | N/A                                            | Linux. Now only serves production                      |
+| Name                | Type                   | URL                                             | Comment                                                |
+| ------------------- | ---------------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| sheetmusic-app-test | Azure Static Web App (Free) | https://orange-mud-00eed1803.1.azurestaticapps.net | Test environment, running against api test environment |
+| sheetmusic-app      | Azure App Service      | https://noter.stavanger-brassband.no            | Production app (not yet migrated)                      |
+| sheetmusic-app-plan | Azure App Service Plan | N/A                                             | Linux. Now only serves production                      |
 
 The test Static Web App's deployment token is stored as the
 `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the `test` GitHub environment
