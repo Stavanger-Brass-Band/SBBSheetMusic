@@ -1,29 +1,42 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
-  import { Folder, FolderOpen, ChevronRight } from "@lucide/svelte";
+  import {
+    Folder,
+    FolderOpen,
+    ChevronRight,
+    TriangleAlert,
+  } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { dateSortValue, isActiveProject } from "$lib/utils/date";
+  import { dateSortValue } from "$lib/utils/date";
   import { DateRangeBoxes, EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { cardEnter } from "$lib/utils/motion";
 
   let loading = $state(false);
+  let loadFailed = $state(false);
 
   onMount(async () => {
     if (catalog.activeProjects.length < 1) {
       loading = true;
     }
 
-    const data = await projectsApi.list();
-
-    const active = data
-      .filter((project) => isActiveProject(project))
-      .sort((a, b) => dateSortValue(a.startDate) - dateSortValue(b.startDate));
-
-    catalog.setActiveProjects(active);
-    loading = false;
+    try {
+      // The API does the narrowing, so the page never pulls down the whole
+      // project history. Ordering is still ours: the endpoint ignores
+      // `$orderby`.
+      const active = (await projectsApi.listActive()) ?? [];
+      catalog.setActiveProjects(
+        active.sort(
+          (a, b) => dateSortValue(a.startDate) - dateSortValue(b.startDate),
+        ),
+      );
+    } catch {
+      loadFailed = true;
+    } finally {
+      loading = false;
+    }
   });
 </script>
 
@@ -38,12 +51,21 @@
 {#if loading}
   <LoadingSpinner label="Laster prosjekter…" />
 {:else if catalog.activeProjects.length === 0}
-  <EmptyState
-    title="Ingen aktive prosjekter"
-    description="Når korpset har et aktivt prosjekt med noter, dukker det opp her."
-  >
-    {#snippet icon()}<FolderOpen size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+  {#if loadFailed}
+    <EmptyState
+      title="Kunne ikke laste prosjekter"
+      description="Noe gikk galt da vi hentet de aktive prosjektene. Last siden på nytt for å prøve igjen."
+    >
+      {#snippet icon()}<TriangleAlert size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
+  {:else}
+    <EmptyState
+      title="Ingen aktive prosjekter"
+      description="Når korpset har et aktivt prosjekt med noter, dukker det opp her."
+    >
+      {#snippet icon()}<FolderOpen size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
+  {/if}
 {:else}
   <div class="grid">
     {#each catalog.activeProjects as project, index (project.id)}

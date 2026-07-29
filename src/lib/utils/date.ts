@@ -71,17 +71,26 @@ export function toApiDate(date: DateInput): string {
   return d.toISOString();
 }
 
-/** True when `now` falls within the project's [startDate, endDate] (day granularity). */
-export function isActiveProject(
-  project: { startDate?: string | null; endDate?: string | null },
-  now: Date = new Date(),
-): boolean {
-  if (!project.startDate || !project.endDate) return false;
-  const today = startOfDay(now);
-  return (
-    startOfDay(new Date(project.startDate)) <= today &&
-    startOfDay(new Date(project.endDate)) >= today
-  );
+/** `YYYY-MM-DDTHH:MM:SSZ` — the milliseconds only clutter a date filter. */
+function toIsoSeconds(date: Date): string {
+  return `${date.toISOString().slice(0, 19)}Z`;
+}
+
+/**
+ * The bounds of the local day as UTC instants, for the server-side `$filter`
+ * on `/projects`. Project dates are stored at noon UTC (see `toApiDate`), so a
+ * filter only reproduces the day-granularity comparisons `projectStatus` makes
+ * if it compares against the *edges* of today rather than against "now" —
+ * otherwise a project that starts or ends today falls on the wrong side of it.
+ */
+export function startOfTodayIso(now: Date = new Date()): string {
+  return toIsoSeconds(startOfDay(now));
+}
+
+export function endOfTodayIso(now: Date = new Date()): string {
+  const end = startOfDay(now);
+  end.setHours(23, 59, 59, 0);
+  return toIsoSeconds(end);
 }
 
 /** A project's lifecycle phase relative to today. */
