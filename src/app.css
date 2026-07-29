@@ -258,6 +258,16 @@ textarea::placeholder {
   cursor: pointer;
 }
 
+/* Modal backdrop. Flowbite dims with gray-900/50, which is far too faint over
+   the near-black tuxedo page — dialogs don't read as lifted off it. Every
+   overlay dialog (Modal, ConfirmDialog) is a native <dialog>, so darken the
+   ::backdrop across the board, with a light blur for extra separation.
+   Unlayered so it wins over Flowbite's layered `backdrop:` utility. */
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
 /* ============================================================
    Editorial table skin (the "Arkivliste" look) for Flowbite tables.
    Unlayered so it overrides Flowbite's layered utilities; scoped to the

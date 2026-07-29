@@ -25,22 +25,42 @@ export function buildUrl(path: string, version: ApiVersion): string {
   return url.toString();
 }
 
+/**
+ * Fetch with the bearer header injected. On a 401 it makes one attempt to renew
+ * the session (the refresh grant) and replays the request with the new token;
+ * if that still 401s — or there was nothing to refresh with — it ends the
+ * session. Every request in this module goes through here, so refresh is
+ * handled in one place. `authHeader()` is read per send, so the replay picks up
+ * the rotated token.
+ */
+async function authedFetch(
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const send = () =>
+    fetch(url, {
+      ...init,
+      headers: { ...authHeader(), ...(init.headers as Record<string, string>) },
+    });
+
+  let res = await send();
+
+  if (res.status === 401) {
+    if (await auth.refreshSession()) res = await send();
+    if (res.status === 401) auth.endExpiredSession();
+  }
+
+  return res;
+}
+
 async function request<T>(
   path: string,
   version: ApiVersion,
   init: RequestInit,
   parse: (res: Response) => Promise<T>,
 ): Promise<T> {
-  const res = await fetch(buildUrl(path, version), {
-    ...init,
-    headers: { ...authHeader(), ...(init.headers as Record<string, string>) },
-  });
-
-  if (res.status === 401) {
-    auth.endExpiredSession();
-    return undefined as T;
-  }
-
+  const res = await authedFetch(buildUrl(path, version), init);
+  if (res.status === 401) return undefined as T;
   return parse(res);
 }
 
@@ -52,16 +72,12 @@ async function postFile(
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(buildUrl(path, version), {
+  const res = await authedFetch(buildUrl(path, version), {
     method: "POST",
-    headers: authHeader(),
     body: formData,
   });
 
-  if (res.status === 401) {
-    auth.endExpiredSession();
-    return undefined;
-  }
+  if (res.status === 401) return undefined;
   if (res.status === 200) return { success: true };
   if (res.status === 409) {
     const body = await res.text();
@@ -81,13 +97,11 @@ async function writeJson(
   method: "POST" | "PUT",
   body: unknown,
 ): Promise<Response> {
-  const res = await fetch(buildUrl(path, version), {
+  return authedFetch(buildUrl(path, version), {
     method,
-    headers: { ...authHeader(), ...jsonHeaders },
+    headers: jsonHeaders,
     body: JSON.stringify(body),
   });
-  if (res.status === 401) auth.endExpiredSession();
-  return res;
 }
 
 async function del(
@@ -95,18 +109,14 @@ async function del(
   version: ApiVersion,
   body?: unknown,
 ): Promise<Response> {
-  const headers: Record<string, string> = { ...authHeader() };
-  const init: RequestInit = { method: "DELETE", headers };
+  const init: RequestInit = { method: "DELETE" };
 
   if (body !== undefined) {
-    headers["Accept"] = "application/json";
-    headers["Content-Type"] = "application/json";
+    init.headers = jsonHeaders;
     init.body = JSON.stringify(body);
   }
 
-  const res = await fetch(buildUrl(path, version), init);
-  if (res.status === 401) auth.endExpiredSession();
-  return res;
+  return authedFetch(buildUrl(path, version), init);
 }
 
 /**

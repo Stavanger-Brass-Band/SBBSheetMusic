@@ -21,7 +21,7 @@
   // Client-side auth gate (replaces the old App.svelte onMount redirect).
   onMount(async () => {
     if (auth.isAuthenticated) {
-      await auth.checkAdmin();
+      await auth.loadRoles();
     } else if (!PUBLIC_ROUTES.includes(page.url.pathname)) {
       goto("/login");
     }

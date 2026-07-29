@@ -110,11 +110,14 @@ Global state is **rune-class singletons** in `src/lib/stores/*.svelte.ts`:
   bearer header and the required **`?api-version`** query param, and calls
   `auth.endExpiredSession()` on `401`. Create a client per version with
   `createClient("2.0" | "1.0")`.
-- **There is no token refresh.** `/token` ignores `grant_type` entirely and
-  always does a username/password authentication — the `refresh_token` field in
-  the document is only the request DTO's shape, not a second grant. So a 401
-  can only end the session; `endExpiredSession()` sends the user to
-  `/login?expired=1` so the screen can say why.
+- **Token refresh.** v2's `/token` supports two grants via `grant_type`:
+  `basic` (username/password, sent by `requestToken`) and `refresh_token`
+  (rotates the pair, sent by `refreshTokens`). Login stores both tokens; the
+  shared `client` intercepts a 401, calls `auth.refreshSession()` once
+  (single-flight — the grant rotates the refresh token, so concurrent refreshes
+  would spend a consumed one) and replays the request. Only if refresh is
+  missing or rejected does `endExpiredSession()` send the user to
+  `/login?expired=1`.
 - **Version split:** sheetmusic-set, user and auth endpoints → **v2.0**;
   projects, parts, categories → **v1.0**.
 - **Auth must stay on v2.** v1's `/token` validates the _legacy HMAC_ password

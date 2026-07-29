@@ -119,10 +119,10 @@ it). Deep-link fallback (refreshing on e.g. `/archive`) is handled by
 
 #### Sheetmusic [resource group]
 
-| Name                | Type                         | URL                                                 | Comment                                                 |
-| ------------------- | ---------------------------- | ---------------------------------------------------- | -------------------------------------------------------- |
-| sheetmusic-app-test | Azure Static Web App (Free)  | https://orange-mud-00eed1803.1.azurestaticapps.net   | Test environment, running against api test environment |
-| sheetmusic-app      | Azure Static Web App         | https://noter.stavanger-brassband.no                 | Production, custom domain mapped to the Static Web App |
+| Name                | Type                        | URL                                                | Comment                                                |
+| ------------------- | --------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| sheetmusic-app-test | Azure Static Web App (Free) | https://orange-mud-00eed1803.1.azurestaticapps.net | Test environment, running against api test environment |
+| sheetmusic-app      | Azure Static Web App        | https://noter.stavanger-brassband.no               | Production, custom domain mapped to the Static Web App |
 
 Each Static Web App's deployment token is stored as the
 `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in its matching GitHub environment
