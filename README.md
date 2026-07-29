@@ -101,26 +101,36 @@ uses offset paging with a "load more" control.
 
 ## Deploying to the web
 
-Pushing to `master` builds and deploys to the Azure App Service **test**
+Pushing to `master` builds and deploys to the Azure Static Web Apps **test**
 environment via GitHub Actions (`.github/workflows/deploy.yml`). **Production**
 only deploys when a [release-please](https://github.com/googleapis/release-please)
 release is published — merging the release-please "release PR" tags the
-release, which triggers the production deploy job.
+release, which triggers the production deploy job (still Azure App Service,
+pending its own migration).
 
-The pipeline builds with `npm ci && npm run build` and packages the `build/`
-directory.
+The pipeline builds with `npm ci && npm run build` and, for test, uploads the
+pre-built `build/` directory to Static Web Apps with
+`Azure/static-web-apps-deploy@v1` (`skip_app_build: true` — Oryx never rebuilds
+it). Production still packages `build/` to the App Service via
+`azure/webapps-deploy@v3`.
 
 ### Infrastructure
 
 #### Sheetmusic [resource group]
 
-| Name                | Type                   | URL                                            | Comment                                                |
-| ------------------- | ---------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-| sheetmusic-app-test | Azure App Service      | https://sheetmusic-app-test.azurewebsites.net/ | Test environment, running against api test environment |
-| sheetmusic-app      | Azure App Service      | https://noter.stavanger-brassband.no           | Production app                                         |
-| sheetmusic-app-plan | Azure App Service Plan | N/A                                            | Linux. Running both envs to save $                     |
+| Name                | Type                   | URL                                             | Comment                                                |
+| ------------------- | ---------------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| sheetmusic-app-test | Azure Static Web App (Free) | https://orange-mud-00eed1803.1.azurestaticapps.net | Test environment, running against api test environment |
+| sheetmusic-app      | Azure App Service      | https://noter.stavanger-brassband.no            | Production app (not yet migrated)                      |
+| sheetmusic-app-plan | Azure App Service Plan | N/A                                             | Linux. Now only serves production                      |
 
-#### App Service startup command
+The test Static Web App's deployment token is stored as the
+`AZURE_STATIC_WEB_APPS_API_TOKEN` secret in the `test` GitHub environment
+(Settings → Environments → test — scoping to the environment means it doesn't
+need an env-specific suffix). Regenerate it from the resource's **Manage
+deployment token** action in the Azure portal if it's ever rotated or leaked.
+
+#### App Service startup command (production only)
 
 The static SPA is served by PM2. **The `--spa` flag is required** so deep links
 (e.g. refreshing on `/archive`) fall back to `index.html` instead of 404-ing —
@@ -134,4 +144,6 @@ pm2 serve /home/site/wwwroot --no-daemon --spa
 
 > Note: with a static SPA the API URL is baked in at build time via
 > `PUBLIC_API_BASE_URL`, so a runtime App Service application setting for the
-> API URL is no longer used.
+> API URL is no longer used. Static Web Apps needs neither a startup command
+> nor this note — it serves the uploaded static files directly and already
+> falls back to `index.html` for unknown paths.
