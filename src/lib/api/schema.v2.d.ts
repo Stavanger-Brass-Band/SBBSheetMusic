@@ -170,6 +170,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/password-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the password complexity requirements enforced when registering, updating a password, or
+         *     resetting a password. Backed by the same configured policy used to enforce those rules, so a
+         *     client can render a requirements checklist before submission.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The configured password requirements */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiPasswordRequirements"];
+                        "application/json": components["schemas"]["ApiPasswordRequirements"];
+                        "text/json": components["schemas"]["ApiPasswordRequirements"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -1207,6 +1252,23 @@ export interface components {
             id?: string;
             name?: null | string;
             inactive?: boolean;
+        };
+        /**
+         * @description The password complexity policy enforced by ASP.NET Core Identity, so API consumers can render a
+         *     requirements checklist up front and interpret PasswordRequirementsNotMetError
+         *     responses without hardcoding the rules. Always derived from the configured
+         *     PasswordOptions, never hardcoded, so the advertised policy cannot drift from the
+         *     enforced one.
+         */
+        ApiPasswordRequirements: {
+            /** Format: int32 */
+            minimumLength?: number | string;
+            requireDigit?: boolean;
+            requireUppercase?: boolean;
+            requireLowercase?: boolean;
+            requireNonAlphanumeric?: boolean;
+            /** Format: int32 */
+            requiredUniqueChars?: number | string;
         };
         ApiSet: {
             /**
