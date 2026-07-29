@@ -7,11 +7,12 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
 
 jobs:
   test:
     name: Build and deploy to Test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: test
     env:
