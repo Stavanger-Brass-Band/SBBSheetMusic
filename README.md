@@ -10,7 +10,7 @@ single-page app (static SPA) talking to the Sheetmusic API.
 - **TypeScript** throughout. API types are generated with `openapi-typescript`
   from the backend's OpenAPI documents — `/openapi/1.0.json` and
   `/openapi/2.0.json` on the test environment, browsable as Scalar docs at
-  [`/scalar`](https://sheet-music-api-test.azurewebsites.net/scalar/) (see
+  [`/scalar`](https://sheetmusic-api-test.yellowtree-b4dba56c.northeurope.azurecontainerapps.io/scalar/) (see
   `npm run api:gen`).
 - **Tailwind CSS v4** + the **SBB "Tuxedo" design system** — a black-first,
   monochrome look with a single brass accent (`#EA5B0C`), Oswald / Hanken Grotesk

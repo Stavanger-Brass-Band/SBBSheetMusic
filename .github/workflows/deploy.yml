@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: test
     env:
-      PUBLIC_API_BASE_URL: https://sheet-music-api-test.azurewebsites.net
+      PUBLIC_API_BASE_URL: https://sheetmusic-api-test.yellowtree-b4dba56c.northeurope.azurecontainerapps.io
     steps:
       - uses: actions/checkout@v7
 
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      PUBLIC_API_BASE_URL: https://sheet-music-api.azurewebsites.net
+      PUBLIC_API_BASE_URL: https://sheetmusic-api.yellowtree-b4dba56c.northeurope.azurecontainerapps.io
     steps:
       - uses: actions/checkout@v7
 
