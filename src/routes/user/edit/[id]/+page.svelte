@@ -5,6 +5,12 @@
   import { Modal, Checkbox, Toggle } from "flowbite-svelte";
   import { Trash2, Check, UserX, UserCheck } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
+  import {
+    isPasswordAcceptable,
+    readPasswordRejection,
+    type PasswordRuleKey,
+  } from "$lib/password";
+  import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import { ROLES, type Role } from "$lib/roles";
   import type {
     SaveState,
@@ -47,6 +53,7 @@
   let profileError = $state("");
   let profileSaved = $state(false);
   let profileSavedTimer: ReturnType<typeof setTimeout> | undefined;
+  let rejectedPasswordRules = $state<PasswordRuleKey[]>([]);
 
   // Status + roles are immediate actions against their own endpoints.
   let savingStatus = $state(false);
@@ -64,8 +71,16 @@
   let isDeleting = $state(false);
   let deleteError = $state("");
 
+  // A blank password field keeps the current one, so the policy only has a say
+  // once something has been typed into it.
   let canSaveProfile = $derived(
-    !!profileForm.name.trim() && !!profileForm.email.trim(),
+    !!profileForm.name.trim() &&
+      !!profileForm.email.trim() &&
+      (!profileForm.password ||
+        isPasswordAcceptable(
+          profileForm.password,
+          passwordPolicy.requirements,
+        )),
   );
 
   onMount(load);
@@ -100,11 +115,14 @@
     if (!canSaveProfile || !user) return;
     savingProfile = true;
     profileError = "";
+    rejectedPasswordRules = [];
     const body: UpdateUserRequest = {
       name: profileForm.name.trim(),
       email: profileForm.email.trim(),
     };
-    if (profileForm.password.trim()) body.password = profileForm.password;
+    // Same emptiness test as `canSaveProfile`, so the field never looks accepted
+    // while being quietly dropped from the request.
+    if (profileForm.password) body.password = profileForm.password;
     const response = await usersApi.update(user.id, body);
     savingProfile = false;
     if (response.ok) {
@@ -116,9 +134,18 @@
         () => (profileSaved = false),
         SAVED_VISIBLE_MS,
       );
-    } else {
-      profileError = "Kunne ikke lagre endringene. Prøv igjen.";
+      return;
     }
+
+    // Only a password can be refused on policy grounds; anything else here is a
+    // plain failure. Adopting the policy the rejection carries keeps the
+    // checklist honest if the server's rules moved since the page loaded.
+    const rejection = await readPasswordRejection(response);
+    passwordPolicy.applyFromRejection(rejection?.requirements ?? null);
+    rejectedPasswordRules = rejection?.failedRules ?? [];
+    profileError = rejectedPasswordRules.length
+      ? "Passordet oppfyller ikke kravene."
+      : "Kunne ikke lagre endringene. Prøv igjen.";
   }
 
   async function toggleStatus() {
@@ -230,7 +257,7 @@
   <!-- Profil -->
   <section class="panel">
     <h2 class="sbb-h3">Profil</h2>
-    <UserModalBody form={profileForm} isEditing />
+    <UserModalBody form={profileForm} isEditing {rejectedPasswordRules} />
     {#if profileError}<p class="err">{profileError}</p>{/if}
     <div class="panel-foot">
       {#if profileSaved}

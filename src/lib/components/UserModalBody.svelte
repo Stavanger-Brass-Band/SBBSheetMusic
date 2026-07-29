@@ -1,11 +1,22 @@
 <script lang="ts">
   import { Label, Input, Helper } from "flowbite-svelte";
   import type { UserForm } from "$lib/types";
+  import type { PasswordRuleKey } from "$lib/password";
+  import PasswordChecklist from "./PasswordChecklist.svelte";
 
   // `form` is mutated in place; the parent owns the reactive object. Status and
   // roles are managed on the user edit page (their own endpoints), not here.
-  let { form, isEditing = false }: { form: UserForm; isEditing?: boolean } =
-    $props();
+  // `rejectedPasswordRules` comes from the parent because only it sees the
+  // API's answer to a save.
+  let {
+    form,
+    isEditing = false,
+    rejectedPasswordRules = [],
+  }: {
+    form: UserForm;
+    isEditing?: boolean;
+    rejectedPasswordRules?: PasswordRuleKey[];
+  } = $props();
 
   const onInput = (key: "name" | "email" | "password") => (e: Event) => {
     form[key] = (e.currentTarget as HTMLInputElement).value;
@@ -47,6 +58,14 @@
       <Helper class="mt-2"
         >La feltet stå tomt for å beholde nåværende passord.</Helper
       >
+    {/if}
+    <!-- When editing, the field means "keep the current password" until it is
+         typed in, so the rules only appear once there is a new one to judge. -->
+    {#if !isEditing || form.password}
+      <PasswordChecklist
+        password={form.password}
+        rejectedRules={rejectedPasswordRules}
+      />
     {/if}
   </div>
 </form>

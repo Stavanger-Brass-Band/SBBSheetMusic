@@ -2,6 +2,7 @@ import { createClient } from "./client";
 import type {
   AssignRoleRequest,
   ForgotPasswordRequest,
+  PasswordRequirements,
   ResetPasswordRequest,
   UpdateUserRequest,
   User,
@@ -59,4 +60,12 @@ export const users = {
   /** Public: completes a reset using the emailed token. 200 with no body. */
   resetPassword: (body: ResetPasswordRequest) =>
     client.postNoContent("/users/reset-password", body),
+
+  /**
+   * Public: the password policy enforced by register, update and reset. Reach
+   * for the `passwordPolicy` store rather than this — it caches the result for
+   * the session and every password form shares it.
+   */
+  passwordRequirements: () =>
+    client.get<PasswordRequirements>("/users/password-requirements"),
 };

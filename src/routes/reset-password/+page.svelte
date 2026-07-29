@@ -3,6 +3,13 @@
   import { page } from "$app/state";
   import { Lock, Check, ArrowRight, AlertTriangle } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
+  import {
+    isPasswordAcceptable,
+    readPasswordRejection,
+    type PasswordRuleKey,
+  } from "$lib/password";
+  import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
+  import PasswordChecklist from "$lib/components/PasswordChecklist.svelte";
 
   // The reset link is expected to carry `email` + `token` as query params.
   // (Exact param names/encoding are an assumption pending backend confirmation.)
@@ -15,9 +22,11 @@
   let sending = $state(false);
   let done = $state(false);
   let errorMessage = $state("");
+  let rejectedPasswordRules = $state<PasswordRuleKey[]>([]);
 
   const canSubmit = $derived(
-    newPassword.trim().length > 0 && newPassword === confirmPassword,
+    isPasswordAcceptable(newPassword, passwordPolicy.requirements) &&
+      newPassword === confirmPassword,
   );
 
   async function submit(event: SubmitEvent) {
@@ -25,6 +34,7 @@
     if (!canSubmit) return;
     sending = true;
     errorMessage = "";
+    rejectedPasswordRules = [];
     const response = await usersApi.resetPassword({
       email,
       token,
@@ -33,6 +43,17 @@
     sending = false;
     if (response.ok) {
       done = true;
+      return;
+    }
+
+    // Two very different failures share this path, and telling someone their
+    // link expired when the password was the problem sends them round in a
+    // circle for a new link that will fail the same way.
+    const rejection = await readPasswordRejection(response);
+    if (rejection) {
+      passwordPolicy.applyFromRejection(rejection.requirements);
+      rejectedPasswordRules = rejection.failedRules;
+      errorMessage = "Passordet oppfyller ikke kravene.";
     } else {
       errorMessage =
         "Kunne ikke tilbakestille passordet. Lenken kan være utløpt — be om en ny.";
@@ -78,6 +99,10 @@
               bind:value={newPassword}
             />
           </div>
+          <PasswordChecklist
+            password={newPassword}
+            rejectedRules={rejectedPasswordRules}
+          />
         </div>
         <div class="field">
           <label for="confirmPassword">Bekreft passord</label>

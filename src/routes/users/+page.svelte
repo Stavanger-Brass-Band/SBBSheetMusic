@@ -4,6 +4,12 @@
   import { Modal } from "flowbite-svelte";
   import { Plus, SearchX, Check } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
+  import {
+    isPasswordAcceptable,
+    readPasswordRejection,
+    type PasswordRuleKey,
+  } from "$lib/password";
+  import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import type { User, UserForm } from "$lib/types";
   import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
@@ -31,9 +37,15 @@
   let isSaving = $state(false);
   let form = $state<UserForm>(emptyForm());
   let errorMessage = $state("");
+  let rejectedPasswordRules = $state<PasswordRuleKey[]>([]);
 
+  // The password has to clear the API's policy before Lagre unlocks — the
+  // checklist under the field says which rule is still outstanding, so the
+  // disabled button is never a mystery.
   let canSave = $derived(
-    !!form.name.trim() && !!form.email.trim() && !!form.password.trim(),
+    !!form.name.trim() &&
+      !!form.email.trim() &&
+      isPasswordAcceptable(form.password, passwordPolicy.requirements),
   );
 
   function emptyForm(): UserForm {
@@ -48,6 +60,7 @@
   function openCreate() {
     form = emptyForm();
     errorMessage = "";
+    rejectedPasswordRules = [];
     isOpen = true;
   }
 
@@ -55,6 +68,7 @@
     if (!canSave) return;
     isSaving = true;
     errorMessage = "";
+    rejectedPasswordRules = [];
     const response = await usersApi.create({
       name: form.name.trim(),
       email: form.email.trim(),
@@ -66,9 +80,18 @@
       loading = true;
       users = (await usersApi.list()) ?? [];
       loading = false;
-    } else {
-      errorMessage = "Kunne ikke lagre brukeren. Prøv igjen.";
+      return;
     }
+
+    // A password the API refuses despite passing our checklist means its policy
+    // is ahead of the one we loaded — take the copy it sends back, so the rows
+    // it named turn red and the checklist starts judging by the real rules.
+    const rejection = await readPasswordRejection(response);
+    passwordPolicy.applyFromRejection(rejection?.requirements ?? null);
+    rejectedPasswordRules = rejection?.failedRules ?? [];
+    errorMessage = rejectedPasswordRules.length
+      ? "Passordet oppfyller ikke kravene."
+      : "Kunne ikke lagre brukeren. Prøv igjen.";
   }
 </script>
 
@@ -155,7 +178,7 @@
 {/if}
 
 <Modal title="Legg til bruker" bind:open={isOpen} size="md">
-  <UserModalBody {form} isEditing={false} />
+  <UserModalBody {form} isEditing={false} {rejectedPasswordRules} />
   {#if errorMessage}
     <p class="error-message">{errorMessage}</p>
   {/if}

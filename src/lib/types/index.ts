@@ -80,6 +80,20 @@ export type ForgotPasswordRequest = V2["schemas"]["ForgotPasswordRequest"];
 export type ResetPasswordRequest = V2["schemas"]["ResetPasswordRequest"];
 
 /**
+ * The password complexity policy the API enforces, served so a client can show
+ * the rules up front instead of hardcoding them. `minimumLength` and
+ * `requiredUniqueChars` are pinned back to `number` for the same int32-widening
+ * reason as the fields above — both are compared against a password's length.
+ */
+export type PasswordRequirements = Omit<
+  V2["schemas"]["ApiPasswordRequirements"],
+  "minimumLength" | "requiredUniqueChars"
+> & {
+  minimumLength?: number;
+  requiredUniqueChars?: number;
+};
+
+/**
  * User response shape — not defined in the OpenAPI document, authored here.
  * `GET /users/{identifier}` is documented to answer with "the user details,
  * including assigned roles", but without a schema, so `roles` stays optional —
