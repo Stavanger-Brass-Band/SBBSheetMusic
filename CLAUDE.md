@@ -194,8 +194,10 @@ accent (`#EA5B0C`).
 
 - Build output is `build/` (not `public/`). `PUBLIC_API_BASE_URL` is inlined at
   **build time** (`$env/static/public`); CI injects it per environment.
-- The App Service startup command **must** be `pm2 serve … --spa` or deep-link
-  refreshes 404 (path-based routing). See `README.md`.
+- Both test and production deploy to **Azure Static Web Apps** via
+  `Azure/static-web-apps-deploy@v1`. Deep-link fallback is handled by
+  `static/staticwebapp.config.json` (`navigationFallback` → `/index.html`),
+  not a server startup command. See `README.md`.
 
 ## Commits & releases
 

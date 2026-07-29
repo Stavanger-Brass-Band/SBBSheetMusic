@@ -1,0 +1,11 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/_app/*",
+      "/img/*",
+      "/favicon.jpg",
+      "*.{png,jpg,jpeg,gif,svg,ico,webp,css,js,json,txt,xml,map}"
+    ]
+  }
+}
