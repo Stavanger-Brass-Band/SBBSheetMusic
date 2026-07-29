@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { Mail, Lock, Check, ArrowRight } from "@lucide/svelte";
+  import { page } from "$app/state";
+  import { Mail, Lock, Check, ArrowRight, Info } from "@lucide/svelte";
   import { Modal } from "flowbite-svelte";
-  import { auth } from "$lib/stores/auth.svelte";
+  import { auth, SESSION_EXPIRED_PARAM } from "$lib/stores/auth.svelte";
   import { users as usersApi } from "$lib/api/users";
 
   const CONTACT_URL = "https://www.stavanger-brassband.com/styret";
@@ -13,6 +14,12 @@
   let rememberMe = $state(true);
   let loginErrorMessage = $state("");
   let isLoggingIn = $state(false);
+
+  // Set when the API stopped accepting the token mid-session, so the user is
+  // told why they are back here instead of being dropped without explanation.
+  let sessionExpired = $derived(
+    page.url.searchParams.has(SESSION_EXPIRED_PARAM),
+  );
 
   // Self-service password reset (v2 backend only). `forgotDone` shows a neutral
   // confirmation regardless of whether the address exists, to avoid revealing
@@ -93,6 +100,13 @@
       <div class="login__head">
         <h1>Logg på</h1>
       </div>
+
+      {#if sessionExpired}
+        <p class="notice">
+          <span class="notice__icon"><Info size={17} /></span>
+          Sesjonen er utløpt. Logg på igjen for å fortsette.
+        </p>
+      {/if}
 
       <div class="field">
         <label for="email">Epost</label>
@@ -471,6 +485,27 @@
     background: var(--danger-soft);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
+  }
+
+  /* Session-expired notice: informational, so it reads quieter than .error. */
+  .notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    background: var(--info-soft);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+  }
+  .notice__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--info);
+    /* Nudge the icon onto the first line's optical centre. */
+    margin-top: 2px;
   }
 
   .btn {
