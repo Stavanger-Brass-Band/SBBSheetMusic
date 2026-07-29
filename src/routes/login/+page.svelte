@@ -52,16 +52,16 @@
     isLoggingIn = true;
     loginErrorMessage = "";
 
-    const response = await auth.login(email, password);
+    const result = await auth.login(email, password);
 
     isLoggingIn = false;
     // "Husk meg" controls whether the email is remembered for next time.
     if (!rememberMe) localStorage.removeItem("lastUserName");
 
-    if (response.message) {
-      loginErrorMessage = response.message;
-    } else {
+    if (result.success) {
       goto("/");
+    } else {
+      loginErrorMessage = result.message;
     }
   }
 </script>

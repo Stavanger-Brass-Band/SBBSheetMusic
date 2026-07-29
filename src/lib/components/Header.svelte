@@ -9,13 +9,17 @@
   let items = $derived([
     { id: "home", label: "Hjem", href: "/" },
     { id: "archive", label: "Arkivliste", href: "/archive" },
-    ...(auth.isAdmin
+    // Music-catalogue admin — Admin or Noteansvarlig.
+    ...(auth.canManageMusic
       ? [
           { id: "projects", label: "Prosjekter", href: "/projects" },
-          { id: "users", label: "Brukere", href: "/users" },
           { id: "parts", label: "Stemmekatalog", href: "/parts" },
           { id: "categories", label: "Kategorier", href: "/categories" },
         ]
+      : []),
+    // User administration — Admin only.
+    ...(auth.isAdmin
+      ? [{ id: "users", label: "Brukere", href: "/users" }]
       : []),
   ]);
 

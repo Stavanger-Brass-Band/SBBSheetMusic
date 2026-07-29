@@ -279,7 +279,7 @@
 
 <div class="sbb-list-head">
   <h1 class="sbb-h1">Arkivliste</h1>
-  {#if auth.isAdmin}
+  {#if auth.canManageMusic}
     <Button class="create-btn" onclick={openModal}>
       <Plus size={17} /> Nytt notesett
     </Button>
@@ -354,14 +354,17 @@
           <th>Tittel</th>
           <th>Komponist</th>
           <th>Arrangør</th>
-          <th class="c-actions">{auth.isAdmin ? "Handling" : "Digitalt"}</th>
+          <th class="c-actions"
+            >{auth.canManageMusic ? "Handling" : "Digitalt"}</th
+          >
         </tr>
       </thead>
       <tbody>
         {#each items as item (item.id)}
           <tr
-            class:clickable={auth.isAdmin}
-            onclick={() => (auth.isAdmin ? goto("/set/edit/" + item.id) : null)}
+            class:clickable={auth.canManageMusic}
+            onclick={() =>
+              auth.canManageMusic ? goto("/set/edit/" + item.id) : null}
           >
             <td class="c-nr">{item.archiveNumber}</td>
             <td class="c-title">
@@ -372,7 +375,7 @@
             <td class="c-muted">{item.arranger ?? "—"}</td>
             <td class="c-actions">
               {#if item.hasBeenScanned}
-                {#if auth.isAdmin}
+                {#if auth.canManageMusic}
                   <button
                     class="zip"
                     title="Last ned som ZIP"
@@ -408,8 +411,9 @@
     {#each items as item (item.id)}
       <div
         class="sbb-card"
-        class:clickable={auth.isAdmin}
-        onclick={() => (auth.isAdmin ? goto("/set/edit/" + item.id) : null)}
+        class:clickable={auth.canManageMusic}
+        onclick={() =>
+          auth.canManageMusic ? goto("/set/edit/" + item.id) : null}
       >
         <span class="nr">{item.archiveNumber}</span>
         <div class="body">
@@ -423,7 +427,7 @@
         </div>
         <div class="acts">
           {#if item.hasBeenScanned}
-            {#if auth.isAdmin}
+            {#if auth.canManageMusic}
               <button
                 class="zip"
                 title="Last ned som ZIP"

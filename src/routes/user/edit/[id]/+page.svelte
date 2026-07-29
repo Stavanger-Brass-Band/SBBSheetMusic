@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { Modal, Checkbox, Toggle } from "flowbite-svelte";
+  import { Modal, Checkbox } from "flowbite-svelte";
   import { Trash2, Check, UserX, UserCheck } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
   import {
@@ -31,8 +31,10 @@
   // Typed on `Role`, so adding a role to the backend list won't compile until it
   // is described here too.
   const ROLE_DESCRIPTIONS: Record<Role, string> = {
-    Reader: "Kan se og laste ned noter.",
-    Admin: "Full tilgang — kan også redigere arkiv, prosjekter og brukere.",
+    Musikant: "Kan se og laste ned noter.",
+    Noteansvarlig:
+      "Kan i tillegg redigere arkiv, stemmer, prosjekter og kategorier.",
+    Admin: "Full tilgang — kan også administrere brukere.",
   };
 
   let id = $derived(page.params.id!);
@@ -58,12 +60,25 @@
   // Status + roles are immediate actions against their own endpoints.
   let savingStatus = $state(false);
   let statusError = $state("");
+  // Brief confirmation after a status change lands (activate/deactivate).
+  let statusSaved = $state("");
+  let statusSavedTimer: ReturnType<typeof setTimeout> | undefined;
   // The role currently being written, and the one that just landed — together
   // they drive each row's save indicator.
   let savingRole = $state<Role | null>(null);
   let savedRole = $state<Role | null>(null);
   let savedRoleTimer: ReturnType<typeof setTimeout> | undefined;
   let roleError = $state("");
+
+  // Roles are a single escalating tier (Musikant < Noteansvarlig < Admin) — a
+  // higher role already grants the lower capabilities, so a user holds exactly
+  // one. The picker reflects the highest role currently held (null if none).
+  let selectedRole = $derived.by<Role | null>(() => {
+    for (let index = ROLES.length - 1; index >= 0; index--) {
+      if (hasRole(ROLES[index])) return ROLES[index];
+    }
+    return null;
+  });
 
   // Delete confirmation.
   let confirmOpen = $state(false);
@@ -87,6 +102,7 @@
   onDestroy(() => {
     clearTimeout(profileSavedTimer);
     clearTimeout(savedRoleTimer);
+    clearTimeout(statusSavedTimer);
   });
 
   async function load() {
@@ -152,13 +168,22 @@
     if (!user) return;
     savingStatus = true;
     statusError = "";
+    statusSaved = "";
+    clearTimeout(statusSavedTimer);
     const activate = user.inactive;
     const response = activate
       ? await usersApi.activate(user.id)
       : await usersApi.deactivate(user.id);
     savingStatus = false;
-    if (response.ok) user = { ...user, inactive: !activate };
-    else statusError = "Kunne ikke endre status. Prøv igjen.";
+    if (response.ok) {
+      user = { ...user, inactive: !activate };
+      statusSaved = activate
+        ? "Brukeren er aktivert."
+        : "Brukeren er deaktivert.";
+      statusSavedTimer = setTimeout(() => (statusSaved = ""), SAVED_VISIBLE_MS);
+    } else {
+      statusError = "Kunne ikke endre status. Prøv igjen.";
+    }
   }
 
   function hasRole(role: Role): boolean {
@@ -175,39 +200,53 @@
   }
 
   /**
-   * Assign or remove one role. The list updates before the request answers so
-   * the switch responds immediately, and rolls back if the API refuses —
-   * without that, a rejected change would leave the switch on over a role the
-   * user never got.
+   * Select a single access tier: assign the chosen role and drop every other
+   * one, so the user always ends up holding exactly it. The list updates
+   * optimistically for an instant response; on any failure the roles are
+   * re-read from the server so the picker can't drift from the real state
+   * (e.g. the assign landed but a removal didn't).
    */
-  async function toggleRole(role: Role, assign: boolean) {
-    if (!user) return;
-    const previousRoles = user.roles ?? [];
+  async function selectRole(role: Role) {
+    if (!user || savingRole !== null) return;
+    const previous = user.roles ?? [];
+    // Already exactly this role — nothing to change.
+    if (
+      previous.length === 1 &&
+      previous[0].toLowerCase() === role.toLowerCase()
+    )
+      return;
+
+    const userId = user.id;
+    const others = previous.filter(
+      (assigned) => assigned.toLowerCase() !== role.toLowerCase(),
+    );
 
     clearTimeout(savedRoleTimer);
     savedRole = null;
     savingRole = role;
     roleError = "";
-    user = {
-      ...user,
-      roles: assign
-        ? [...previousRoles, role]
-        : previousRoles.filter((assigned) => assigned !== role),
-    };
+    user = { ...user, roles: [role] };
 
-    const response = assign
-      ? await usersApi.assignRole(user.id, role)
-      : await usersApi.removeRole(user.id, role);
-    savingRole = null;
-
-    if (response.ok) {
+    try {
+      if (!previous.some((r) => r.toLowerCase() === role.toLowerCase())) {
+        const res = await usersApi.assignRole(userId, role);
+        if (!res.ok) throw new Error("assign failed");
+      }
+      // Remove the old tier(s) only after the new one is in place, so the user
+      // is never briefly left without the access they should keep.
+      for (const other of others) {
+        const res = await usersApi.removeRole(userId, other);
+        if (!res.ok) throw new Error("remove failed");
+      }
+      savingRole = null;
       savedRole = role;
       savedRoleTimer = setTimeout(() => (savedRole = null), SAVED_VISIBLE_MS);
-    } else {
-      user = { ...user, roles: previousRoles };
-      roleError = assign
-        ? `Kunne ikke gi rollen «${role}». Prøv igjen.`
-        : `Kunne ikke fjerne rollen «${role}». Prøv igjen.`;
+    } catch {
+      savingRole = null;
+      const fresh = await usersApi.get(userId).catch(() => null);
+      const roles = fresh?.id ? (fresh.roles ?? []) : previous;
+      if (user) user = { ...user, roles };
+      roleError = "Kunne ikke endre rollen. Prøv igjen.";
     }
   }
 
@@ -273,27 +312,31 @@
     </div>
   </section>
 
-  <!-- Roller -->
+  <!-- Rolle -->
   <section class="panel">
-    <h2 class="sbb-h3">Roller</h2>
+    <h2 class="sbb-h3">Rolle</h2>
     <p class="hint">
-      Styrer hva brukeren får tilgang til. Endringer lagres med én gang.
+      Velg ett tilgangsnivå — et høyere nivå inkluderer alt det lavere kan.
+      Endringer lagres med én gang.
     </p>
-    <div class="roles">
+    <div class="roles" role="radiogroup" aria-label="Tilgangsnivå">
       {#each ROLES as role (role)}
-        <div class="role-row">
-          <Toggle
-            checked={hasRole(role)}
-            disabled={savingRole !== null}
-            onchange={() => toggleRole(role, !hasRole(role))}
-          >
-            <span class="role">
-              <span class="role__name">{role}</span>
-              <span class="role__desc">{ROLE_DESCRIPTIONS[role]}</span>
-            </span>
-          </Toggle>
+        <button
+          type="button"
+          class="role-option"
+          class:selected={selectedRole === role}
+          role="radio"
+          aria-checked={selectedRole === role}
+          disabled={savingRole !== null}
+          onclick={() => selectRole(role)}
+        >
+          <span class="radio" aria-hidden="true"></span>
+          <span class="role">
+            <span class="role__name">{role}</span>
+            <span class="role__desc">{ROLE_DESCRIPTIONS[role]}</span>
+          </span>
           <SaveIndicator state={roleSaveState(role)} />
-        </div>
+        </button>
       {/each}
     </div>
     {#if roleError}<p class="err">{roleError}</p>{/if}
@@ -311,17 +354,22 @@
       </div>
     </div>
     {#if statusError}<p class="err">{statusError}</p>{/if}
-    <Button
-      variant={user.inactive ? "primary" : "secondary"}
-      loading={savingStatus}
-      onclick={toggleStatus}
-    >
-      {#if user.inactive}
-        <UserCheck size={16} /> Aktiver bruker
-      {:else}
-        <UserX size={16} /> Deaktiver bruker
+    <div class="status-row">
+      <Button
+        variant={user.inactive ? "primary" : "secondary"}
+        loading={savingStatus}
+        onclick={toggleStatus}
+      >
+        {#if user.inactive}
+          <UserCheck size={16} /> Aktiver bruker
+        {:else}
+          <UserX size={16} /> Deaktiver bruker
+        {/if}
+      </Button>
+      {#if statusSaved}
+        <span class="saved"><Check size={15} /> {statusSaved}</span>
       {/if}
-    </Button>
+    </div>
   </section>
 
   <!-- Faresone -->
@@ -418,6 +466,12 @@
     font-weight: 600;
     color: var(--success);
   }
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
   .hint {
     font-size: 13px;
     color: var(--text-muted);
@@ -430,23 +484,64 @@
     color: var(--danger);
   }
 
-  /* Roles editor — one row per pre-defined role. */
+  /* Access-tier picker — single-select, one option per role. */
   .roles {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
-  /* The save indicator sits opposite the switch, reading as a status column. */
-  .role-row {
+  .role-option {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    text-align: left;
+    font-family: var(--font-text);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast),
+      background var(--dur-fast);
+  }
+  .role-option:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+  .role-option.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .role-option:disabled {
+    cursor: default;
+  }
+  /* Radio dot — filled with the accent when its tier is the selected one. */
+  .radio {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border-strong);
+    position: relative;
+    transition: border-color var(--dur-fast);
+  }
+  .role-option.selected .radio {
+    border-color: var(--accent);
+  }
+  .role-option.selected .radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--accent);
   }
   .role {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
+    min-width: 0;
   }
   .role__name {
     font-family: var(--font-mono);

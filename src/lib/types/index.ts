@@ -97,7 +97,7 @@ export type PasswordRequirements = Omit<
  * User response shape — not defined in the OpenAPI document, authored here.
  * `GET /users/{identifier}` is documented to answer with "the user details,
  * including assigned roles", but without a schema, so `roles` stays optional —
- * `fetchIsAdmin` reads it to decide admin rights and treats its absence as no.
+ * `fetchRoles` reads it to derive access and treats its absence as none.
  */
 export interface User {
   id: string;

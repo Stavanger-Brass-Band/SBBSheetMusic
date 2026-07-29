@@ -1,3 +1,3 @@
-import { requireAdmin } from "$lib/guards";
+import { requireManageMusic } from "$lib/guards";
 
-export const load = () => requireAdmin();
+export const load = () => requireManageMusic();
