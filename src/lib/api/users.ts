@@ -11,7 +11,18 @@ import type {
 const client = createClient("2.0");
 
 export const users = {
+  /**
+   * Every user, for the list page. Note the response carries no roles — only
+   * `get` is documented to include them, so anything that needs a user's roles
+   * has to fetch that user.
+   */
   list: () => client.get<User[]>("/users"),
+
+  /**
+   * A single user, including their assigned roles. Takes a guid or `"me"` for the
+   * signed-in user; admins may read anyone, everyone else only themselves.
+   */
+  get: (id: string) => client.get<User>(`/users/${id}`),
 
   /** Creates a user. The endpoint returns 200 with no body. */
   create: (body: UserRequest) => client.postNoContent("/users/register", body),

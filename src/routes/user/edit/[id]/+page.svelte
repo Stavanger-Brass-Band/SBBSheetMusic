@@ -2,13 +2,32 @@
   import { onMount, onDestroy } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { Modal, Checkbox } from "flowbite-svelte";
-  import { Plus, X, Trash2, Check, UserX, UserCheck } from "@lucide/svelte";
+  import { Modal, Checkbox, Toggle } from "flowbite-svelte";
+  import { Trash2, Check, UserX, UserCheck } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
-  import type { UpdateUserRequest, User, UserForm } from "$lib/types";
-  import { Badge, Breadcrumb, Button } from "$lib/components/ui";
+  import { ROLES, type Role } from "$lib/roles";
+  import type {
+    SaveState,
+    UpdateUserRequest,
+    User,
+    UserForm,
+  } from "$lib/types";
+  import {
+    Badge,
+    Breadcrumb,
+    Button,
+    SaveIndicator,
+    SAVED_VISIBLE_MS,
+  } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+
+  // Typed on `Role`, so adding a role to the backend list won't compile until it
+  // is described here too.
+  const ROLE_DESCRIPTIONS: Record<Role, string> = {
+    Reader: "Kan se og laste ned noter.",
+    Admin: "Full tilgang — kan også redigere arkiv, prosjekter og brukere.",
+  };
 
   let id = $derived(page.params.id!);
 
@@ -32,8 +51,11 @@
   // Status + roles are immediate actions against their own endpoints.
   let savingStatus = $state(false);
   let statusError = $state("");
-  let roleInput = $state("");
-  let savingRole = $state(false);
+  // The role currently being written, and the one that just landed — together
+  // they drive each row's save indicator.
+  let savingRole = $state<Role | null>(null);
+  let savedRole = $state<Role | null>(null);
+  let savedRoleTimer: ReturnType<typeof setTimeout> | undefined;
   let roleError = $state("");
 
   // Delete confirmation.
@@ -47,14 +69,19 @@
   );
 
   onMount(load);
-  onDestroy(() => clearTimeout(profileSavedTimer));
+  onDestroy(() => {
+    clearTimeout(profileSavedTimer);
+    clearTimeout(savedRoleTimer);
+  });
 
   async function load() {
     loading = true;
-    // GET /users/{id} leaves its body undefined in the spec; the list returns
-    // full User objects we already rely on, so resolve the user from there.
-    const all = (await usersApi.list()) ?? [];
-    const found = all.find((candidate) => candidate.id === id) ?? null;
+    // The single-user endpoint is the only one that answers with the user's
+    // roles — the list leaves them out — so the roles panel depends on it.
+    const response = await usersApi.get(id).catch(() => null);
+    // The API reports errors as a problem-details body, which the client parses
+    // as happily as a real user, so trust the response only if it looks like one.
+    const found = response?.id ? response : null;
     user = found;
     notFound = !found;
     if (found) {
@@ -85,7 +112,10 @@
       profileForm.password = "";
       profileSaved = true;
       clearTimeout(profileSavedTimer);
-      profileSavedTimer = setTimeout(() => (profileSaved = false), 2000);
+      profileSavedTimer = setTimeout(
+        () => (profileSaved = false),
+        SAVED_VISIBLE_MS,
+      );
     } else {
       profileError = "Kunne ikke lagre endringene. Prøv igjen.";
     }
@@ -104,42 +134,53 @@
     else statusError = "Kunne ikke endre status. Prøv igjen.";
   }
 
-  async function addRole() {
-    const value = roleInput.trim();
-    if (!value || !user) return;
-    if (
-      (user.roles ?? []).some((r) => r.toLowerCase() === value.toLowerCase())
-    ) {
-      roleInput = "";
-      return;
-    }
-    savingRole = true;
-    roleError = "";
-    const response = await usersApi.assignRole(user.id, value);
-    savingRole = false;
-    if (response.ok) {
-      user = { ...user, roles: [...(user.roles ?? []), value] };
-      roleInput = "";
-    } else {
-      roleError = "Kunne ikke legge til rollen. Prøv igjen.";
-    }
+  function hasRole(role: Role): boolean {
+    return (user?.roles ?? []).some(
+      (assigned) => assigned.toLowerCase() === role.toLowerCase(),
+    );
   }
 
-  async function removeRole(role: string) {
+  /** Progress for one role's row — the switch writes with no Lagre button. */
+  function roleSaveState(role: Role): SaveState {
+    if (savingRole === role) return "saving";
+    if (savedRole === role) return "saved";
+    return "idle";
+  }
+
+  /**
+   * Assign or remove one role. The list updates before the request answers so
+   * the switch responds immediately, and rolls back if the API refuses —
+   * without that, a rejected change would leave the switch on over a role the
+   * user never got.
+   */
+  async function toggleRole(role: Role, assign: boolean) {
     if (!user) return;
-    savingRole = true;
-    roleError = "";
-    const response = await usersApi.removeRole(user.id, role);
-    savingRole = false;
-    if (response.ok)
-      user = { ...user, roles: (user.roles ?? []).filter((r) => r !== role) };
-    else roleError = "Kunne ikke fjerne rollen. Prøv igjen.";
-  }
+    const previousRoles = user.roles ?? [];
 
-  function onRoleKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      addRole();
+    clearTimeout(savedRoleTimer);
+    savedRole = null;
+    savingRole = role;
+    roleError = "";
+    user = {
+      ...user,
+      roles: assign
+        ? [...previousRoles, role]
+        : previousRoles.filter((assigned) => assigned !== role),
+    };
+
+    const response = assign
+      ? await usersApi.assignRole(user.id, role)
+      : await usersApi.removeRole(user.id, role);
+    savingRole = null;
+
+    if (response.ok) {
+      savedRole = role;
+      savedRoleTimer = setTimeout(() => (savedRole = null), SAVED_VISIBLE_MS);
+    } else {
+      user = { ...user, roles: previousRoles };
+      roleError = assign
+        ? `Kunne ikke gi rollen «${role}». Prøv igjen.`
+        : `Kunne ikke fjerne rollen «${role}». Prøv igjen.`;
     }
   }
 
@@ -209,45 +250,26 @@
   <section class="panel">
     <h2 class="sbb-h3">Roller</h2>
     <p class="hint">
-      Styrer brukerens tilganger — f.eks. «Admin» for administratorrettigheter.
+      Styrer hva brukeren får tilgang til. Endringer lagres med én gang.
     </p>
-    <div class="role-input">
-      <input
-        class="role-field"
-        placeholder="Skriv en rolle og trykk Enter"
-        bind:value={roleInput}
-        onkeydown={onRoleKeydown}
-        disabled={savingRole}
-      />
-      <button
-        type="button"
-        class="role-add"
-        onclick={addRole}
-        disabled={savingRole || !roleInput.trim()}
-      >
-        <Plus size={15} /> Legg til
-      </button>
+    <div class="roles">
+      {#each ROLES as role (role)}
+        <div class="role-row">
+          <Toggle
+            checked={hasRole(role)}
+            disabled={savingRole !== null}
+            onchange={() => toggleRole(role, !hasRole(role))}
+          >
+            <span class="role">
+              <span class="role__name">{role}</span>
+              <span class="role__desc">{ROLE_DESCRIPTIONS[role]}</span>
+            </span>
+          </Toggle>
+          <SaveIndicator state={roleSaveState(role)} />
+        </div>
+      {/each}
     </div>
     {#if roleError}<p class="err">{roleError}</p>{/if}
-    {#if (user.roles ?? []).length === 0}
-      <p class="hint empty">Ingen roller tildelt.</p>
-    {:else}
-      <div class="role-chips">
-        {#each user.roles ?? [] as role (role)}
-          <span class="ed-chip">
-            {role}
-            <button
-              type="button"
-              onclick={() => removeRole(role)}
-              disabled={savingRole}
-              aria-label={`Fjern ${role}`}
-            >
-              <X size={13} />
-            </button>
-          </span>
-        {/each}
-      </div>
-    {/if}
   </section>
 
   <!-- Status -->
@@ -375,102 +397,39 @@
     line-height: 1.5;
     margin: 0 0 16px;
   }
-  .hint.empty {
-    margin: 14px 0 0;
-    font-style: italic;
-  }
   .err {
     margin: 14px 0 0;
     font-size: 13px;
     color: var(--danger);
   }
 
-  /* Roles editor. */
-  .role-input {
+  /* Roles editor — one row per pre-defined role. */
+  .roles {
     display: flex;
-    gap: 9px;
+    flex-direction: column;
+    gap: 14px;
   }
-  .role-field {
-    flex: 1;
-    height: 42px;
-    padding: 0 14px;
-    font-family: var(--font-text);
-    font-size: 14px;
-    color: var(--text-primary);
-    background: var(--surface-sunken);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    outline: none;
-    transition:
-      border-color var(--dur-fast),
-      box-shadow var(--dur-fast);
-  }
-  .role-field:focus {
-    border-color: var(--accent);
-    box-shadow: var(--ring-focus);
-  }
-  .role-add {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    height: 42px;
-    padding: 0 15px;
-    font-family: var(--font-text);
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition:
-      background var(--dur-fast),
-      border-color var(--dur-fast);
-  }
-  .role-add:hover:not(:disabled) {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-  .role-add:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  .role-chips {
+  /* The save indicator sits opposite the switch, reading as a status column. */
+  .role-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 14px;
-  }
-  .ed-chip {
-    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 30px;
-    padding: 0 6px 0 12px;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .role {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .role__name {
     font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .role__desc {
     font-size: 12.5px;
-    color: var(--text-secondary);
-    background: var(--surface-sunken);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-full);
-  }
-  .ed-chip button {
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    line-height: 1.45;
     color: var(--text-muted);
-    background: transparent;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all var(--dur-fast);
-  }
-  .ed-chip button:hover:not(:disabled) {
-    color: var(--danger);
-    background: var(--danger-soft);
   }
 
   .notfound {

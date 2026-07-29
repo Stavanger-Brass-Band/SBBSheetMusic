@@ -108,10 +108,25 @@ Global state is **rune-class singletons** in `src/lib/stores/*.svelte.ts`:
   `src/lib/types/index.ts` — see the note there.
 - `client.ts` is a thin typed fetch wrapper: it injects the `Authorization`
   bearer header and the required **`?api-version`** query param, and calls
-  `auth.logout()` on `401`. Create a client per version with
+  `auth.endExpiredSession()` on `401`. Create a client per version with
   `createClient("2.0" | "1.0")`.
-- **Version split:** sheetmusic-set and user endpoints → **v2.0**; projects,
-  auth, parts, categories → **v1.0**.
+- **There is no token refresh.** `/token` ignores `grant_type` entirely and
+  always does a username/password authentication — the `refresh_token` field in
+  the document is only the request DTO's shape, not a second grant. So a 401
+  can only end the session; `endExpiredSession()` sends the user to
+  `/login?expired=1` so the screen can say why.
+- **Version split:** sheetmusic-set, user and auth endpoints → **v2.0**;
+  projects, parts, categories → **v1.0**.
+- **Auth must stay on v2.** v1's `/token` validates the _legacy HMAC_ password
+  hash; v2's validates the **Identity** one, and the endpoints that write
+  passwords (register, update, forgot/reset) are Identity-backed — `forgot`/
+  `reset` exist only on v2. Mixing the two means accounts created or reset in the
+  app can't sign in. `auth.isAdmin` comes from the **roles on `/users/me`**, not
+  its status code: that endpoint answers for any authenticated user, so a 200
+  proves nothing. The role is named **`Admin`** (`ADMIN_ROLE` in
+  `src/lib/api/auth.ts`) — _not_ `Administrator`, despite the endpoint summaries
+  saying "Requires Administrator privileges". Nothing lists the available roles,
+  so the only way to read a role name back is the `roles` array on a user.
 - App-facing types live in `src/lib/types/` as aliases over the generated
   `components["schemas"]`, plus a few hand-authored types where the spec leaves
   responses undefined (`User`).

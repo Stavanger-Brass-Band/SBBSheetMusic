@@ -12,7 +12,7 @@ const jsonHeaders = {
 };
 
 function authHeader(): Record<string, string> {
-  const token = localStorage.getItem("access_token");
+  const token = auth.accessToken;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -37,7 +37,7 @@ async function request<T>(
   });
 
   if (res.status === 401) {
-    auth.logout();
+    auth.endExpiredSession();
     return undefined as T;
   }
 
@@ -59,7 +59,7 @@ async function postFile(
   });
 
   if (res.status === 401) {
-    auth.logout();
+    auth.endExpiredSession();
     return undefined;
   }
   if (res.status === 200) return { success: true };
@@ -86,7 +86,7 @@ async function writeJson(
     headers: { ...authHeader(), ...jsonHeaders },
     body: JSON.stringify(body),
   });
-  if (res.status === 401) auth.logout();
+  if (res.status === 401) auth.endExpiredSession();
   return res;
 }
 
@@ -105,7 +105,7 @@ async function del(
   }
 
   const res = await fetch(buildUrl(path, version), init);
-  if (res.status === 401) auth.logout();
+  if (res.status === 401) auth.endExpiredSession();
   return res;
 }
 

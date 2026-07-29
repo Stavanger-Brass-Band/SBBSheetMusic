@@ -304,8 +304,8 @@
     const res = await projectsApi.update(id, body);
     savingProject = false;
     if (res) {
-      // The spec leaves the update response body undefined, so keep the
-      // description we just saved rather than trust it to be echoed back.
+      // The update is documented to answer with the project, but keep the
+      // description we just saved rather than depend on it being echoed back.
       project = { ...res, comments: body.comments };
       editOpen = false;
     }

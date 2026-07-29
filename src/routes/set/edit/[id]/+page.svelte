@@ -35,9 +35,16 @@
     MusicSet,
     MusicSetPart,
     Part,
+    SaveState,
     SetRequest,
   } from "$lib/types";
-  import { Breadcrumb, Button, Spinner } from "$lib/components/ui";
+  import {
+    Breadcrumb,
+    Button,
+    SaveIndicator,
+    SAVED_VISIBLE_MS,
+    Spinner,
+  } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
@@ -49,7 +56,6 @@
   let loading = $state(true);
 
   // Per-field autosave state for the two auto-saving Settinformasjon fields.
-  type SaveState = "idle" | "saving" | "saved";
   let recordingSave = $state<SaveState>("idle");
   let missingSave = $state<SaveState>("idle");
   // The details dialog has its own explicit save flow.
@@ -80,7 +86,9 @@
   // category that can be picked. Assignment saves immediately (no draft).
   let categoryCatalog = $state<Category[]>([]);
   let categoryPick = $state("");
-  let categoryBusy = $state(false);
+  let categorySave = $state<SaveState>("idle");
+  let categorySavedTimer: ReturnType<typeof setTimeout> | undefined;
+  let categoryBusy = $derived(categorySave === "saving");
 
   // Stemmer shows only the parts actually present on the set.
   let presentParts = $derived(set.parts ?? []);
@@ -229,28 +237,42 @@
     }
   }
 
+  /** Confirm a category write the same way the autosaving fields do. */
+  function flashCategorySaved() {
+    categorySave = "saved";
+    clearTimeout(categorySavedTimer);
+    categorySavedTimer = setTimeout(
+      () => (categorySave = "idle"),
+      SAVED_VISIBLE_MS,
+    );
+  }
+
   async function assignCategory(categoryId: string) {
     if (!categoryId) return;
-    categoryBusy = true;
+    categorySave = "saving";
     const result = await sheetMusic.assignCategory(set.id!, categoryId);
     if (result) {
       set.categories = result;
       catalog.updateMusicSet(set);
+      flashCategorySaved();
+    } else {
+      categorySave = "idle";
     }
     categoryPick = "";
-    categoryBusy = false;
   }
 
   async function removeCategory(category: Category) {
-    categoryBusy = true;
+    categorySave = "saving";
     const res = await sheetMusic.removeCategory(set.id!, category.id!);
     if (res.ok) {
       set.categories = assignedCategories.filter(
         (assigned) => assigned.id !== category.id,
       );
       catalog.updateMusicSet(set);
+      flashCategorySaved();
+    } else {
+      categorySave = "idle";
     }
-    categoryBusy = false;
   }
 
   // ---- settinformasjon per-field autosave ----
@@ -267,8 +289,29 @@
     clearTimeout(missingTimer);
     missingTimer = setTimeout(() => persist("missing"), 800);
   }
+  /**
+   * A set update replaces every property — the API nulls out whatever the body
+   * omits — so an update always carries the whole set, with the fields being
+   * edited laid over it.
+   */
+  function toSetRequest(edits: Partial<MusicSet> = {}): SetRequest {
+    const merged = { ...set, ...edits };
+    return {
+      archiveNumber: merged.archiveNumber,
+      // `title` is the one field the request schema declares non-nullable, so a
+      // set the response left without one can only omit it.
+      title: merged.title ?? undefined,
+      composer: merged.composer,
+      arranger: merged.arranger,
+      soleSellingAgent: merged.soleSellingAgent,
+      missingParts: merged.missingParts,
+      recordingUrl: merged.recordingUrl,
+      borrowedFrom: merged.borrowedFrom,
+    };
+  }
+
   async function persist(field: "recording" | "missing") {
-    const res = await sheetMusic.updateSet(set.id!, set as SetRequest);
+    const res = await sheetMusic.updateSet(set.id!, toSetRequest());
     const ok = !!res;
     if (ok) catalog.updateMusicSet(set);
     if (field === "recording") recordingSave = ok ? "saved" : "idle";
@@ -277,6 +320,7 @@
   onDestroy(() => {
     clearTimeout(recordingTimer);
     clearTimeout(missingTimer);
+    clearTimeout(categorySavedTimer);
   });
 
   // ---- details dialog ----
@@ -292,7 +336,7 @@
   }
   async function saveDetails() {
     savingDetails = true;
-    const res = await sheetMusic.updateSet(set.id!, draft as SetRequest);
+    const res = await sheetMusic.updateSet(set.id!, toSetRequest(draft));
     savingDetails = false;
     if (res) {
       set.title = res.title;
@@ -307,7 +351,7 @@
 
   async function removeSet() {
     const res = await sheetMusic.deleteSet(id);
-    if (res.status === 200) {
+    if (res.ok) {
       catalog.removeMusicSetById(id);
       goto("/archive");
     }
@@ -341,14 +385,6 @@
     e.currentTarget.value = "";
   }}
 />
-{#snippet saveStatus(state: SaveState)}
-  {#if state === "saving"}
-    <span class="fsave saving"><Spinner size={12} inline /> Lagrer…</span>
-  {:else if state === "saved"}
-    <span class="fsave saved"><Check size={13} /> Lagret</span>
-  {/if}
-{/snippet}
-
 <Breadcrumb
   class="mb-6"
   items={[
@@ -545,7 +581,7 @@
           <div class="field">
             <div class="labelrow">
               <label for="categoryPicker">Kategorier</label>
-              {@render saveStatus(categoryBusy ? "saving" : "idle")}
+              <SaveIndicator state={categorySave} />
             </div>
             {#if assignedCategories.length === 0}
               <p class="cat-empty">Ingen kategorier valgt.</p>
@@ -585,7 +621,7 @@
         <div class="field">
           <div class="labelrow">
             <label for="recordingUrl">Lytteeksempel</label>
-            {@render saveStatus(recordingSave)}
+            <SaveIndicator state={recordingSave} />
           </div>
           <div class="ctrl">
             <span class="ico"><Headphones size={16} /></span>
@@ -608,7 +644,7 @@
         <div class="field">
           <div class="labelrow">
             <label for="missingParts">Manglende noter</label>
-            {@render saveStatus(missingSave)}
+            <SaveIndicator state={missingSave} />
           </div>
           <textarea
             id="missingParts"
@@ -705,18 +741,6 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-  }
-  .fsave {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-  }
-  .fsave.saving {
-    color: var(--text-muted);
-  }
-  .fsave.saved {
-    color: var(--success);
   }
   .kebab {
     width: 42px;

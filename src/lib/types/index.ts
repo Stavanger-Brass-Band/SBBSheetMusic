@@ -5,8 +5,8 @@ import type { components as V2 } from "$lib/api/schema.v2";
  * App-facing type aliases over the OpenAPI-generated schemas.
  * Regenerate the schemas with `npm run api:gen` when the backend changes.
  *
- * Sheetmusic-set and user types come from the v2.0 document; projects, parts,
- * categories and auth from v1.0. Where the document leaves a response body
+ * Sheetmusic-set, user and auth types come from the v2.0 document; projects,
+ * parts and categories from v1.0. Where the document leaves a response body
  * undefined, a minimal supplementary interface is authored below from observed
  * usage.
  *
@@ -80,10 +80,10 @@ export type ForgotPasswordRequest = V2["schemas"]["ForgotPasswordRequest"];
 export type ResetPasswordRequest = V2["schemas"]["ResetPasswordRequest"];
 
 /**
- * User response shape — not defined in the OpenAPI spec, authored here.
- * `roles` is assumed present on the v2 response (role management exists but the
- * GET body is undefined in the spec); treated as optional so v1 responses that
- * omit it stay valid.
+ * User response shape — not defined in the OpenAPI document, authored here.
+ * `GET /users/{identifier}` is documented to answer with "the user details,
+ * including assigned roles", but without a schema, so `roles` stays optional —
+ * `fetchIsAdmin` reads it to decide admin rights and treats its absence as no.
  */
 export interface User {
   id: string;
@@ -106,8 +106,15 @@ export interface UserForm {
   roles: string[];
 }
 
-// --- Auth (v1.0) ---
-export type AccessTokens = V1["schemas"]["ApiAccessTokens"];
+// --- Auth (v2.0) ---
+export type AccessTokens = V2["schemas"]["ApiAccessTokens"];
+
+/**
+ * Progress of anything that saves without a Lagre button. Anything that writes
+ * on its own — an autosaving field, a toggle that takes effect on release — owes
+ * the user this, rendered through `ui/SaveIndicator`.
+ */
+export type SaveState = "idle" | "saving" | "saved";
 
 /**
  * UI-only view model for the file-upload flow in the set editor. Wraps a
