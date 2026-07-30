@@ -64,6 +64,30 @@ async function request<T>(
   return parse(res);
 }
 
+/**
+ * GET an endpoint where "nothing found" is an ordinary answer rather than a
+ * failure, and comes back as a 404 — the part index is one: it 404s when no part
+ * matches the search term, and documents only a 200. Plain `get` would call
+ * `res.json()` on that and either throw on the empty body or hand back a parsed
+ * error payload masquerading as the expected type. Anything that isn't a 2xx
+ * carrying JSON becomes `undefined`, so a miss can't throw at the call site.
+ */
+async function getOptional<T>(
+  path: string,
+  version: ApiVersion,
+): Promise<T | undefined> {
+  const res = await authedFetch(buildUrl(path, version), { method: "GET" });
+  if (!res.ok) return undefined;
+
+  const body = await res.text();
+  if (!body) return undefined;
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    return undefined;
+  }
+}
+
 async function postFile(
   path: string,
   version: ApiVersion,
@@ -133,6 +157,8 @@ export function createClient(version: ApiVersion) {
         { method: "GET" },
         (r) => r.json() as Promise<T>,
       ),
+
+    getOptional: <T>(path: string) => getOptional<T>(path, version),
 
     getText: (path: string) =>
       request<string>(path, version, { method: "GET" }, (r) => r.text()),

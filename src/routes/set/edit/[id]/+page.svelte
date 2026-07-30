@@ -150,6 +150,29 @@
   }
 
   // ---- bulk upload + auto-match ----
+  /** Whitespace and the dashes/underscores that join a title to a part name. */
+  const SEPARATOR_EDGES = /^[\s\-–—_]+|[\s\-–—_]+$/g;
+
+  /**
+   * The term to look the part index up with for an uploaded file. Scanned files
+   * are named "<tittel> - <stemme>.pdf", so subtracting the set title leaves the
+   * separator that joined the two behind — the index matches on the part name
+   * alone, and a term of " - Esskornett" finds nothing. The extension has to go
+   * case-insensitively and only at the end, since scanners hand out ".PDF".
+   *
+   * A title that doesn't appear in the file name — a different dash, casing or
+   * spacing — leaves the whole stem, which is a better term than nothing, and so
+   * is the bare title for a file named after the set alone.
+   */
+  function partSearchTerm(fileName: string, title: string): string {
+    const stem = fileName.replace(/\.pdf$/i, "");
+    const withoutTitle = title ? stem.replace(title, "") : stem;
+    return (
+      withoutTitle.replace(SEPARATOR_EDGES, "") ||
+      stem.replace(SEPARATOR_EDGES, "")
+    );
+  }
+
   async function onFilesSelected(files: FileList | null) {
     if (!files || files.length === 0) return;
     review = Array.from(files).map((f) => ({
@@ -157,14 +180,18 @@
       name: f.name,
       match: "",
     }));
-    const results = await Promise.all(
-      review.map((r) =>
-        partsApi.suggest(
-          r.name.replace(set.title ?? "", "").replace(".pdf", ""),
+    // The rows are on screen already, so a lookup that fails outright just
+    // leaves their matches empty for the reader to pick by hand.
+    try {
+      const results = await Promise.all(
+        review.map((r) =>
+          partsApi.suggest(partSearchTerm(r.name, set.title ?? "")),
         ),
-      ),
-    );
-    review = review.map((r, i) => ({ ...r, match: results[i]?.name ?? "" }));
+      );
+      review = review.map((r, i) => ({ ...r, match: results[i]?.name ?? "" }));
+    } catch {
+      // Leaving every match empty is the fallback the review list is built for.
+    }
   }
 
   function assign(i: number, value: string) {
