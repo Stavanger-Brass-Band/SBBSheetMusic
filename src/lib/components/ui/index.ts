@@ -9,6 +9,7 @@ export { default as PartTile } from "./PartTile.svelte";
 export { default as DateRangeBoxes } from "./DateRangeBoxes.svelte";
 export { default as EmptyState } from "./EmptyState.svelte";
 export { default as SearchInput } from "./SearchInput.svelte";
+export { default as SortableTableHeader } from "./SortableTableHeader.svelte";
 export {
   default as SaveIndicator,
   SAVED_VISIBLE_MS,

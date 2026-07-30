@@ -51,17 +51,6 @@ export function formatDmy(date: OptionalDateInput): string {
 }
 
 /**
- * Sortable timestamp for a possibly-unset API date. A missing or unparseable
- * date collapses to 0 so it sorts to one end instead of poisoning every
- * comparison it takes part in with `NaN`.
- */
-export function dateSortValue(date: OptionalDateInput): number {
-  if (date === null || date === undefined) return 0;
-  const value = new Date(date).valueOf();
-  return Number.isNaN(value) ? 0 : value;
-}
-
-/**
  * Noon-UTC ISO string for persisting project dates, avoiding timezone
  * day-shifts. Replaces `moment(x).hour(12).utc().format()`.
  */

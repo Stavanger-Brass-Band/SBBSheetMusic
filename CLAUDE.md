@@ -139,7 +139,10 @@ Global state is **rune-class singletons** in `src/lib/stores/*.svelte.ts`:
   e.g. `composer asc,title desc`), `$top`, `$skip`, `$expand` (related
   collections, e.g. `parts`). The sets endpoint also takes a plain `category`
   param matching on category name. Responses are bare arrays (no total-count
-  envelope) → offset paging with "load more".
+  envelope) → offset paging with "load more". The archive and the project list
+  drive search, sorting and paging entirely server-side through these, keeping
+  the state in the URL — shared helpers in `src/lib/utils/listQuery.ts`, sortable
+  columns via the `SortableTableHeader` UI primitive.
 - **`$expand` is not optional for related collections** — they're omitted from
   collection responses unless asked for. `GET /parts` needs `$expand=aliases`
   or every part comes back with its aliases missing. Check the Scalar docs for

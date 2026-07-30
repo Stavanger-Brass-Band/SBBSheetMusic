@@ -16,14 +16,37 @@
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { categories as categoriesApi } from "$lib/api/categories";
   import { downloadSetZip } from "$lib/utils/download";
+  import {
+    PAGE_SIZE,
+    isSameSort,
+    parsePagesParam,
+    readSortParams,
+    toOrderByClause,
+    toggleSort,
+    type SortState,
+  } from "$lib/utils/listQuery";
   import type { Category, MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import { Button, Spinner, EmptyState, SearchInput } from "$lib/components/ui";
+  import {
+    Button,
+    Spinner,
+    EmptyState,
+    SearchInput,
+    SortableTableHeader,
+  } from "$lib/components/ui";
 
-  const PAGE = 30;
-  /** Ceiling when restoring `pages` from the URL — it becomes one request. */
-  const MAX_RESTORED_PAGES = 20;
+  /** The set columns the API can sort on — see `readSortParams`. */
+  const SORTABLE_FIELDS = [
+    "archiveNumber",
+    "title",
+    "composer",
+    "arranger",
+  ] as const;
+  const DEFAULT_SORT: SortState = {
+    field: "archiveNumber",
+    direction: "desc",
+  };
   /**
    * Category chips shown before the row collapses behind "+N flere". Chips wrap
    * after about ten on a desktop but only three on a phone, so the cut-off
@@ -45,6 +68,9 @@
   let showAllCategories = $state(false);
   let isNarrowViewport = $state(false);
   let items = $state<MusicSet[]>([]);
+  // Column the list is sorted by. Server-side, like the search and the paging,
+  // and mirrored in the URL alongside them.
+  let sort = $state<SortState>(DEFAULT_SORT);
   // Pages of results currently on screen. Mirrored in the URL, so "load more"
   // survives leaving the page too.
   let pagesLoaded = $state(1);
@@ -73,6 +99,7 @@
     return sheetMusic.searchSets({
       search: searchTerm.trim() || undefined,
       category: selectedCategory || undefined,
+      orderBy: toOrderByClause(sort),
       top,
       skip,
     });
@@ -81,7 +108,9 @@
   /**
    * Mirror the current view into the URL, replacing the history entry so
    * filtering never fills the back stack. Leaving the archive and coming back
-   * (or reloading, or sharing the link) then lands on the same list.
+   * (or reloading, or sharing the link) then lands on the same list. The sort is
+   * left out while it matches the default, so the plain archive keeps a clean
+   * URL.
    */
   function syncUrl() {
     const params: string[] = [];
@@ -89,6 +118,8 @@
     if (query) params.push(`search=${encodeURIComponent(query)}`);
     if (selectedCategory)
       params.push(`category=${encodeURIComponent(selectedCategory)}`);
+    if (!isSameSort(sort, DEFAULT_SORT))
+      params.push(`sort=${sort.field}`, `dir=${sort.direction}`);
     if (pagesLoaded > 1) params.push(`pages=${pagesLoaded}`);
     replaceState(
       params.length ? `?${params.join("&")}` : page.url.pathname,
@@ -99,9 +130,9 @@
   async function runSearch() {
     searching = true;
     pagesLoaded = 1;
-    const res = await fetchSets(PAGE, 0);
+    const res = await fetchSets(PAGE_SIZE, 0);
     items = res ?? [];
-    hasMore = (res?.length ?? 0) === PAGE;
+    hasMore = (res?.length ?? 0) === PAGE_SIZE;
     syncUrl();
     searching = false;
     loading = false;
@@ -109,10 +140,10 @@
 
   async function loadMore() {
     loadingMore = true;
-    const res = await fetchSets(PAGE, pagesLoaded * PAGE);
+    const res = await fetchSets(PAGE_SIZE, pagesLoaded * PAGE_SIZE);
     items = [...items, ...(res ?? [])];
     pagesLoaded += 1;
-    hasMore = (res?.length ?? 0) === PAGE;
+    hasMore = (res?.length ?? 0) === PAGE_SIZE;
     syncUrl();
     loadingMore = false;
   }
@@ -122,9 +153,10 @@
     const params = page.url.searchParams;
     searchTerm = params.get("search") ?? "";
     selectedCategory = params.get("category") ?? "";
-    pagesLoaded = parsePages(params.get("pages"));
+    sort = readSortParams(params, SORTABLE_FIELDS, DEFAULT_SORT);
+    pagesLoaded = parsePagesParam(params.get("pages"));
 
-    const top = pagesLoaded * PAGE;
+    const top = pagesLoaded * PAGE_SIZE;
     const res = await fetchSets(top, 0);
     items = res ?? [];
     hasMore = (res?.length ?? 0) === top;
@@ -132,10 +164,12 @@
     restoreScroll();
   }
 
-  function parsePages(value: string | null): number {
-    const pages = Math.trunc(Number(value));
-    if (!Number.isFinite(pages) || pages < 1) return 1;
-    return Math.min(pages, MAX_RESTORED_PAGES);
+  // The API does the sorting, so a header click re-runs the query — and starts
+  // over at page one, since the rows already loaded are no longer the first
+  // ones under the new order.
+  function changeSort(field: string) {
+    sort = toggleSort(sort, field);
+    runSearch();
   }
 
   // SvelteKit restores scroll the moment the navigation completes — before the
@@ -350,10 +384,30 @@
     <table class="sbb-table">
       <thead>
         <tr>
-          <th class="c-nr">Nr.</th>
-          <th>Tittel</th>
-          <th>Komponist</th>
-          <th>Arrangør</th>
+          <SortableTableHeader
+            field="archiveNumber"
+            label="Nr."
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
+            field="title"
+            label="Tittel"
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
+            field="composer"
+            label="Komponist"
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
+            field="arranger"
+            label="Arrangør"
+            {sort}
+            onsort={changeSort}
+          />
           <th class="c-actions"
             >{auth.canManageMusic ? "Handling" : "Digitalt"}</th
           >
@@ -560,6 +614,9 @@
     background: var(--gray-500);
   }
 
+  /* Only the body cells carry this — the header is a `SortableTableHeader`
+     component, which scoped styles can't reach. The width still sizes the whole
+     column from here. */
   .c-nr {
     font-family: var(--font-mono);
     font-size: 13px;
@@ -636,5 +693,6 @@
   .count {
     font-size: 12px;
     color: var(--text-muted);
+    white-space: nowrap;
   }
 </style>

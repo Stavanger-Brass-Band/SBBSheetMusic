@@ -15,9 +15,13 @@ export const parts = {
    */
   get: (id: string) => client.get<Part>(`/parts/${id}`),
 
-  /** Suggests a matching part for a file based on its name. */
+  /**
+   * Suggests a matching part for a file based on its name. The index answers
+   * 404 when nothing matches — an ordinary outcome for a search, so this goes
+   * through `getOptional` and a miss returns `undefined` rather than throwing.
+   */
   suggest: (searchTerm: string) =>
-    client.get<Part>(
+    client.getOptional<Part>(
       `/parts/index?searchTerm=${encodeURIComponent(searchTerm)}`,
     ),
 
