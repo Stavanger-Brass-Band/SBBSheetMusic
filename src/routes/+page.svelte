@@ -9,7 +9,6 @@
   } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
-  import { dateSortValue } from "$lib/utils/date";
   import { DateRangeBoxes, EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { cardEnter } from "$lib/utils/motion";
@@ -23,15 +22,9 @@
     }
 
     try {
-      // The API does the narrowing, so the page never pulls down the whole
-      // project history. Ordering is still ours: the endpoint ignores
-      // `$orderby`.
-      const active = (await projectsApi.listActive()) ?? [];
-      catalog.setActiveProjects(
-        active.sort(
-          (a, b) => dateSortValue(a.startDate) - dateSortValue(b.startDate),
-        ),
-      );
+      // The API does both the narrowing and the ordering, so the page never
+      // pulls down the whole project history or re-sorts it here.
+      catalog.setActiveProjects((await projectsApi.listActive()) ?? []);
     } catch {
       loadFailed = true;
     } finally {

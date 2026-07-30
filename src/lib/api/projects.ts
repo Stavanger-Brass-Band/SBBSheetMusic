@@ -20,17 +20,34 @@ function activeTodayFilter(): string {
 }
 
 export const projects = {
-  list: () => client.get<Project[]>("/projects"),
-
   /**
-   * Just the projects running today, narrowed by the API. `$filter` is the only
-   * OData query option this endpoint actually honours — `$search`, `$orderby`,
-   * `$top` and `$skip` are advertised in the OpenAPI document but ignored, so
-   * everything else (searching, sorting, paging) still has to happen client-side
-   * on the full list.
+   * Server-side searched, sorted and paged project list using the v1 OData
+   * query options ($search / $orderby / $top / $skip). Returns one page of
+   * results — like the sets endpoint it answers with a bare array, so callers
+   * infer "has more" from a full page.
    */
+  search: (
+    opts: {
+      search?: string;
+      orderBy?: string;
+      top?: number;
+      skip?: number;
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.search) params.set("$search", opts.search);
+    if (opts.orderBy) params.set("$orderby", opts.orderBy);
+    params.set("$top", String(opts.top ?? 30));
+    params.set("$skip", String(opts.skip ?? 0));
+    return client.get<Project[]>(`/projects?${params}`);
+  },
+
+  /** Just the projects running today, narrowed and ordered by the API. */
   listActive: () => {
-    const params = new URLSearchParams({ $filter: activeTodayFilter() });
+    const params = new URLSearchParams({
+      $filter: activeTodayFilter(),
+      $orderby: "startDate asc",
+    });
     return client.get<Project[]>(`/projects?${params}`);
   },
 

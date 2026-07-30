@@ -91,13 +91,19 @@ sheetmusic-set endpoints (OData-capable), **`1.0`** for projects, users, auth
 and parts. Types are generated from both specs into `src/lib/api/schema.v1.d.ts`
 and `schema.v2.d.ts`.
 
-The archive uses the v2 sets endpoint's **OData query options** for server-side
-search and paging. They are flat query-string params, available on every
-collection endpoint: `$search` (free text), `$filter` (e.g.
-`archiveNumber gt 100`), `$orderby` (comma separated `field [asc|desc]`, e.g.
-`composer asc,title desc`), `$top`, `$skip` and `$expand` (related collections,
-e.g. `parts`). The endpoint returns a bare array (no total-count), so the list
-uses offset paging with a "load more" control.
+The archive (v2 sets) and the project list (v1 projects) both use the **OData
+query options** for server-side search, sorting and paging. They are flat
+query-string params, available on every collection endpoint: `$search` (free
+text), `$filter` (e.g. `archiveNumber gt 100`), `$orderby` (comma separated
+`field [asc|desc]`, e.g. `composer asc,title desc`), `$top`, `$skip` and
+`$expand` (related collections, e.g. `parts`). The endpoints return a bare array
+(no total-count), so the lists use offset paging with a "load more" control.
+
+Both lists mirror their query state — `search`, `sort`/`dir` and `pages` — into
+the URL with `replaceState`, so leaving a list and coming back restores the same
+view without filling the back stack. The shared pieces live in
+`src/lib/utils/listQuery.ts`, and column headers sort through the
+`SortableTableHeader` primitive.
 
 ## Deploying to the web
 

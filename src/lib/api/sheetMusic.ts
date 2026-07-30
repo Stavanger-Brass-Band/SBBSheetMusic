@@ -12,14 +12,16 @@ export const sheetMusic = {
   listSets: () => client.get<MusicSet[]>("/sheetmusic/sets"),
 
   /**
-   * Server-side paged + searched set list using the v2 OData query options
-   * ($search / $top / $skip). Returns one page of results (the endpoint has no
-   * total-count envelope, so callers infer "has more" from a full page).
+   * Server-side searched, sorted and paged set list using the v2 OData query
+   * options ($search / $orderby / $top / $skip). Returns one page of results
+   * (the endpoint has no total-count envelope, so callers infer "has more" from
+   * a full page).
    */
   searchSets: (
     opts: {
       search?: string;
       category?: string;
+      orderBy?: string;
       top?: number;
       skip?: number;
     } = {},
@@ -29,8 +31,9 @@ export const sheetMusic = {
     // `category` is a plain filter alongside the OData options, and matches on
     // the category name.
     if (opts.category) params.set("category", opts.category);
-    // $orderby takes comma separated "field [asc|desc]" clauses.
-    params.set("$orderby", "archiveNumber desc");
+    // $orderby takes comma separated "field [asc|desc]" clauses. Newest archive
+    // number first unless the caller sorts the list itself.
+    params.set("$orderby", opts.orderBy ?? "archiveNumber desc");
     params.set("$top", String(opts.top ?? 30));
     params.set("$skip", String(opts.skip ?? 0));
     return client.get<MusicSet[]>(`/sheetmusic/sets?${params}`);
