@@ -139,7 +139,10 @@
 
 <style>
   .screen {
+    /* See the login page: `vh` on iOS is the toolbars-retracted height, which
+       shifts a centred card down out of view. */
     min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
     justify-content: center;
