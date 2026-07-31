@@ -180,13 +180,15 @@
       <div class="sbb-card clickable" onclick={() => openEdit(category)}>
         <div class="body">
           <div class="t">{category.name}</div>
-          <div class="card-badge">
-            {#if category.inactive}
-              <Badge variant="neutral" dot>Inaktiv</Badge>
-            {:else}
-              <Badge variant="success" dot>Aktiv</Badge>
-            {/if}
-          </div>
+        </div>
+        <!-- Status reads as metadata on the card, so it sits in the top-right
+             corner rather than below the name. -->
+        <div class="acts card-badge">
+          {#if category.inactive}
+            <Badge variant="neutral" dot>Inaktiv</Badge>
+          {:else}
+            <Badge variant="success" dot>Aktiv</Badge>
+          {/if}
         </div>
       </div>
     {/each}
@@ -293,8 +295,10 @@
     border-color: var(--border-subtle);
   }
 
+  /* The shared card centres its trailing slot; pull the badge up to the first
+     line so a name that wraps doesn't drag the status down with it. */
   .card-badge {
-    margin-top: 11px;
+    align-self: flex-start;
   }
 
   .foot-note {
