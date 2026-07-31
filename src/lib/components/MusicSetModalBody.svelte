@@ -11,6 +11,11 @@
     (key: "title" | "composer" | "arranger" | "borrowedFrom") => (e: Event) => {
       set[key] = (e.currentTarget as HTMLInputElement).value;
     };
+
+  // Title is the one field the API insists on, on create and update alike. Both
+  // dialogs keep their save button disabled until it is filled, so the hint is
+  // there to say why.
+  let titleMissing = $derived(!set.title?.trim());
 </script>
 
 <form class="space-y-4">
@@ -22,6 +27,9 @@
       oninput={onInput("title")}
       placeholder="Skriv inn tittel"
     />
+    {#if titleMissing}
+      <Helper class="mt-2" color="red">Tittel er påkrevd.</Helper>
+    {/if}
   </div>
   <div>
     <Label for="composer" class="mb-2">Komponist</Label>

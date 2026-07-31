@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-  import { Check } from "@lucide/svelte";
+  import { Check, TriangleAlert } from "@lucide/svelte";
   import Spinner from "./Spinner.svelte";
   import type { SaveState } from "$lib/types";
 
@@ -24,6 +24,10 @@
   <span class="save saving"><Spinner size={12} inline /> Lagrer…</span>
 {:else if state === "saved"}
   <span class="save saved"><Check size={13} /> Lagret</span>
+{:else if state === "error"}
+  <span class="save failed" role="alert">
+    <TriangleAlert size={13} /> Ikke lagret
+  </span>
 {/if}
 
 <style>
@@ -39,5 +43,8 @@
   }
   .saved {
     color: var(--success);
+  }
+  .failed {
+    color: var(--danger);
   }
 </style>

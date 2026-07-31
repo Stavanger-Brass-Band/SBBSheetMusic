@@ -82,6 +82,24 @@ export function endOfTodayIso(now: Date = new Date()): string {
   return toIsoSeconds(end);
 }
 
+/**
+ * Whether a project's dates are the wrong way round, compared at day
+ * granularity like `projectStatus` — a project that starts and ends on the same
+ * day is an ordinary one-day project, not a contradiction. A date still unset is
+ * nothing to contradict, so it answers false and leaves that to the
+ * required-field check.
+ */
+export function endsBeforeStart(project: {
+  startDate?: string | null;
+  endDate?: string | null;
+}): boolean {
+  if (!project.startDate || !project.endDate) return false;
+  return (
+    startOfDay(new Date(project.endDate)) <
+    startOfDay(new Date(project.startDate))
+  );
+}
+
 /** A project's lifecycle phase relative to today. */
 export type ProjectStatus = "upcoming" | "active" | "ended";
 

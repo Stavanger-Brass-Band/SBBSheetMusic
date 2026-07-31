@@ -126,9 +126,11 @@ export type AccessTokens = V2["schemas"]["ApiAccessTokens"];
 /**
  * Progress of anything that saves without a Lagre button. Anything that writes
  * on its own — an autosaving field, a toggle that takes effect on release — owes
- * the user this, rendered through `ui/SaveIndicator`.
+ * the user this, rendered through `ui/SaveIndicator`. `error` outlives the other
+ * states on purpose: there is no button left holding the user's attention, so a
+ * write that didn't land has to keep saying so until the next attempt.
  */
-export type SaveState = "idle" | "saving" | "saved";
+export type SaveState = "idle" | "saving" | "saved" | "error";
 
 /**
  * UI-only view model for the file-upload flow in the set editor. Wraps a

@@ -21,6 +21,7 @@
     GripVertical,
     ArrowUpDown,
     CircleCheck,
+    FolderX,
   } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { sheetMusic } from "$lib/api/sheetMusic";
@@ -33,9 +34,12 @@
     Button,
     SetCard,
     DateRangeBoxes,
+    EmptyState,
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import ProjectModalBody from "$lib/components/ProjectModalBody.svelte";
+  import ProjectModalBody, {
+    isProjectDraftValid,
+  } from "$lib/components/ProjectModalBody.svelte";
   import ProjectDescription from "$lib/components/ProjectDescription.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import SetOrderList from "$lib/components/SetOrderList.svelte";
@@ -52,6 +56,10 @@
   });
   let sets = $state<MusicSet[]>([]);
   let loading = $state(true);
+  // The project is the page. `project` stays a plain object so the markup below
+  // can read it without guarding every field, so the failed load needs saying
+  // separately.
+  let loadFailed = $state(false);
 
   // add-sets dialog (server-side OData search + offset paging)
   let addOpen = $state(false);
@@ -69,9 +77,8 @@
   let editFocusDescription = $state(false);
   let savingProject = $state(false);
   let draft = $state<Partial<Project>>({});
-  let canSaveEdit = $derived(
-    !!draft.name?.trim() && !!draft.startDate && !!draft.endDate,
-  );
+  let editError = $state("");
+  let canSaveEdit = $derived(isProjectDraftValid(draft));
 
   // confirms
   let confirmDeleteOpen = $state(false);
@@ -99,8 +106,9 @@
       projectsApi.get(id),
       projectsApi.getSets(id),
     ]);
-    project = info;
-    sets = projectSets;
+    if (info) project = info;
+    else loadFailed = true;
+    sets = projectSets ?? [];
     loading = false;
   });
   onDestroy(() => {
@@ -171,7 +179,8 @@
       addOpen = false;
       return;
     }
-    sets = await projectsApi.addSets(id, selectedIds);
+    const updated = await projectsApi.addSets(id, selectedIds);
+    if (updated) sets = updated;
     addOpen = false;
   }
 
@@ -290,11 +299,13 @@
       comments: project.comments,
     };
     editFocusDescription = focusDescription;
+    editError = "";
     editOpen = true;
   }
   async function saveEdit() {
     if (!canSaveEdit) return;
     savingProject = true;
+    editError = "";
     const body: UpdateProjectRequest = {
       name: draft.name,
       comments: draft.comments?.trim() || null,
@@ -308,6 +319,8 @@
       // description we just saved rather than depend on it being echoed back.
       project = { ...res, comments: body.comments };
       editOpen = false;
+    } else {
+      editError = "Kunne ikke lagre prosjektet. Prøv igjen.";
     }
   }
 
@@ -328,6 +341,13 @@
 
 {#if loading}
   <LoadingSpinner label="Laster prosjekt…" />
+{:else if loadFailed}
+  <EmptyState
+    title="Fant ikke prosjektet"
+    description="Prosjektet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til prosjektlisten og prøv igjen."
+  >
+    {#snippet icon()}<FolderX size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
 {:else}
   <div class="head">
     <h1 class="sbb-h1 title">{project.name}</h1>
@@ -528,6 +548,9 @@
     withDescription
     autofocusDescription={editFocusDescription}
   />
+  {#if editError}
+    <p class="error-message modal-error">{editError}</p>
+  {/if}
   {#snippet footer()}
     <Button onclick={saveEdit} loading={savingProject} disabled={!canSaveEdit}>
       <Check size={16} /> Lagre
@@ -695,6 +718,10 @@
     font-family: var(--font-text);
     font-size: 13px;
     color: var(--danger);
+  }
+  /* In a dialog the message follows the form rather than heading a section. */
+  .modal-error {
+    margin: 16px 0 0;
   }
 
   /* ---- save confirmation ---- */

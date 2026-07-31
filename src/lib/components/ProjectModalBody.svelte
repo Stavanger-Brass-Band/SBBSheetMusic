@@ -1,7 +1,26 @@
+<script module lang="ts">
+  import type { Project } from "$lib/types";
+  import { endsBeforeStart } from "$lib/utils/date";
+
+  /**
+   * Whether the form holds a project worth sending. Lives with the form so the
+   * rule and the messages explaining it can't drift apart: both dialogs disable
+   * their save button on this, and the fields below each say which part of it
+   * they are failing.
+   */
+  export function isProjectDraftValid(project: Partial<Project>): boolean {
+    return (
+      !!project.name?.trim() &&
+      !!project.startDate &&
+      !!project.endDate &&
+      !endsBeforeStart(project)
+    );
+  }
+</script>
+
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Label, Input, Datepicker } from "flowbite-svelte";
-  import type { Project } from "$lib/types";
+  import { Label, Input, Datepicker, Helper } from "flowbite-svelte";
 
   // `project` is mutated in place; the parent owns the reactive object.
   // The description (`comments`) is opt-in: the create endpoint doesn't accept
@@ -23,6 +42,13 @@
   let startDate = $state<Date | undefined>();
   let endDate = $state<Date | undefined>();
   let descriptionLength = $derived((project.comments ?? "").length);
+
+  // Read off `project` rather than the pickers' own state, so these say the same
+  // thing as the `isProjectDraftValid` the save button is disabled on.
+  let nameMissing = $derived(!project.name?.trim());
+  let startDateMissing = $derived(!project.startDate);
+  let endDateMissing = $derived(!project.endDate);
+  let datesReversed = $derived(endsBeforeStart(project));
 
   onMount(() => {
     if (project.startDate) startDate = new Date(project.startDate);
@@ -49,16 +75,32 @@
         (project.name = (e.currentTarget as HTMLInputElement).value)}
       placeholder="Skriv her"
     />
+    {#if nameMissing}
+      <Helper class="mt-2" color="red">Prosjektnavn er påkrevd.</Helper>
+    {/if}
   </div>
-  <div class="dates">
-    <div>
-      <Label class="mb-2">Startdato</Label>
-      <Datepicker bind:value={startDate} locale="nb-NO" inline />
+  <div>
+    <div class="dates">
+      <div>
+        <Label class="mb-2">Startdato</Label>
+        <Datepicker bind:value={startDate} locale="nb-NO" inline />
+        {#if startDateMissing}
+          <Helper class="mt-2" color="red">Startdato er påkrevd.</Helper>
+        {/if}
+      </div>
+      <div>
+        <Label class="mb-2">Sluttdato</Label>
+        <Datepicker bind:value={endDate} locale="nb-NO" inline />
+        {#if endDateMissing}
+          <Helper class="mt-2" color="red">Sluttdato er påkrevd.</Helper>
+        {/if}
+      </div>
     </div>
-    <div>
-      <Label class="mb-2">Sluttdato</Label>
-      <Datepicker bind:value={endDate} locale="nb-NO" inline />
-    </div>
+    {#if datesReversed}
+      <Helper class="mt-2" color="red">
+        Sluttdato kan ikke være før startdato.
+      </Helper>
+    {/if}
   </div>
   {#if withDescription}
     <div>

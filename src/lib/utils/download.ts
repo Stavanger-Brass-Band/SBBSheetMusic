@@ -23,6 +23,7 @@ export async function downloadSetPart(
   const token = await sheetMusic.getZipToken(setId);
   if (!token) return;
   const blob = await sheetMusic.getPartPdf(setId, partName, token);
+  if (!blob) return;
   downloadPdf(blob, `${setTitle} - ${partName}.pdf`);
 }
 
@@ -32,5 +33,8 @@ export async function downloadSetZip(
   zipUrl: string,
 ): Promise<void> {
   const token = await sheetMusic.getZipToken(setId);
+  // Navigating without one would only swap this failure for a rejected
+  // download, and take the user off the page to do it.
+  if (!token) return;
   window.location.assign(`${zipUrl}?downloadToken=${token}`);
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
-  import { beforeNavigate, goto, replaceState } from "$app/navigation";
+  import { beforeNavigate, goto } from "$app/navigation";
   import { page } from "$app/state";
   import { Modal } from "flowbite-svelte";
   import {
@@ -21,6 +21,7 @@
     isSameSort,
     parsePagesParam,
     readSortParams,
+    replaceListUrl,
     toOrderByClause,
     toggleSort,
     type SortState,
@@ -92,6 +93,11 @@
 
   let newSet = $state<Partial<MusicSet>>({});
   let isOpen = $state(false);
+  let isSaving = $state(false);
+  let createError = $state("");
+  // Title is the only field the API requires; everything else may be filled in
+  // later on the editor page.
+  let canSave = $derived(!!newSet.title?.trim());
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -106,11 +112,10 @@
   }
 
   /**
-   * Mirror the current view into the URL, replacing the history entry so
-   * filtering never fills the back stack. Leaving the archive and coming back
-   * (or reloading, or sharing the link) then lands on the same list. The sort is
-   * left out while it matches the default, so the plain archive keeps a clean
-   * URL.
+   * Mirror the current view into the URL (see `replaceListUrl`). Leaving the
+   * archive and coming back — or reloading, or sharing the link — then lands on
+   * the same list. The sort is left out while it matches the default, so the
+   * plain archive keeps a clean URL.
    */
   function syncUrl() {
     const params: string[] = [];
@@ -121,10 +126,7 @@
     if (!isSameSort(sort, DEFAULT_SORT))
       params.push(`sort=${sort.field}`, `dir=${sort.direction}`);
     if (pagesLoaded > 1) params.push(`pages=${pagesLoaded}`);
-    replaceState(
-      params.length ? `?${params.join("&")}` : page.url.pathname,
-      {},
-    );
+    replaceListUrl(params, page.url.pathname);
   }
 
   async function runSearch() {
@@ -285,16 +287,29 @@
     clearTimeout(completedTimer);
   });
 
+  /**
+   * The editor page is reached by id, so the create only counts as done once
+   * the API has answered with one — a rejected create leaves the dialog open
+   * with what was typed still in it, rather than navigating to an id that
+   * doesn't exist.
+   */
   async function saveNewSet() {
-    const result = await sheetMusic.createSet(newSet as SetRequest);
-    if (result) {
+    if (!canSave) return;
+    isSaving = true;
+    createError = "";
+    const created = await sheetMusic.createSet(newSet as SetRequest);
+    isSaving = false;
+    if (created?.id) {
       isOpen = false;
-      goto("/set/edit/" + result.id);
+      goto("/set/edit/" + created.id);
+    } else {
+      createError = "Kunne ikke lagre notesettet. Prøv igjen.";
     }
   }
 
   function openModal() {
     newSet = {};
+    createError = "";
     isOpen = true;
   }
 </script>
@@ -524,8 +539,13 @@
 
 <Modal title="Registrer nytt notesett" bind:open={isOpen} size="sm">
   <MusicSetModalBody set={newSet} />
+  {#if createError}
+    <p class="error-message">{createError}</p>
+  {/if}
   {#snippet footer()}
-    <Button onclick={saveNewSet}>Lagre</Button>
+    <Button loading={isSaving} disabled={!canSave} onclick={saveNewSet}>
+      Lagre
+    </Button>
     <Button variant="ghost" onclick={() => (isOpen = false)}>Lukk</Button>
   {/snippet}
 </Modal>
@@ -694,5 +714,11 @@
     font-size: 12px;
     color: var(--text-muted);
     white-space: nowrap;
+  }
+  .error-message {
+    margin-top: 16px;
+    font-family: var(--font-text);
+    font-size: 13px;
+    color: var(--danger);
   }
 </style>

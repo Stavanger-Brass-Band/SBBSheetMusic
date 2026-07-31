@@ -16,13 +16,22 @@ function authHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-/** Build an absolute URL, injecting `api-version` unless the caller set one. */
+/**
+ * Build an absolute URL, injecting `api-version` unless the caller set one.
+ *
+ * The param is appended as text rather than through `searchParams.set`, which
+ * re-serializes the whole query string as form-urlencoded and so rewrites every
+ * `%20` a caller encoded into a `+`. Reading `searchParams` doesn't trigger
+ * that, only mutating it does. Both forms mean a space to the API, but only the
+ * caller's own encoding survives this way. Any fragment is dropped — an API
+ * request has no use for one.
+ */
 export function buildUrl(path: string, version: ApiVersion): string {
   const url = new URL(baseUrl + path);
-  if (!url.searchParams.has("api-version")) {
-    url.searchParams.set("api-version", version);
-  }
-  return url.toString();
+  if (url.searchParams.has("api-version")) return url.toString();
+
+  const separator = url.search ? "&" : "?";
+  return `${url.origin}${url.pathname}${url.search}${separator}api-version=${version}`;
 }
 
 /**
@@ -53,14 +62,25 @@ async function authedFetch(
   return res;
 }
 
+/**
+ * Send a request and parse a successful response, or answer `undefined`.
+ *
+ * Only a 2xx is parsed. The API answers a rejected write with a problem-details
+ * document — `{ type, title, status, errors, … }` — which is perfectly good
+ * JSON, so parsing every response regardless of status handed callers that
+ * document typed as the payload they asked for. Being an object it passed every
+ * `if (result)` check, and a failed create went on to navigate to the `id` it
+ * doesn't have. Failure has to be tellable from success by value alone, because
+ * the value is all a caller gets.
+ */
 async function request<T>(
   path: string,
   version: ApiVersion,
   init: RequestInit,
   parse: (res: Response) => Promise<T>,
-): Promise<T> {
+): Promise<T | undefined> {
   const res = await authedFetch(buildUrl(path, version), init);
-  if (res.status === 401) return undefined as T;
+  if (!res.ok) return undefined;
   return parse(res);
 }
 
