@@ -62,14 +62,25 @@ async function authedFetch(
   return res;
 }
 
+/**
+ * Send a request and parse a successful response, or answer `undefined`.
+ *
+ * Only a 2xx is parsed. The API answers a rejected write with a problem-details
+ * document — `{ type, title, status, errors, … }` — which is perfectly good
+ * JSON, so parsing every response regardless of status handed callers that
+ * document typed as the payload they asked for. Being an object it passed every
+ * `if (result)` check, and a failed create went on to navigate to the `id` it
+ * doesn't have. Failure has to be tellable from success by value alone, because
+ * the value is all a caller gets.
+ */
 async function request<T>(
   path: string,
   version: ApiVersion,
   init: RequestInit,
   parse: (res: Response) => Promise<T>,
-): Promise<T> {
+): Promise<T | undefined> {
   const res = await authedFetch(buildUrl(path, version), init);
-  if (res.status === 401) return undefined as T;
+  if (!res.ok) return undefined;
   return parse(res);
 }
 

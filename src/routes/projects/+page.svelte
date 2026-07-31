@@ -26,7 +26,9 @@
     SortableTableHeader,
   } from "$lib/components/ui";
   import type { ComponentProps } from "svelte";
-  import ProjectModalBody from "$lib/components/ProjectModalBody.svelte";
+  import ProjectModalBody, {
+    isProjectDraftValid,
+  } from "$lib/components/ProjectModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   // Maps a project's lifecycle phase to its status-tag label and colour.
@@ -67,9 +69,8 @@
   let newProject = $state<Partial<Project>>({});
   let isOpen = $state(false);
   let isSaving = $state(false);
-  let canSave = $derived(
-    !!newProject.name?.trim() && !!newProject.startDate && !!newProject.endDate,
-  );
+  let createError = $state("");
+  let canSave = $derived(isProjectDraftValid(newProject));
 
   function fetchProjects(top: number, skip: number) {
     return projectsApi.search({
@@ -149,25 +150,35 @@
   });
   onDestroy(() => clearTimeout(searchTimer));
 
+  /**
+   * The editor page is reached by id, so the create only counts as done once
+   * the API has answered with one — a rejected create leaves the dialog open
+   * with what was typed still in it, rather than navigating to an id that
+   * doesn't exist.
+   */
   async function saveNewProject() {
     if (!canSave) return;
     isSaving = true;
+    createError = "";
     const body: NewProjectRequest = {
       name: newProject.name,
       startDate: toApiDate(newProject.startDate!),
       endDate: toApiDate(newProject.endDate!),
     };
 
-    const result = await projectsApi.create(body);
+    const created = await projectsApi.create(body);
     isSaving = false;
-    if (result) {
+    if (created?.id) {
       isOpen = false;
-      goto("/project/edit/" + result.id);
+      goto("/project/edit/" + created.id);
+    } else {
+      createError = "Kunne ikke lagre prosjektet. Prøv igjen.";
     }
   }
 
   function openModal() {
     newProject = {};
+    createError = "";
     isOpen = true;
   }
 </script>
@@ -284,6 +295,9 @@
 
 <Modal title="Nytt prosjekt" bind:open={isOpen} size="md">
   <ProjectModalBody project={newProject} />
+  {#if createError}
+    <p class="error-message">{createError}</p>
+  {/if}
   {#snippet footer()}
     <Button loading={isSaving} disabled={!canSave} onclick={saveNewProject}>
       Lagre
@@ -316,5 +330,11 @@
   .count {
     font-size: 12px;
     color: var(--text-muted);
+  }
+  .error-message {
+    margin-top: 16px;
+    font-family: var(--font-text);
+    font-size: 13px;
+    color: var(--danger);
   }
 </style>

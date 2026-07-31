@@ -24,6 +24,7 @@
     CircleAlert,
     Plus,
     X,
+    FileX,
   } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { parts as partsApi } from "$lib/api/parts";
@@ -41,6 +42,7 @@
   import {
     Breadcrumb,
     Button,
+    EmptyState,
     SaveIndicator,
     SAVED_VISIBLE_MS,
     Spinner,
@@ -54,6 +56,9 @@
   let set = $state<MusicSet>({});
   let catalogParts = $state<Part[]>([]);
   let loading = $state(true);
+  // The set is the page. `set` stays a plain object so the markup below can read
+  // it without guarding every field, so the failed load needs saying separately.
+  let loadFailed = $state(false);
 
   // Per-field autosave state for the two auto-saving Settinformasjon fields.
   let recordingSave = $state<SaveState>("idle");
@@ -73,6 +78,9 @@
 
   let detailsOpen = $state(false);
   let draft = $state<Partial<MusicSet>>({});
+  let detailsError = $state("");
+  // Same rule the create dialog enforces: the API requires a title.
+  let canSaveDetails = $derived(!!draft.title?.trim());
   let confirmDeleteOpen = $state(false);
   let confirmRemovePartOpen = $state(false);
   let partToRemove = $state<MusicSetPart | null>(null);
@@ -114,12 +122,15 @@
   );
 
   onMount(async () => {
-    set = await sheetMusic.getSetWithParts(id);
-    const result = await partsApi.list();
+    const loaded = await sheetMusic.getSetWithParts(id);
+    if (loaded) set = loaded;
+    else loadFailed = true;
+    const result = (await partsApi.list()) ?? [];
     result.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     catalogParts = result;
     loading = false;
-    loadCategories();
+    // Nothing to assign categories to when the set itself never arrived.
+    if (!loadFailed) loadCategories();
   });
 
   function flash(names: string[]) {
@@ -129,6 +140,7 @@
 
   async function reloadParts() {
     const result = await sheetMusic.getSetWithParts(id);
+    if (!result) return;
     set.parts = [...(result.parts ?? [])];
     set.hasBeenScanned = !!set.parts && set.parts.length > 0;
     catalog.updateMusicSet(set);
@@ -306,7 +318,7 @@
       catalog.updateMusicSet(set);
       flashCategorySaved();
     } else {
-      categorySave = "idle";
+      categorySave = "error";
     }
     categoryPick = "";
   }
@@ -321,7 +333,7 @@
       catalog.updateMusicSet(set);
       flashCategorySaved();
     } else {
-      categorySave = "idle";
+      categorySave = "error";
     }
   }
 
@@ -364,8 +376,8 @@
     const res = await sheetMusic.updateSet(set.id!, toSetRequest());
     const ok = !!res;
     if (ok) catalog.updateMusicSet(set);
-    if (field === "recording") recordingSave = ok ? "saved" : "idle";
-    else missingSave = ok ? "saved" : "idle";
+    if (field === "recording") recordingSave = ok ? "saved" : "error";
+    else missingSave = ok ? "saved" : "error";
   }
   onDestroy(() => {
     clearTimeout(recordingTimer);
@@ -382,10 +394,13 @@
       borrowedFrom: set.borrowedFrom,
       archiveNumber: set.archiveNumber,
     };
+    detailsError = "";
     detailsOpen = true;
   }
   async function saveDetails() {
+    if (!canSaveDetails) return;
     savingDetails = true;
+    detailsError = "";
     const res = await sheetMusic.updateSet(set.id!, toSetRequest(draft));
     savingDetails = false;
     if (res) {
@@ -396,6 +411,8 @@
       set.borrowedFrom = res.borrowedFrom ?? set.borrowedFrom;
       catalog.updateMusicSet(set);
       detailsOpen = false;
+    } else {
+      detailsError = "Kunne ikke lagre detaljene. Prøv igjen.";
     }
   }
 
@@ -445,6 +462,13 @@
 
 {#if loading}
   <LoadingSpinner label="Laster notesett…" />
+{:else if loadFailed}
+  <EmptyState
+    title="Fant ikke notesettet"
+    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til arkivlisten og prøv igjen."
+  >
+    {#snippet icon()}<FileX size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
 {:else}
   <div class="head">
     <div class="head__main">
@@ -767,8 +791,15 @@
 
 <Modal title="Rediger detaljer" bind:open={detailsOpen} size="sm">
   <MusicSetModalBody set={draft} />
+  {#if detailsError}
+    <p class="error-message">{detailsError}</p>
+  {/if}
   {#snippet footer()}
-    <Button onclick={saveDetails} loading={savingDetails}>
+    <Button
+      onclick={saveDetails}
+      loading={savingDetails}
+      disabled={!canSaveDetails}
+    >
       <Check size={16} /> Lagre detaljer
     </Button>
     <Button variant="ghost" onclick={() => (detailsOpen = false)}>Avbryt</Button
@@ -1261,6 +1292,13 @@
   .in:focus {
     border-color: var(--accent);
     box-shadow: var(--ring-focus);
+  }
+
+  .error-message {
+    margin-top: 16px;
+    font-family: var(--font-text);
+    font-size: 13px;
+    color: var(--danger);
   }
 
   /* ---- responsive ---- */

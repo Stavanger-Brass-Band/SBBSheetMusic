@@ -93,6 +93,11 @@
 
   let newSet = $state<Partial<MusicSet>>({});
   let isOpen = $state(false);
+  let isSaving = $state(false);
+  let createError = $state("");
+  // Title is the only field the API requires; everything else may be filled in
+  // later on the editor page.
+  let canSave = $derived(!!newSet.title?.trim());
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -282,16 +287,29 @@
     clearTimeout(completedTimer);
   });
 
+  /**
+   * The editor page is reached by id, so the create only counts as done once
+   * the API has answered with one — a rejected create leaves the dialog open
+   * with what was typed still in it, rather than navigating to an id that
+   * doesn't exist.
+   */
   async function saveNewSet() {
-    const result = await sheetMusic.createSet(newSet as SetRequest);
-    if (result) {
+    if (!canSave) return;
+    isSaving = true;
+    createError = "";
+    const created = await sheetMusic.createSet(newSet as SetRequest);
+    isSaving = false;
+    if (created?.id) {
       isOpen = false;
-      goto("/set/edit/" + result.id);
+      goto("/set/edit/" + created.id);
+    } else {
+      createError = "Kunne ikke lagre notesettet. Prøv igjen.";
     }
   }
 
   function openModal() {
     newSet = {};
+    createError = "";
     isOpen = true;
   }
 </script>
@@ -521,8 +539,13 @@
 
 <Modal title="Registrer nytt notesett" bind:open={isOpen} size="sm">
   <MusicSetModalBody set={newSet} />
+  {#if createError}
+    <p class="error-message">{createError}</p>
+  {/if}
   {#snippet footer()}
-    <Button onclick={saveNewSet}>Lagre</Button>
+    <Button loading={isSaving} disabled={!canSave} onclick={saveNewSet}>
+      Lagre
+    </Button>
     <Button variant="ghost" onclick={() => (isOpen = false)}>Lukk</Button>
   {/snippet}
 </Modal>
@@ -691,5 +714,11 @@
     font-size: 12px;
     color: var(--text-muted);
     white-space: nowrap;
+  }
+  .error-message {
+    margin-top: 16px;
+    font-family: var(--font-text);
+    font-size: 13px;
+    color: var(--danger);
   }
 </style>

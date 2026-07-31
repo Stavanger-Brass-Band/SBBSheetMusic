@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { page } from "$app/state";
-  import { Music } from "@lucide/svelte";
+  import { Music, FolderX } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import type { Project } from "$lib/types";
   import {
@@ -25,8 +25,12 @@
       projectsApi.get(id),
       projectsApi.getSets(id),
     ]);
-    info.sets = sets;
-    project = info;
+    // A project that didn't load leaves `project` unset, which the markup shows
+    // as a dead end rather than an empty page dressed up as a real project.
+    if (info) {
+      info.sets = sets ?? [];
+      project = info;
+    }
     loading = false;
   });
 </script>
@@ -36,8 +40,15 @@
   items={[{ label: "Hjem", href: "/" }, { label: project?.name ?? "-" }]}
 />
 
-{#if loading || !project}
+{#if loading}
   <LoadingSpinner label="Laster prosjekt…" />
+{:else if !project}
+  <EmptyState
+    title="Fant ikke prosjektet"
+    description="Prosjektet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til Hjem og prøv igjen."
+  >
+    {#snippet icon()}<FolderX size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
 {:else}
   <div class="head">
     <div class="head__text">

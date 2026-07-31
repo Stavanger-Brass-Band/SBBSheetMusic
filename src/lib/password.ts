@@ -164,9 +164,10 @@ const REQUIREMENT_FIELDS = [
 ] as const;
 
 /**
- * Narrows an untyped body to a policy. The API client parses any JSON body as
- * happily as a real one — a problem-details error included — so a response is
- * trusted only once at least one policy field is present.
+ * Narrows an untyped body to a policy. The endpoint leaves its response
+ * undefined in the OpenAPI document, so what comes back is trusted only once at
+ * least one policy field is present — and a rejection echoes the policy back
+ * inside a larger body, which this reads just the same.
  */
 export function asPasswordRequirements(
   value: unknown,

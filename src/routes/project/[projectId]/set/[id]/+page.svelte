@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { page } from "$app/state";
-  import { Headphones, ScanLine } from "@lucide/svelte";
+  import { Headphones, ScanLine, FileX } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { downloadSetPart } from "$lib/utils/download";
@@ -26,9 +26,14 @@
   let completedPart = $state<MusicSetPart | null>(null);
   let completedTimer: ReturnType<typeof setTimeout> | undefined;
   let loading = $state(true);
+  // The set is the page. `set` stays a plain object so the markup below can read
+  // it without guarding every field, so the failed load needs saying separately.
+  let loadFailed = $state(false);
 
   onMount(async () => {
-    set = await sheetMusic.getSetWithParts(setId);
+    const loaded = await sheetMusic.getSetWithParts(setId);
+    if (loaded) set = loaded;
+    else loadFailed = true;
     project = await projectsApi.get(projectId);
     loading = false;
   });
@@ -113,6 +118,13 @@
 
 {#if loading}
   <LoadingSpinner label="Laster notesett…" />
+{:else if loadFailed}
+  <EmptyState
+    title="Fant ikke notesettet"
+    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til prosjektet og prøv igjen."
+  >
+    {#snippet icon()}<FileX size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
 {:else}
   <div class="head">
     <div>
