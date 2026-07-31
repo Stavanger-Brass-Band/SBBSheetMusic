@@ -177,12 +177,15 @@
         class="sbb-card clickable"
         onclick={() => goto(`/part/edit/${part.id}`)}
       >
-        <span class="nr">{part.sortOrder}</span>
         <div class="body">
-          <div class="t">{part.name}</div>
+          <div class="t">
+            <span class="card-order">{part.sortOrder}</span> - {part.name}
+          </div>
           <div class="card-chips">{@render aliasChips(part.aliases ?? [])}</div>
-          <div class="card-badge">{@render indexBadge(part)}</div>
         </div>
+        <!-- Indexing reads as metadata on the card, so it sits in the top-right
+             corner rather than below the aliases. -->
+        <div class="acts card-badge">{@render indexBadge(part)}</div>
       </div>
     {/each}
   </div>
@@ -293,8 +296,18 @@
   .card-chips {
     margin-top: 10px;
   }
+  /* Mobile card: the sort order rides along in the name line, keeping the mono
+     treatment it has in the table's own column. */
+  .card-order {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  /* The shared card centres its trailing slot; pull the badge up to the first
+     line so it aligns with the name it describes. */
   .card-badge {
-    margin-top: 11px;
+    align-self: flex-start;
   }
 
   .foot-note {

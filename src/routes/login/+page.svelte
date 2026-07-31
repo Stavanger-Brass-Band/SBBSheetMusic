@@ -226,7 +226,12 @@
   .screen {
     display: grid;
     grid-template-columns: 1.08fr 1fr;
+    /* iOS resolves `vh` against the *large* viewport (browser toolbars
+       retracted), which on Chrome/iOS is ~100px taller than what is visible —
+       enough to push the bottom-pinned form under the toolbar. `svh` is the
+       height with the toolbars showing, so the form always fits. */
     min-height: 100vh;
+    min-height: 100svh;
   }
 
   /* ---------- Brand panel ---------- */

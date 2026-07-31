@@ -484,9 +484,10 @@
         onclick={() =>
           auth.canManageMusic ? goto("/set/edit/" + item.id) : null}
       >
-        <span class="nr">{item.archiveNumber}</span>
         <div class="body">
-          <div class="t">{item.title}</div>
+          <div class="t">
+            <span class="card-nr">{item.archiveNumber}</span> - {item.title}
+          </div>
           <div class="meta">
             {item.composer ?? "—"}{item.arranger
               ? " · Arr. " + item.arranger
@@ -494,29 +495,11 @@
           </div>
           {@render categoryTags(item.categories)}
         </div>
+        <!-- No ZIP action on a phone — a folder of part PDFs is of little use
+             there — so the card only reports whether the set is scanned. -->
         <div class="acts">
           {#if item.hasBeenScanned}
-            {#if auth.canManageMusic}
-              <button
-                class="zip"
-                title="Last ned som ZIP"
-                disabled={downloadingId === item.id}
-                onclick={(e) => {
-                  e.stopPropagation();
-                  downloadZip(item);
-                }}
-              >
-                {#if downloadingId === item.id}
-                  <Spinner size={15} inline /> Zip
-                {:else if completedId === item.id}
-                  <span class="ok"><Check size={15} /></span> Zip
-                {:else}
-                  <Download size={15} /> Zip
-                {/if}
-              </button>
-            {:else}
-              <span class="check"><CheckCircle size={18} /></span>
-            {/if}
+            <span class="check"><CheckCircle size={18} /></span>
           {:else}
             <span class="dash">—</span>
           {/if}
@@ -645,6 +628,14 @@
   }
   .c-title {
     font-weight: 500;
+  }
+  /* Mobile card: the archive number rides along in the title line, where it
+     keeps the mono treatment it has in the table's own column. */
+  .card-nr {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
   }
   .c-muted {
     color: var(--text-secondary);
