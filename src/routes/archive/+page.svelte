@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
-  import { beforeNavigate, goto, replaceState } from "$app/navigation";
+  import { beforeNavigate, goto } from "$app/navigation";
   import { page } from "$app/state";
   import { Modal } from "flowbite-svelte";
   import {
@@ -21,6 +21,7 @@
     isSameSort,
     parsePagesParam,
     readSortParams,
+    replaceListUrl,
     toOrderByClause,
     toggleSort,
     type SortState,
@@ -106,11 +107,10 @@
   }
 
   /**
-   * Mirror the current view into the URL, replacing the history entry so
-   * filtering never fills the back stack. Leaving the archive and coming back
-   * (or reloading, or sharing the link) then lands on the same list. The sort is
-   * left out while it matches the default, so the plain archive keeps a clean
-   * URL.
+   * Mirror the current view into the URL (see `replaceListUrl`). Leaving the
+   * archive and coming back — or reloading, or sharing the link — then lands on
+   * the same list. The sort is left out while it matches the default, so the
+   * plain archive keeps a clean URL.
    */
   function syncUrl() {
     const params: string[] = [];
@@ -121,10 +121,7 @@
     if (!isSameSort(sort, DEFAULT_SORT))
       params.push(`sort=${sort.field}`, `dir=${sort.direction}`);
     if (pagesLoaded > 1) params.push(`pages=${pagesLoaded}`);
-    replaceState(
-      params.length ? `?${params.join("&")}` : page.url.pathname,
-      {},
-    );
+    replaceListUrl(params, page.url.pathname);
   }
 
   async function runSearch() {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
-  import { goto, replaceState } from "$app/navigation";
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { Modal } from "flowbite-svelte";
   import { Plus, SearchX, FolderOpen } from "@lucide/svelte";
@@ -12,6 +12,7 @@
     isSameSort,
     parsePagesParam,
     readSortParams,
+    replaceListUrl,
     toOrderByClause,
     toggleSort,
     type SortState,
@@ -80,9 +81,9 @@
   }
 
   /**
-   * Mirror the current view into the URL, replacing the history entry so
-   * searching and sorting never fill the back stack. The sort is left out while
-   * it matches the default, so the plain list keeps a clean URL.
+   * Mirror the current view into the URL (see `replaceListUrl`), so leaving the
+   * list and coming back lands on the same view. The sort is left out while it
+   * matches the default, so the plain list keeps a clean URL.
    */
   function syncUrl() {
     const params: string[] = [];
@@ -91,10 +92,7 @@
     if (!isSameSort(sort, DEFAULT_SORT))
       params.push(`sort=${sort.field}`, `dir=${sort.direction}`);
     if (pagesLoaded > 1) params.push(`pages=${pagesLoaded}`);
-    replaceState(
-      params.length ? `?${params.join("&")}` : page.url.pathname,
-      {},
-    );
+    replaceListUrl(params, page.url.pathname);
   }
 
   async function runSearch() {
