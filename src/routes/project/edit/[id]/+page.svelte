@@ -492,12 +492,13 @@
     <LoadingSpinner inline />
   {:else}
     <div class="listhead">
-      <span></span><span>Tittel</span><span>Komponist</span><span>Arrangør</span
-      >
+      <span></span><span>Nr.</span><span>Tittel</span><span>Komponist</span
+      ><span>Arrangør</span>
     </div>
     <div class="setlist">
       {#each catalogItems as c (c.id)}
         {@const already = attachedIds.has(c.id)}
+        {@const hasArchiveNumber = c.archiveNumber !== undefined}
         <button
           class="setrow"
           class:sel={selectedIds.includes(c.id ?? "")}
@@ -506,6 +507,11 @@
           onclick={() => toggleSelect(c.id ?? "")}
         >
           <span class="chk"><Check size={13} /></span>
+          <!-- The separator that joins number and title on a phone belongs to
+               the number, so a set without one doesn't lead with a stray dash. -->
+          <span class="nr" class:unnumbered={!hasArchiveNumber}
+            >{hasArchiveNumber ? c.archiveNumber : "—"}</span
+          >
           <span class="ttl">{c.title}</span>
           <span class="cmp">{c.composer ?? "—"}</span>
           {#if already}
@@ -885,7 +891,7 @@
   }
   .listhead {
     display: grid;
-    grid-template-columns: 24px 1.4fr 1fr 1fr;
+    grid-template-columns: 24px 60px 1.4fr 1fr 1fr;
     gap: 10px;
     padding: 0 12px 8px;
     font-family: var(--font-mono);
@@ -902,7 +908,7 @@
   }
   .setrow {
     display: grid;
-    grid-template-columns: 24px 1.4fr 1fr 1fr;
+    grid-template-columns: 24px 60px 1.4fr 1fr 1fr;
     gap: 10px;
     align-items: center;
     width: 100%;
@@ -937,6 +943,11 @@
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
+  }
+  .setrow .nr {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-secondary);
   }
   .setrow .ttl {
     font-weight: 600;
@@ -1010,11 +1021,13 @@
     .listhead {
       display: none;
     }
+    /* The number rides on the title's line and the composer runs under both, so
+       it costs a line's slack instead of a column (as in the archive list). */
     .setrow {
-      grid-template-columns: 22px 1fr auto;
+      grid-template-columns: 22px auto 1fr auto;
       grid-template-areas:
-        "chk ttl pill"
-        "chk cmp pill";
+        "chk nr  ttl  pill"
+        "chk cmp cmp  pill";
       column-gap: 12px;
       row-gap: 2px;
       align-items: center;
@@ -1023,6 +1036,19 @@
     .setrow .chk {
       grid-area: chk;
       align-self: center;
+    }
+    /* The dash reads as punctuation between the two, so claw back most of the
+       row's column gap — it is meant for the checkbox, not for a separator. */
+    .setrow .nr {
+      grid-area: nr;
+      color: var(--text-muted);
+      margin-right: -5px;
+    }
+    .setrow .nr::after {
+      content: " -";
+    }
+    .setrow .nr.unnumbered::after {
+      content: none;
     }
     .setrow .ttl {
       grid-area: ttl;
