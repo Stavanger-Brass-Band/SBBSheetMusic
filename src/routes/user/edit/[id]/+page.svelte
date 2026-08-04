@@ -31,9 +31,10 @@
   // Typed on `Role`, so adding a role to the backend list won't compile until it
   // is described here too.
   const ROLE_DESCRIPTIONS: Record<Role, string> = {
-    Musikant: "Kan se og laste ned noter.",
-    Noteansvarlig:
-      "Kan i tillegg redigere arkiv, stemmer, prosjekter og kategorier.",
+    Musikant: "Kan se og laste ned noter på aktive prosjekt.",
+    Noteansvarlig: "Kan redigere arkiv, stemmer, prosjekter og kategorier.",
+    Prosjektleder:
+      "Kan opprette og redigere prosjekter, og legge til noter i dem.",
     Admin: "Full tilgang — kan også administrere brukere.",
   };
 
@@ -69,16 +70,6 @@
   let savedRole = $state<Role | null>(null);
   let savedRoleTimer: ReturnType<typeof setTimeout> | undefined;
   let roleError = $state("");
-
-  // Roles are a single escalating tier (Musikant < Noteansvarlig < Admin) — a
-  // higher role already grants the lower capabilities, so a user holds exactly
-  // one. The picker reflects the highest role currently held (null if none).
-  let selectedRole = $derived.by<Role | null>(() => {
-    for (let index = ROLES.length - 1; index >= 0; index--) {
-      if (hasRole(ROLES[index])) return ROLES[index];
-    }
-    return null;
-  });
 
   // Delete confirmation.
   let confirmOpen = $state(false);
@@ -192,7 +183,7 @@
     );
   }
 
-  /** Progress for one role's row — the switch writes with no Lagre button. */
+  /** Progress for one role's row — each row writes with no Lagre button. */
   function roleSaveState(role: Role): SaveState {
     if (savingRole === role) return "saving";
     if (savedRole === role) return "saved";
@@ -200,54 +191,50 @@
   }
 
   /**
-   * Select a single access tier: assign the chosen role and drop every other
-   * one, so the user always ends up holding exactly it. The list updates
-   * optimistically for an instant response; on any failure the roles are
-   * re-read from the server so the picker can't drift from the real state
-   * (e.g. the assign landed but a removal didn't).
+   * Grant or revoke one role, leaving the others alone — roles are independent
+   * grants that combine, so each row writes only itself. The list updates
+   * optimistically for an instant response; on failure the roles are re-read
+   * from the server so the picker can't drift from the real state.
    */
-  async function selectRole(role: Role) {
+  async function toggleRole(role: Role) {
     if (!user || savingRole !== null) return;
-    const previous = user.roles ?? [];
-    // Already exactly this role — nothing to change.
-    if (
-      previous.length === 1 &&
-      previous[0].toLowerCase() === role.toLowerCase()
-    )
-      return;
 
     const userId = user.id;
-    const others = previous.filter(
-      (assigned) => assigned.toLowerCase() !== role.toLowerCase(),
-    );
+    const previous = user.roles ?? [];
+    const held = hasRole(role);
 
     clearTimeout(savedRoleTimer);
     savedRole = null;
     savingRole = role;
     roleError = "";
-    user = { ...user, roles: [role] };
+    user = {
+      ...user,
+      roles: held
+        ? previous.filter(
+            (assigned) => assigned.toLowerCase() !== role.toLowerCase(),
+          )
+        : [...previous, role],
+    };
 
-    try {
-      if (!previous.some((r) => r.toLowerCase() === role.toLowerCase())) {
-        const res = await usersApi.assignRole(userId, role);
-        if (!res.ok) throw new Error("assign failed");
-      }
-      // Remove the old tier(s) only after the new one is in place, so the user
-      // is never briefly left without the access they should keep.
-      for (const other of others) {
-        const res = await usersApi.removeRole(userId, other);
-        if (!res.ok) throw new Error("remove failed");
-      }
-      savingRole = null;
+    const response = await (
+      held
+        ? usersApi.removeRole(userId, role)
+        : usersApi.assignRole(userId, role)
+    ).catch(() => null);
+
+    savingRole = null;
+    if (response?.ok) {
       savedRole = role;
       savedRoleTimer = setTimeout(() => (savedRole = null), SAVED_VISIBLE_MS);
-    } catch {
-      savingRole = null;
-      const fresh = await usersApi.get(userId).catch(() => null);
-      const roles = fresh?.id ? (fresh.roles ?? []) : previous;
-      if (user) user = { ...user, roles };
-      roleError = "Kunne ikke endre rollen. Prøv igjen.";
+      return;
     }
+
+    const fresh = await usersApi.get(userId).catch(() => null);
+    const roles = fresh?.id ? (fresh.roles ?? []) : previous;
+    if (user) user = { ...user, roles };
+    roleError = held
+      ? "Kunne ikke fjerne rollen. Prøv igjen."
+      : "Kunne ikke gi rollen. Prøv igjen.";
   }
 
   function askDelete() {
@@ -312,25 +299,27 @@
     </div>
   </section>
 
-  <!-- Rolle -->
+  <!-- Roller -->
   <section class="panel">
-    <h2 class="sbb-h3">Rolle</h2>
+    <h2 class="sbb-h3">Roller</h2>
     <p class="hint">
-      Velg ett tilgangsnivå — et høyere nivå inkluderer alt det lavere kan.
-      Endringer lagres med én gang.
+      Velg rollene brukeren skal ha. En bruker kan ha flere roller, og
+      rettighetene legges sammen. Endringer lagres med én gang.
     </p>
-    <div class="roles" role="radiogroup" aria-label="Tilgangsnivå">
+    <div class="roles" role="group" aria-label="Roller">
       {#each ROLES as role (role)}
         <button
           type="button"
           class="role-option"
-          class:selected={selectedRole === role}
-          role="radio"
-          aria-checked={selectedRole === role}
+          class:selected={hasRole(role)}
+          role="checkbox"
+          aria-checked={hasRole(role)}
           disabled={savingRole !== null}
-          onclick={() => selectRole(role)}
+          onclick={() => toggleRole(role)}
         >
-          <span class="radio" aria-hidden="true"></span>
+          <span class="checkbox" aria-hidden="true">
+            {#if hasRole(role)}<Check size={13} strokeWidth={3} />{/if}
+          </span>
           <span class="role">
             <span class="role__name">{role}</span>
             <span class="role__desc">{ROLE_DESCRIPTIONS[role]}</span>
@@ -484,7 +473,7 @@
     color: var(--danger);
   }
 
-  /* Access-tier picker — single-select, one option per role. */
+  /* Role picker — multi-select, one option per role. */
   .roles {
     display: flex;
     flex-direction: column;
@@ -516,24 +505,23 @@
   .role-option:disabled {
     cursor: default;
   }
-  /* Radio dot — filled with the accent when its tier is the selected one. */
-  .radio {
+  /* Checkbox — filled with the accent while the role is held. */
+  .checkbox {
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 18px;
     height: 18px;
-    border-radius: 50%;
+    border-radius: var(--radius-sm);
     border: 2px solid var(--border-strong);
-    position: relative;
-    transition: border-color var(--dur-fast);
+    color: var(--accent-on);
+    transition:
+      border-color var(--dur-fast),
+      background var(--dur-fast);
   }
-  .role-option.selected .radio {
+  .role-option.selected .checkbox {
     border-color: var(--accent);
-  }
-  .role-option.selected .radio::after {
-    content: "";
-    position: absolute;
-    inset: 3px;
-    border-radius: 50%;
     background: var(--accent);
   }
   .role {

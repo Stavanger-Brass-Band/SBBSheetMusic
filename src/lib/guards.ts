@@ -15,11 +15,21 @@ export function requireAdmin(): void {
 }
 
 /**
- * Guard for the music-catalogue editors (sets, parts, projects, categories):
- * Admin or Noteansvarlig. Mirrors `requireAdmin`'s seeding/SSR notes.
+ * Guard for the music-catalogue editors (sets, parts, categories): Admin or
+ * Noteansvarlig. Mirrors `requireAdmin`'s seeding/SSR notes.
  */
 export function requireManageMusic(): void {
   if (browser && !auth.canManageMusic) {
+    redirect(302, "/");
+  }
+}
+
+/**
+ * Guard for the project editors: Admin, Noteansvarlig or Prosjektleder. Wider
+ * than `requireManageMusic` — see `MANAGE_PROJECTS_ROLES`.
+ */
+export function requireManageProjects(): void {
+  if (browser && !auth.canManageProjects) {
     redirect(302, "/");
   }
 }

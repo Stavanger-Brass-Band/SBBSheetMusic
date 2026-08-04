@@ -11,8 +11,7 @@ const jsonHeaders = {
   "Content-Type": "application/json",
 };
 
-function authHeader(): Record<string, string> {
-  const token = auth.accessToken;
+function authHeader(token: string | null): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -39,23 +38,32 @@ export function buildUrl(path: string, version: ApiVersion): string {
  * the session (the refresh grant) and replays the request with the new token;
  * if that still 401s — or there was nothing to refresh with — it ends the
  * session. Every request in this module goes through here, so refresh is
- * handled in one place. `authHeader()` is read per send, so the replay picks up
- * the rotated token.
+ * handled in one place.
+ *
+ * The token is read per send, so the replay picks up the rotated one, and the
+ * token that was rejected is handed to `refreshSession` — a request that 401s
+ * just after a sibling request already refreshed then simply replays rather than
+ * rotating the pair a second time.
  */
 async function authedFetch(
   url: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const send = () =>
+  const send = (token: string | null) =>
     fetch(url, {
       ...init,
-      headers: { ...authHeader(), ...(init.headers as Record<string, string>) },
+      headers: {
+        ...authHeader(token),
+        ...(init.headers as Record<string, string>),
+      },
     });
 
-  let res = await send();
+  const sentToken = auth.accessToken;
+  let res = await send(sentToken);
 
   if (res.status === 401) {
-    if (await auth.refreshSession()) res = await send();
+    if (await auth.refreshSession(sentToken))
+      res = await send(auth.accessToken);
     if (res.status === 401) auth.endExpiredSession();
   }
 
