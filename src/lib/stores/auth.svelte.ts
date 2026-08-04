@@ -4,19 +4,29 @@ import {
   fetchRoles,
   refreshTokens,
   requestToken,
+  type RolesResult,
   type TokenResponse,
 } from "$lib/api/auth";
-import { ADMIN_ROLE, MANAGE_MUSIC_ROLES } from "$lib/roles";
+import {
+  ADMIN_ROLE,
+  MANAGE_MUSIC_ROLES,
+  MANAGE_PROJECTS_ROLES,
+} from "$lib/roles";
 
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const IS_ADMIN_KEY = "isAdmin";
 const CAN_MANAGE_MUSIC_KEY = "canManageMusic";
+const CAN_MANAGE_PROJECTS_KEY = "canManageProjects";
 const LAST_USER_NAME_KEY = "lastUserName";
 const LOGIN_PATH = "/login";
 
 const includesRole = (roles: string[], role: string): boolean =>
   roles.some((held) => held.toLowerCase() === role.toLowerCase());
+
+/** Whether any of `allowed` is held — roles combine, so one match is enough. */
+const holdsAnyRole = (roles: string[], allowed: readonly string[]): boolean =>
+  allowed.some((role) => includesRole(roles, role));
 
 /** Norwegian copy for a rejected sign-in — the API's body is English. */
 function loginFailureMessage(data: TokenResponse): string {
@@ -40,9 +50,12 @@ export const SESSION_EXPIRED_PARAM = "expired";
 class AuthState {
   #isAuthenticated = $state(false);
   #isAdmin = $state(false);
-  // Music-catalogue management (sets, parts, projects, categories): Admin or
+  // Music-catalogue management (sets, parts, categories): Admin or
   // Noteansvarlig. User administration stays gated on `#isAdmin` alone.
   #canManageMusic = $state(false);
+  // Project management is its own, wider grant — Prosjektleder holds it without
+  // any of the catalogue rights above.
+  #canManageProjects = $state(false);
   // One in-flight refresh shared by every 401 that races for it — the grant
   // rotates the refresh token, so a second concurrent call would spend an
   // already-consumed token and fail.
@@ -54,6 +67,8 @@ class AuthState {
       this.#isAdmin = localStorage.getItem(IS_ADMIN_KEY) === "true";
       this.#canManageMusic =
         localStorage.getItem(CAN_MANAGE_MUSIC_KEY) === "true";
+      this.#canManageProjects =
+        localStorage.getItem(CAN_MANAGE_PROJECTS_KEY) === "true";
     }
   }
 
@@ -67,6 +82,10 @@ class AuthState {
 
   get canManageMusic(): boolean {
     return this.#canManageMusic;
+  }
+
+  get canManageProjects(): boolean {
+    return this.#canManageProjects;
   }
 
   /**
@@ -113,10 +132,21 @@ class AuthState {
   /**
    * Renew an expired access token using the stored refresh token, single-flight
    * so racing 401s share one rotation. Returns whether a fresh token is now in
-   * place — the shared client uses that to decide between retrying the request
-   * and ending the session. Never throws.
+   * place — callers use that to decide between replaying the request and ending
+   * the session. Never throws.
+   *
+   * `staleToken` is the access token the rejected request actually sent. If the
+   * stored one has moved on since, another 401 has already renewed the session
+   * and the caller need only replay; rotating again on top of that would spend a
+   * perfectly good token pair for nothing. Requests fired together on page load
+   * are the ones that race this way — the later 401s land after the first has
+   * already finished refreshing.
    */
-  refreshSession(): Promise<boolean> {
+  refreshSession(staleToken?: string | null): Promise<boolean> {
+    const current = this.accessToken;
+    if (staleToken && current && current !== staleToken)
+      return Promise.resolve(true);
+
     this.#refreshInFlight ??= this.#doRefresh().finally(() => {
       this.#refreshInFlight = null;
     });
@@ -144,19 +174,59 @@ class AuthState {
       localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
   }
 
-  /** Refresh the cached role flags from `/users/me`. */
+  /**
+   * Refresh the cached role flags from `/users/me`.
+   *
+   * The read is retried once behind a token renewal, because the first request
+   * of a returning session routinely meets an expired access token while the
+   * refresh token is still good. `/users/me` doesn't go through the shared
+   * client, so nothing else would retry it: the roles came back empty and every
+   * role-gated control — the admin nav links most visibly — stayed hidden until
+   * the next full page load.
+   *
+   * Flags are rewritten only from an answer we actually got. An empty `roles`
+   * array is such an answer and rightly demotes, but a read that failed leaves
+   * the values cached from the last successful one — otherwise a single flaky
+   * request strips the user's access from the UI, and persists that.
+   */
   async loadRoles(): Promise<void> {
-    const token = this.accessToken;
-    const roles = token ? await fetchRoles(token) : [];
+    const sentWith = this.accessToken;
+    let result = await this.#readRoles(sentWith);
 
+    if (
+      result.status === "unauthorized" &&
+      (await this.refreshSession(sentWith))
+    ) {
+      result = await this.#readRoles(this.accessToken);
+    }
+
+    if (result.status === "ok") {
+      this.#applyRoles(result.roles);
+      return;
+    }
+
+    // A token the API still rejects once a refresh has been spent is done —
+    // the same conclusion the shared client draws for any other request.
+    if (result.status === "unauthorized") this.endExpiredSession();
+  }
+
+  /** One `/users/me` read with the given token, or `unauthorized` if none. */
+  async #readRoles(token: string | null): Promise<RolesResult> {
+    return token ? fetchRoles(token) : { status: "unauthorized" };
+  }
+
+  #applyRoles(roles: string[]): void {
     this.#isAdmin = includesRole(roles, ADMIN_ROLE);
-    this.#canManageMusic = MANAGE_MUSIC_ROLES.some((role) =>
-      includesRole(roles, role),
-    );
+    this.#canManageMusic = holdsAnyRole(roles, MANAGE_MUSIC_ROLES);
+    this.#canManageProjects = holdsAnyRole(roles, MANAGE_PROJECTS_ROLES);
 
     if (browser) {
       localStorage.setItem(IS_ADMIN_KEY, String(this.#isAdmin));
       localStorage.setItem(CAN_MANAGE_MUSIC_KEY, String(this.#canManageMusic));
+      localStorage.setItem(
+        CAN_MANAGE_PROJECTS_KEY,
+        String(this.#canManageProjects),
+      );
     }
   }
 
@@ -189,13 +259,14 @@ class AuthState {
     goto(`${LOGIN_PATH}?${SESSION_EXPIRED_PARAM}=1`);
   }
 
-  /** Wipes the persisted session (tokens + admin flag), leaving state alone. */
+  /** Wipes the persisted session (tokens + role flags), leaving state alone. */
   #clearStoredSession(): void {
     if (!browser) return;
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(IS_ADMIN_KEY);
     localStorage.removeItem(CAN_MANAGE_MUSIC_KEY);
+    localStorage.removeItem(CAN_MANAGE_PROJECTS_KEY);
   }
 
   #clearSession(): void {
@@ -203,6 +274,7 @@ class AuthState {
     this.#isAuthenticated = false;
     this.#isAdmin = false;
     this.#canManageMusic = false;
+    this.#canManageProjects = false;
   }
 }
 

@@ -1,3 +1,3 @@
-import { requireManageMusic } from "$lib/guards";
+import { requireManageProjects } from "$lib/guards";
 
-export const load = () => requireManageMusic();
+export const load = () => requireManageProjects();

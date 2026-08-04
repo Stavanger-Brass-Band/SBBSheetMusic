@@ -156,6 +156,13 @@
   --dur-slow: 320ms;
 }
 
+/* The app is dark-only, so tell the UA as much: scrollbars (the page's and every
+   overflow container's, dialogs included) and native controls are painted dark
+   instead of light-on-black. */
+:root {
+  color-scheme: dark;
+}
+
 /* ============================================================
    Type role utilities (from the design system).
    ============================================================ */

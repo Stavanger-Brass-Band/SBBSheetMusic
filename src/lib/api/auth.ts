@@ -77,29 +77,48 @@ export async function refreshTokens(
 }
 
 /**
- * The signed-in user's roles, from which the store derives what UI to show
- * (admin vs music management). `/users/me` answers for any authenticated user —
- * it is reading *other* users that needs admin — so the roles on the body, not
- * the status code, are what matter. A response we can't read roles from yields
- * `[]` (claim nothing); the API enforces every endpoint itself, so failing
- * closed only costs some editing UI rather than handing out controls that would
- * just 403.
+ * The outcome of reading the current user's roles.
+ *
+ * Failing has to be tellable from holding no roles: an empty `roles` array is a
+ * real answer that should overwrite the cached access flags, while a read that
+ * never landed has to leave them alone. `unauthorized` — a rejected token, the
+ * one failure a refresh can undo — is kept apart from `failed` (offline, 5xx,
+ * unreadable body), which no amount of refreshing helps and which must not end
+ * the session.
  */
-export async function fetchRoles(token: string): Promise<string[]> {
+export type RolesResult =
+  | { status: "ok"; roles: string[] }
+  | { status: "unauthorized" }
+  | { status: "failed" };
+
+/**
+ * The signed-in user's roles, from which the store derives what UI to show
+ * (admin vs music/project management). `/users/me` answers for any
+ * authenticated user — it is reading *other* users that needs admin — so the
+ * roles on the body, not the status code, are what matter.
+ *
+ * Bare fetch like the grants above, so the retry the shared client would have
+ * given a 401 has to live with the caller: `auth.loadRoles()` does it, and owns
+ * the refresh anyway.
+ */
+export async function fetchRoles(token: string): Promise<RolesResult> {
   const res = await fetch(
     `${PUBLIC_API_BASE_URL}/users/me?api-version=${VERSION}`,
     {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     },
-  );
-  if (!res.ok) return [];
+  ).catch(() => null);
+
+  if (!res) return { status: "failed" };
+  if (res.status === 401) return { status: "unauthorized" };
+  if (!res.ok) return { status: "failed" };
 
   try {
     const user = (await res.json()) as User;
-    return user.roles ?? [];
+    return { status: "ok", roles: user.roles ?? [] };
   } catch {
     // The response body is undefined in the OpenAPI document, so an empty or
-    // non-JSON body is possible — it tells us nothing, so claim nothing.
-    return [];
+    // non-JSON body is possible — it tells us nothing about the roles held.
+    return { status: "failed" };
   }
 }
