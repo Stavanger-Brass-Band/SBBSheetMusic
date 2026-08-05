@@ -15,6 +15,7 @@
     Pencil,
     Trash2,
     Download,
+    Eye,
     CloudUpload,
     Upload,
     Headphones,
@@ -31,7 +32,7 @@
   import { parts as partsApi } from "$lib/api/parts";
   import { categories as categoriesApi } from "$lib/api/categories";
   import { catalog } from "$lib/stores/catalog.svelte";
-  import { downloadSetPart, downloadSetZip } from "$lib/utils/download";
+  import { downloadSetZip } from "$lib/utils/download";
   import type {
     Category,
     MusicSet,
@@ -51,6 +52,7 @@
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import PartPreviewModal from "$lib/components/PartPreviewModal.svelte";
 
   let id = $derived(page.params.id!);
 
@@ -67,7 +69,8 @@
   // The details dialog has its own explicit save flow.
   let savingDetails = $state(false);
 
-  let selectedPartForDownload = $state<MusicSetPart | null>(null);
+  let previewOpen = $state(false);
+  let previewPart = $state<MusicSetPart | null>(null);
   let justAdded = $state<Set<string>>(new Set());
 
   let isUploading = $state(false);
@@ -147,11 +150,9 @@
     catalog.updateMusicSet(set);
   }
 
-  async function downloadPart(part: MusicSetPart) {
-    if (selectedPartForDownload === part) return;
-    selectedPartForDownload = part;
-    await downloadSetPart(id, part.name ?? "", set.title ?? "");
-    selectedPartForDownload = null;
+  function openPreview(part: MusicSetPart) {
+    previewPart = part;
+    previewOpen = true;
   }
 
   function askRemovePart(part: MusicSetPart) {
@@ -544,14 +545,10 @@
                 <span class="acts">
                   <button
                     class="iconbtn"
-                    title="Last ned"
-                    onclick={() => downloadPart(part)}
+                    title="Vis"
+                    onclick={() => openPreview(part)}
                   >
-                    {#if selectedPartForDownload === part}
-                      <Spinner size={16} inline />
-                    {:else}
-                      <Download size={17} />
-                    {/if}
+                    <Eye size={17} />
                   </button>
                   <button
                     class="iconbtn danger"
@@ -807,6 +804,13 @@
     >
   {/snippet}
 </Modal>
+
+<PartPreviewModal
+  bind:open={previewOpen}
+  setId={id}
+  part={previewPart}
+  setTitle={set.title ?? ""}
+/>
 
 <style>
   /* ---- header ---- */

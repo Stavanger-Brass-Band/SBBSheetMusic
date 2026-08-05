@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Eye } from "@lucide/svelte";
   import Avatar from "./Avatar.svelte";
 
   let {
@@ -16,9 +15,6 @@
 <button type="button" class="tile" {onclick}>
   <Avatar src={instrument} alt={name ?? ""} size={52} />
   <span class="name">{name}</span>
-  <span class="action">
-    <Eye size={20} />
-  </span>
 </button>
 
 <style>
@@ -45,13 +41,5 @@
     font-weight: 500;
     font-size: 16px;
     color: var(--white);
-  }
-  .action {
-    display: inline-flex;
-    color: var(--gray-400);
-    transition: color var(--dur-fast);
-  }
-  .tile:hover .action {
-    color: var(--brass-500);
   }
 </style>
