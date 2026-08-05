@@ -238,8 +238,16 @@ export function createClient(version: ApiVersion) {
     getText: (path: string) =>
       request<string>(path, version, { method: "GET" }, (r) => r.text()),
 
+    // Without an explicit Accept the API's content negotiation answers 406
+    // rather than falling back to the file — the endpoint only produces PDFs,
+    // so it needs the client to say so.
     getBlob: (path: string) =>
-      request<Blob>(path, version, { method: "GET" }, (r) => r.blob()),
+      request<Blob>(
+        path,
+        version,
+        { method: "GET", headers: { Accept: "application/pdf" } },
+        (r) => r.blob(),
+      ),
 
     getMultiple: <T>(paths: string[]) =>
       Promise.all(

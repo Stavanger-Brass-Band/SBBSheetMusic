@@ -15,9 +15,9 @@ export type PartPdfResult =
   | { status: "failed" };
 
 /**
- * Fetch a single part's PDF via a fresh one-time download token. Shared by the
- * preview modal — which renders the blob inline and offers it for download or
- * sharing without spending a second token — and `downloadSetPart` below.
+ * Fetch a single part's PDF via a fresh one-time download token. Used by the
+ * preview modal, which renders the blob inline and offers it for download or
+ * sharing without spending a second token.
  */
 export async function fetchSetPartPdf(
   setId: string,
@@ -41,22 +41,6 @@ export function downloadPdf(blob: Blob, filename: string): void {
   link.download = filename;
   link.click();
   setTimeout(() => window.URL.revokeObjectURL(url), 100);
-}
-
-/**
- * Fetch a single part's PDF (via a one-time download token) and download it as
- * `{setTitle} - {partName}.pdf`.
- */
-export async function downloadSetPart(
-  setId: string,
-  partName: string,
-  setTitle: string,
-): Promise<DownloadOutcome> {
-  const result = await fetchSetPartPdf(setId, partName);
-  if (result.status !== "ok") return result.status;
-
-  downloadPdf(result.blob, `${setTitle} - ${partName}.pdf`);
-  return "done";
 }
 
 /** Download the whole set as a ZIP (token appended to the set's zip URL). */
