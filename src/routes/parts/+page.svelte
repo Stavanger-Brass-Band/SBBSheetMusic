@@ -39,7 +39,12 @@
   // dedicated /part/edit/[id] page, reached by clicking a row.
   let isOpen = $state(false);
   let isSaving = $state(false);
-  let form = $state<PartForm>({ name: "", sortOrder: 0, indexable: true });
+  let form = $state<PartForm>({
+    name: "",
+    sortOrder: 0,
+    indexable: true,
+    instrumentGroup: "",
+  });
   let errorMessage = $state("");
 
   let canSave = $derived(!!form.name.trim());
@@ -57,7 +62,12 @@
   }
 
   function openCreate() {
-    form = { name: "", sortOrder: nextOrder(), indexable: true };
+    form = {
+      name: "",
+      sortOrder: nextOrder(),
+      indexable: true,
+      instrumentGroup: "",
+    };
     errorMessage = "";
     isOpen = true;
   }
@@ -72,6 +82,7 @@
       name: form.name.trim(),
       sortOrder: form.sortOrder,
       indexable: form.indexable,
+      instrumentGroup: form.instrumentGroup || null,
     };
     try {
       const created = await partsApi.create(body);
@@ -98,6 +109,14 @@
         <span class="chip more">+{aliases.length - MAX_CHIPS}</span>
       {/if}
     </div>
+  {/if}
+{/snippet}
+
+{#snippet groupBadge(part: Part)}
+  {#if part.instrumentGroup}
+    <Badge variant="outline">{part.instrumentGroup}</Badge>
+  {:else}
+    <span class="chip none">Ingen gruppe</span>
   {/if}
 {/snippet}
 
@@ -150,6 +169,7 @@
           <th class="c-order">Rekkefølge</th>
           <th>Navn</th>
           <th>Aliaser</th>
+          <th class="c-group">Gruppe</th>
           <th class="c-index">Indeksering</th>
           <th class="c-edit"></th>
         </tr>
@@ -160,6 +180,7 @@
             <td class="c-order">{part.sortOrder}</td>
             <td class="c-name">{part.name}</td>
             <td class="c-aliases">{@render aliasChips(part.aliases ?? [])}</td>
+            <td class="c-group">{@render groupBadge(part)}</td>
             <td class="c-index">{@render indexBadge(part)}</td>
             <td class="c-edit">
               <span class="editlink" title="Rediger"><Pencil size={15} /></span>
@@ -181,6 +202,9 @@
           <div class="t">
             <span class="card-order">{part.sortOrder}</span> - {part.name}
           </div>
+          {#if part.instrumentGroup}
+            <div class="card-group">{part.instrumentGroup}</div>
+          {/if}
           <div class="card-chips">{@render aliasChips(part.aliases ?? [])}</div>
         </div>
         <!-- Indexing reads as metadata on the card, so it sits in the top-right
@@ -211,9 +235,6 @@
 </Modal>
 
 <style>
-  .title-cell {
-    max-width: 560px;
-  }
   .lede {
     margin: 10px 0 0;
     font-size: 14px;
@@ -233,7 +254,10 @@
     white-space: nowrap;
   }
   .c-aliases {
-    width: 46%;
+    width: 36%;
+  }
+  .c-group {
+    width: 180px;
   }
   .c-index {
     width: 150px;
@@ -293,6 +317,11 @@
     border-color: transparent;
   }
 
+  .card-group {
+    margin-top: 3px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
   .card-chips {
     margin-top: 10px;
   }

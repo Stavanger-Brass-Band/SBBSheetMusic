@@ -1,32 +1,25 @@
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 import {
-  fetchRoles,
+  fetchMe,
   refreshTokens,
   requestToken,
-  type RolesResult,
+  type MeResult,
   type TokenResponse,
 } from "$lib/api/auth";
-import {
-  ADMIN_ROLE,
-  MANAGE_MUSIC_ROLES,
-  MANAGE_PROJECTS_ROLES,
-} from "$lib/roles";
+import { capabilitiesFrom } from "$lib/roles";
 
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const IS_ADMIN_KEY = "isAdmin";
 const CAN_MANAGE_MUSIC_KEY = "canManageMusic";
 const CAN_MANAGE_PROJECTS_KEY = "canManageProjects";
+const CAN_READ_LIBRARY_KEY = "canReadLibrary";
+const CAN_ACCESS_CATALOG_KEY = "canAccessCatalog";
+const NAME_KEY = "name";
+const EMAIL_KEY = "email";
 const LAST_USER_NAME_KEY = "lastUserName";
 const LOGIN_PATH = "/login";
-
-const includesRole = (roles: string[], role: string): boolean =>
-  roles.some((held) => held.toLowerCase() === role.toLowerCase());
-
-/** Whether any of `allowed` is held — roles combine, so one match is enough. */
-const holdsAnyRole = (roles: string[], allowed: readonly string[]): boolean =>
-  allowed.some((role) => includesRole(roles, role));
 
 /** Norwegian copy for a rejected sign-in — the API's body is English. */
 function loginFailureMessage(data: TokenResponse): string {
@@ -56,6 +49,18 @@ class AuthState {
   // Project management is its own, wider grant — Prosjektleder holds it without
   // any of the catalogue rights above.
   #canManageProjects = $state(false);
+  // Reading the whole library (every set and project, running or not): Admin,
+  // Noteansvarlig or Arkivleser.
+  #canReadLibrary = $state(false);
+  // Any catalog access at all — the above plus Musikant, who is narrowed to the
+  // active projects. Without it the API serves no sets, projects or download
+  // tokens, so the UI offers none either.
+  #canAccessCatalog = $state(false);
+  // Display-only identity for the account menu — never used for access
+  // decisions, so unlike the flags above a stale or missing value only means a
+  // blank line in the menu, not a wrongly shown control.
+  #name = $state<string | null>(null);
+  #email = $state<string | null>(null);
   // One in-flight refresh shared by every 401 that races for it — the grant
   // rotates the refresh token, so a second concurrent call would spend an
   // already-consumed token and fail.
@@ -69,6 +74,17 @@ class AuthState {
         localStorage.getItem(CAN_MANAGE_MUSIC_KEY) === "true";
       this.#canManageProjects =
         localStorage.getItem(CAN_MANAGE_PROJECTS_KEY) === "true";
+      this.#canReadLibrary =
+        localStorage.getItem(CAN_READ_LIBRARY_KEY) === "true";
+      // Absent counts as allowed, unlike every flag above. This one gates the
+      // *member* side of the app, and it is only cached to have an answer before
+      // `loadRoles` lands: a session that predates the flag would otherwise be
+      // turned away from the archive on its first load after a deploy. Guessing
+      // generously costs nothing — the API is what actually refuses.
+      this.#canAccessCatalog =
+        localStorage.getItem(CAN_ACCESS_CATALOG_KEY) !== "false";
+      this.#name = localStorage.getItem(NAME_KEY);
+      this.#email = localStorage.getItem(EMAIL_KEY);
     }
   }
 
@@ -86,6 +102,24 @@ class AuthState {
 
   get canManageProjects(): boolean {
     return this.#canManageProjects;
+  }
+
+  get canReadLibrary(): boolean {
+    return this.#canReadLibrary;
+  }
+
+  get canAccessCatalog(): boolean {
+    return this.#canAccessCatalog;
+  }
+
+  /** The signed-in user's display name, for the account menu. */
+  get name(): string | null {
+    return this.#name;
+  }
+
+  /** The signed-in user's email, for the account menu. */
+  get email(): string | null {
+    return this.#email;
   }
 
   /**
@@ -175,7 +209,7 @@ class AuthState {
   }
 
   /**
-   * Refresh the cached role flags from `/users/me`.
+   * Refresh the cached role flags and identity from `/users/me`.
    *
    * The read is retried once behind a token renewal, because the first request
    * of a returning session routinely meets an expired access token while the
@@ -184,24 +218,25 @@ class AuthState {
    * role-gated control — the admin nav links most visibly — stayed hidden until
    * the next full page load.
    *
-   * Flags are rewritten only from an answer we actually got. An empty `roles`
-   * array is such an answer and rightly demotes, but a read that failed leaves
-   * the values cached from the last successful one — otherwise a single flaky
-   * request strips the user's access from the UI, and persists that.
+   * Everything cached here is rewritten only from an answer we actually got. An
+   * empty `roles` array is such an answer and rightly demotes, but a read that
+   * failed leaves the values cached from the last successful one — otherwise a
+   * single flaky request strips the user's access from the UI, and persists
+   * that.
    */
   async loadRoles(): Promise<void> {
     const sentWith = this.accessToken;
-    let result = await this.#readRoles(sentWith);
+    let result = await this.#readMe(sentWith);
 
     if (
       result.status === "unauthorized" &&
       (await this.refreshSession(sentWith))
     ) {
-      result = await this.#readRoles(this.accessToken);
+      result = await this.#readMe(this.accessToken);
     }
 
     if (result.status === "ok") {
-      this.#applyRoles(result.roles);
+      this.#applyMe(result);
       return;
     }
 
@@ -211,14 +246,23 @@ class AuthState {
   }
 
   /** One `/users/me` read with the given token, or `unauthorized` if none. */
-  async #readRoles(token: string | null): Promise<RolesResult> {
-    return token ? fetchRoles(token) : { status: "unauthorized" };
+  async #readMe(token: string | null): Promise<MeResult> {
+    return token ? fetchMe(token) : { status: "unauthorized" };
   }
 
-  #applyRoles(roles: string[]): void {
-    this.#isAdmin = includesRole(roles, ADMIN_ROLE);
-    this.#canManageMusic = holdsAnyRole(roles, MANAGE_MUSIC_ROLES);
-    this.#canManageProjects = holdsAnyRole(roles, MANAGE_PROJECTS_ROLES);
+  #applyMe(me: {
+    roles: string[];
+    name: string | null;
+    email: string | null;
+  }): void {
+    const capabilities = capabilitiesFrom(me.roles);
+    this.#isAdmin = capabilities.isAdmin;
+    this.#canManageMusic = capabilities.canManageMusic;
+    this.#canManageProjects = capabilities.canManageProjects;
+    this.#canReadLibrary = capabilities.canReadLibrary;
+    this.#canAccessCatalog = capabilities.canAccessCatalog;
+    this.#name = me.name;
+    this.#email = me.email;
 
     if (browser) {
       localStorage.setItem(IS_ADMIN_KEY, String(this.#isAdmin));
@@ -227,6 +271,15 @@ class AuthState {
         CAN_MANAGE_PROJECTS_KEY,
         String(this.#canManageProjects),
       );
+      localStorage.setItem(CAN_READ_LIBRARY_KEY, String(this.#canReadLibrary));
+      localStorage.setItem(
+        CAN_ACCESS_CATALOG_KEY,
+        String(this.#canAccessCatalog),
+      );
+      if (this.#name !== null) localStorage.setItem(NAME_KEY, this.#name);
+      else localStorage.removeItem(NAME_KEY);
+      if (this.#email !== null) localStorage.setItem(EMAIL_KEY, this.#email);
+      else localStorage.removeItem(EMAIL_KEY);
     }
   }
 
@@ -267,6 +320,10 @@ class AuthState {
     localStorage.removeItem(IS_ADMIN_KEY);
     localStorage.removeItem(CAN_MANAGE_MUSIC_KEY);
     localStorage.removeItem(CAN_MANAGE_PROJECTS_KEY);
+    localStorage.removeItem(CAN_READ_LIBRARY_KEY);
+    localStorage.removeItem(CAN_ACCESS_CATALOG_KEY);
+    localStorage.removeItem(NAME_KEY);
+    localStorage.removeItem(EMAIL_KEY);
   }
 
   #clearSession(): void {
@@ -275,6 +332,10 @@ class AuthState {
     this.#isAdmin = false;
     this.#canManageMusic = false;
     this.#canManageProjects = false;
+    this.#canReadLibrary = false;
+    this.#canAccessCatalog = false;
+    this.#name = null;
+    this.#email = null;
   }
 }
 

@@ -4,209 +4,6 @@
  */
 
 export interface paths {
-    "/token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Authenticate using legacy HMAC password hash and receive a JWT token. */
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description The username and password to authenticate with */
-            requestBody: {
-                content: {
-                    "application/x-www-form-urlencoded": {
-                        grant_type?: string;
-                        username?: string;
-                        password?: string;
-                        refresh_token?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description The access token */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiAccessTokens"];
-                        "application/json": components["schemas"]["ApiAccessTokens"];
-                        "text/json": components["schemas"]["ApiAccessTokens"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register a new user using legacy password hashing. */
-        post: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Details about the new user */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["UserRequest"];
-                    "text/json": components["schemas"]["UserRequest"];
-                    "application/*+json": components["schemas"]["UserRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/{identifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a user by ID or "me" for the current user. */
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    /** @description The guid of the user, or "me" for the current user */
-                    identifier: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description The user matching the identifier */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        /** Update a user's password using legacy password hashing. */
-        put: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path: {
-                    /** @description The guid of the user to update */
-                    identifier: string;
-                };
-                cookie?: never;
-            };
-            /** @description The new password */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["UpdateUserRequest"];
-                    "text/json": components["schemas"]["UpdateUserRequest"];
-                    "application/*+json": components["schemas"]["UpdateUserRequest"];
-                };
-            };
-            responses: {
-                /** @description Password was updated successfully */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get all users. */
-        get: {
-            parameters: {
-                query: {
-                    /** @description The requested API version */
-                    "api-version": "1.0";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description A list of all users */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/categories": {
         parameters: {
             query?: never;
@@ -253,7 +50,7 @@ export interface paths {
         put?: never;
         /**
          * Adds a new category.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         post: {
             parameters: {
@@ -327,7 +124,7 @@ export interface paths {
         };
         /**
          * Updates the category identified by categoryIdentifier.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         put: {
             parameters: {
@@ -365,7 +162,7 @@ export interface paths {
         post?: never;
         /**
          * Deletes the category identified by categoryIdentifier.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         delete: {
             parameters: {
@@ -1134,7 +931,7 @@ export interface paths {
         put?: never;
         /**
          * Adds a new project.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig, Prosjektleder or Administrator privileges.
          */
         post: {
             parameters: {
@@ -1212,7 +1009,7 @@ export interface paths {
         };
         /**
          * Updates the project identified by projectIdentifier. PS! Provide all values, those not provided will be set to null.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig, Prosjektleder or Administrator privileges.
          */
         put: {
             parameters: {
@@ -1321,7 +1118,7 @@ export interface paths {
          * Assigns the given sets to a project. The order of List&lt;string&gt; SetCollectionRequest.SetIdentifiers determines
          *     the sort order of those sets - sets already assigned to the project are moved to match their position in the
          *     list, so this endpoint also covers reordering the sets currently assigned to a project.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig, Prosjektleder or Administrator privileges.
          */
         post: {
             parameters: {
@@ -1360,7 +1157,7 @@ export interface paths {
         };
         /**
          * Removes the given sets from a project.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig, Prosjektleder or Administrator privileges.
          */
         delete: {
             parameters: {
@@ -1411,7 +1208,7 @@ export interface paths {
         };
         /**
          * Search for a part through the Part index.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         get: {
             parameters: {
@@ -1484,7 +1281,7 @@ export interface paths {
         /**
          * Gets a list of all Parts. OData filtering is supported, e.g. $filter=name eq 'partitur'.
          *     Use $expand=aliases to include the enabled aliases of each part.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         get: {
             parameters: {
@@ -1524,7 +1321,7 @@ export interface paths {
         put?: never;
         /**
          * Add a new part.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         post: {
             parameters: {
@@ -1571,7 +1368,7 @@ export interface paths {
         };
         /**
          * Gets details about part identified by partIdentifier.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         get: {
             parameters: {
@@ -1601,7 +1398,7 @@ export interface paths {
         };
         /**
          * Updates information about part identified by partIdentifier PS! Provide all values, those not provided will be set to null.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         put: {
             parameters: {
@@ -1639,7 +1436,7 @@ export interface paths {
         post?: never;
         /**
          * Deletes part identified by partIdentifier permanently.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         delete: {
             parameters: {
@@ -1683,7 +1480,7 @@ export interface paths {
         put?: never;
         /**
          * Adds alias to part identified by partIdentifier.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         post: {
             parameters: {
@@ -1731,7 +1528,7 @@ export interface paths {
         post?: never;
         /**
          * Delete alias from part identified by partIdentifier.
-         *     Requires Administrator privileges.
+         *     Requires Noteansvarlig or Administrator privileges.
          */
         delete: {
             parameters: {
@@ -1770,14 +1567,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ApiAccessTokens: {
-            access_token?: string;
-            refresh_token?: string;
-            token_type?: string;
-            /** Format: int32 */
-            expires_in?: number | string;
-            scope?: string;
-        };
         ApiCategory: {
             /** Format: uuid */
             id?: string;
@@ -1791,6 +1580,7 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number | string;
             indexable?: boolean;
+            instrumentGroup?: null | components["schemas"]["InstrumentGroup"];
             aliases?: string[];
         };
         ApiProject: {
@@ -1857,6 +1647,8 @@ export interface components {
         ExpressionType: number;
         /** Format: binary */
         IFormFile: string;
+        /** @enum {unknown} */
+        InstrumentGroup: "Kornett" | "Horn og flygelhorn" | "Euphonium og baryton" | "Tromboner" | "Tuba" | "Slagverk" | null;
         NewProjectRequest: {
             name?: string;
             /** Format: date-time */
@@ -1890,6 +1682,7 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number | string;
             indexable?: null | boolean;
+            instrumentGroup?: null | components["schemas"]["InstrumentGroup"];
         };
         SetCollectionRequest: {
             setIdentifiers?: string[];
@@ -1913,18 +1706,6 @@ export interface components {
             startDate?: string;
             /** Format: date-time */
             endDate?: string;
-        };
-        UpdateUserRequest: {
-            name?: string;
-            email?: string;
-            password?: string;
-        };
-        UserRequest: {
-            /** Format: uuid */
-            id?: null | string;
-            name?: string;
-            email?: string;
-            password?: string;
         };
     };
     responses: never;

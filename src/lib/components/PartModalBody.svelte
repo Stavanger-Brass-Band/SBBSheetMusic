@@ -1,10 +1,15 @@
 <script lang="ts">
-  import { Label, Input, Toggle } from "flowbite-svelte";
-  import type { PartForm } from "$lib/types";
+  import { Label, Input, Select, Toggle } from "flowbite-svelte";
+  import { INSTRUMENT_GROUPS, type PartForm } from "$lib/types";
 
   // `form` is mutated in place; the parent owns the reactive object. Aliases are
   // managed on the part edit page (their own endpoints), not here.
   let { form }: { form: PartForm } = $props();
+
+  const instrumentGroupItems = [
+    { value: "", name: "Ingen gruppe" },
+    ...INSTRUMENT_GROUPS.map((group) => ({ value: group, name: group })),
+  ];
 </script>
 
 <form class="space-y-4">
@@ -33,6 +38,15 @@
         }}
       />
     </div>
+  </div>
+
+  <div>
+    <Label for="partInstrumentGroup" class="mb-2">Instrumentgruppe</Label>
+    <Select
+      id="partInstrumentGroup"
+      items={instrumentGroupItems}
+      bind:value={form.instrumentGroup}
+    />
   </div>
 
   <div class="toggle-field">

@@ -6,9 +6,11 @@
     FolderOpen,
     ChevronRight,
     TriangleAlert,
+    Lock,
   } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
+  import { auth } from "$lib/stores/auth.svelte";
   import { DateRangeBoxes, EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { cardEnter } from "$lib/utils/motion";
@@ -17,6 +19,10 @@
   let loadFailed = $state(false);
 
   onMount(async () => {
+    // Without a catalog role the API answers with an empty list however hard we
+    // ask, so nothing is asked — the page says why instead.
+    if (!auth.canAccessCatalog) return;
+
     if (catalog.activeProjects.length < 1) {
       loading = true;
     }
@@ -35,13 +41,22 @@
 
 <div class="intro">
   <h1 class="sbb-h1">Aktive prosjekt</h1>
-  <p>
-    Her finner du alle noter tilhørende korpsets aktive prosjekter. Velg et
-    prosjekt for å se og laste ned notene.
-  </p>
+  {#if auth.canAccessCatalog}
+    <p>
+      Her finner du alle noter tilhørende korpsets aktive prosjekter. Velg et
+      prosjekt for å se og laste ned notene.
+    </p>
+  {/if}
 </div>
 
-{#if loading}
+{#if !auth.canAccessCatalog}
+  <EmptyState
+    title="Ingen tilgang til notene"
+    description="Kontoen din har ikke tilgang til notearkivet enda. Ta kontakt med en administrator for å få rollen Musikant eller Arkivleser."
+  >
+    {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
+{:else if loading}
   <LoadingSpinner label="Laster prosjekter…" />
 {:else if catalog.activeProjects.length === 0}
   {#if loadFailed}
@@ -99,7 +114,6 @@
   }
   .intro p {
     margin: 14px 0 0;
-    max-width: 560px;
     font-size: 16px;
     line-height: 1.6;
     color: var(--text-secondary);

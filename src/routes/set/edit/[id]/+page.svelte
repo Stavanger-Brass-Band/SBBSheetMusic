@@ -27,6 +27,7 @@
     FileX,
   } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
+  import { catalogData } from "$lib/api/client";
   import { parts as partsApi } from "$lib/api/parts";
   import { categories as categoriesApi } from "$lib/api/categories";
   import { catalog } from "$lib/stores/catalog.svelte";
@@ -122,7 +123,7 @@
   );
 
   onMount(async () => {
-    const loaded = await sheetMusic.getSetWithParts(id);
+    const loaded = catalogData(await sheetMusic.getSetWithParts(id));
     if (loaded) set = loaded;
     else loadFailed = true;
     const result = (await partsApi.list()) ?? [];
@@ -139,7 +140,7 @@
   }
 
   async function reloadParts() {
-    const result = await sheetMusic.getSetWithParts(id);
+    const result = catalogData(await sheetMusic.getSetWithParts(id));
     if (!result) return;
     set.parts = [...(result.parts ?? [])];
     set.hasBeenScanned = !!set.parts && set.parts.length > 0;

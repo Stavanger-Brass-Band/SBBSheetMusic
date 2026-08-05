@@ -116,6 +116,46 @@ async function getOptional<T>(
   }
 }
 
+/**
+ * The outcome of a read the catalog policy can refuse.
+ *
+ * Being refused has to be tellable from any other failure. The roles decide
+ * which projects and sets a user may see — a Musikant only the ones on a running
+ * project, an Arkivleser everything — and the API answers 403 for the rest. A
+ * page that lumped that in with a failed request would tell the user their notes
+ * couldn't be loaded when the truth is they aren't theirs to load. Nothing about
+ * the refused resource comes back either way: the status is all there is.
+ */
+export type CatalogResult<T> =
+  | { status: "ok"; data: T }
+  | { status: "forbidden" }
+  | { status: "failed" };
+
+/**
+ * The data if the read landed, else `undefined`. For callers with no separate
+ * no-access state to show — the admin editors, which can only be refused by
+ * losing a role mid-session.
+ */
+export function catalogData<T>(result: CatalogResult<T>): T | undefined {
+  return result.status === "ok" ? result.data : undefined;
+}
+
+async function getCatalog<T>(
+  path: string,
+  version: ApiVersion,
+  parse: (res: Response) => Promise<T>,
+): Promise<CatalogResult<T>> {
+  const res = await authedFetch(buildUrl(path, version), { method: "GET" });
+  if (res.status === 403) return { status: "forbidden" };
+  if (!res.ok) return { status: "failed" };
+
+  try {
+    return { status: "ok", data: await parse(res) };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
 async function postFile(
   path: string,
   version: ApiVersion,
@@ -187,6 +227,13 @@ export function createClient(version: ApiVersion) {
       ),
 
     getOptional: <T>(path: string) => getOptional<T>(path, version),
+
+    /** GET a role-scoped catalog resource — see `CatalogResult`. */
+    getCatalog: <T>(path: string) =>
+      getCatalog<T>(path, version, (r) => r.json() as Promise<T>),
+
+    getCatalogText: (path: string) =>
+      getCatalog<string>(path, version, (r) => r.text()),
 
     getText: (path: string) =>
       request<string>(path, version, { method: "GET" }, (r) => r.text()),

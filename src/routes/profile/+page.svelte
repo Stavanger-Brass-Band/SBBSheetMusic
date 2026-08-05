@@ -1,0 +1,168 @@
+<script lang="ts">
+  import { onMount, onDestroy } from "svelte";
+  import { Check, TriangleAlert } from "@lucide/svelte";
+  import { users as usersApi } from "$lib/api/users";
+  import { auth } from "$lib/stores/auth.svelte";
+  import {
+    isPasswordAcceptable,
+    readPasswordRejection,
+    type PasswordRuleKey,
+  } from "$lib/password";
+  import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
+  import type { UpdateUserRequest, UserForm } from "$lib/types";
+  import {
+    Breadcrumb,
+    Button,
+    EmptyState,
+    SAVED_VISIBLE_MS,
+  } from "$lib/components/ui";
+  import UserModalBody from "$lib/components/UserModalBody.svelte";
+  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+
+  // Set once the profile has loaded — every save targets this id, since the
+  // update endpoint (unlike the read) takes a real guid, not "me".
+  let userId = "";
+
+  let loading = $state(true);
+  let loadFailed = $state(false);
+
+  let form = $state<Pick<UserForm, "name" | "email" | "password">>({
+    name: "",
+    email: "",
+    password: "",
+  });
+  let saving = $state(false);
+  let error = $state("");
+  let saved = $state(false);
+  let savedTimer: ReturnType<typeof setTimeout> | undefined;
+  let rejectedPasswordRules = $state<PasswordRuleKey[]>([]);
+
+  // A blank password field keeps the current one, so the policy only has a say
+  // once something has been typed into it — same rule as the admin editor.
+  let canSave = $derived(
+    !!form.name.trim() &&
+      !!form.email.trim() &&
+      (!form.password ||
+        isPasswordAcceptable(form.password, passwordPolicy.requirements)),
+  );
+
+  onMount(async () => {
+    passwordPolicy.load();
+    const me = await usersApi.get("me").catch(() => null);
+    if (me?.id) {
+      userId = me.id;
+      form = {
+        name: me.name ?? "",
+        email: me.email ?? "",
+        password: "",
+      };
+    } else {
+      loadFailed = true;
+    }
+    loading = false;
+  });
+
+  onDestroy(() => clearTimeout(savedTimer));
+
+  async function save() {
+    if (!canSave || !userId) return;
+    saving = true;
+    error = "";
+    rejectedPasswordRules = [];
+    const body: UpdateUserRequest = {
+      name: form.name.trim(),
+      email: form.email.trim(),
+    };
+    if (form.password) body.password = form.password;
+    const response = await usersApi.update(userId, body);
+    saving = false;
+    if (response.ok) {
+      form.password = "";
+      saved = true;
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(() => (saved = false), SAVED_VISIBLE_MS);
+      // The account menu caches name/email from `/users/me` at login — refresh
+      // it so a changed name shows there right away, not after the next login.
+      await auth.loadRoles();
+      return;
+    }
+
+    const rejection = await readPasswordRejection(response);
+    passwordPolicy.applyFromRejection(rejection?.requirements ?? null);
+    rejectedPasswordRules = rejection?.failedRules ?? [];
+    error = rejectedPasswordRules.length
+      ? "Passordet oppfyller ikke kravene."
+      : "Kunne ikke lagre endringene. Prøv igjen.";
+  }
+</script>
+
+<Breadcrumb
+  class="mb-6"
+  items={[{ label: "Hjem", href: "/" }, { label: "Min profil" }]}
+/>
+
+{#if loading}
+  <LoadingSpinner label="Laster profil…" />
+{:else if loadFailed}
+  <EmptyState
+    title="Kunne ikke laste profilen"
+    description="Noe gikk galt da vi hentet profilen din. Last siden på nytt for å prøve igjen."
+  >
+    {#snippet icon()}<TriangleAlert size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
+{:else}
+  <h1 class="sbb-h1 title">Min profil</h1>
+
+  <section class="panel">
+    <UserModalBody {form} isEditing {rejectedPasswordRules} />
+    {#if error}<p class="err">{error}</p>{/if}
+    <div class="panel-foot">
+      {#if saved}
+        <span class="saved"><Check size={15} /> Lagret</span>
+      {/if}
+      <Button loading={saving} disabled={!canSave} onclick={save}>
+        Lagre endringer
+      </Button>
+    </div>
+  </section>
+{/if}
+
+<style>
+  .title {
+    margin: 0 0 28px;
+    font-size: 40px;
+  }
+  .panel {
+    padding: 24px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    max-width: 640px;
+  }
+  .panel-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    margin-top: 20px;
+  }
+  .saved {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--success);
+  }
+  .err {
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: var(--danger);
+  }
+
+  @media (max-width: 720px) {
+    .title {
+      font-size: 30px;
+    }
+  }
+</style>

@@ -16,6 +16,7 @@
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { categories as categoriesApi } from "$lib/api/categories";
   import { downloadSetZip } from "$lib/utils/download";
+  import { setRouteFor } from "$lib/utils/setRoute";
   import {
     PAGE_SIZE,
     isSameSort,
@@ -90,6 +91,9 @@
   // Id of the set whose ZIP just downloaded — shows a brief success check.
   let completedId = $state<string | null>(null);
   let completedTimer: ReturnType<typeof setTimeout> | undefined;
+  // Why the last download didn't happen, if it didn't. Says nothing about the
+  // set — a refused download tells us nothing about it.
+  let downloadError = $state("");
 
   let newSet = $state<Partial<MusicSet>>({});
   let isOpen = $state(false);
@@ -257,10 +261,24 @@
     searchTimer = setTimeout(() => runSearch(), 300);
   }
 
+  function openSet(item: MusicSet) {
+    const route = item.id && setRouteFor(item.id, auth);
+    if (route) goto(route);
+  }
+
   async function downloadZip(item: MusicSet) {
     downloadingId = item.id ?? null;
+    downloadError = "";
     try {
-      await downloadSetZip(item.id!, item.zipDownloadUrl ?? "");
+      const outcome = await downloadSetZip(item.id!, item.zipDownloadUrl ?? "");
+      if (outcome === "forbidden") {
+        downloadError = "Du har ikke tilgang til å laste ned dette notesettet.";
+        return;
+      }
+      if (outcome === "failed") {
+        downloadError = "Nedlastingen feilet. Prøv igjen.";
+        return;
+      }
       completedId = item.id ?? null;
       clearTimeout(completedTimer);
       completedTimer = setTimeout(() => (completedId = null), 1600);
@@ -335,6 +353,15 @@
   {/if}
 </div>
 
+<!-- A Musikant is served only the sets on a running project, so without saying so
+     the list reads as an archive with most of it missing. -->
+{#if !auth.canReadLibrary}
+  <p class="scope-note">
+    Du ser notesettene som hører til aktive prosjekt. Ta kontakt med en
+    administrator for tilgang til hele arkivet.
+  </p>
+{/if}
+
 <SearchInput
   placeholder="Søk i arkivet…"
   bind:value={searchTerm}
@@ -395,6 +422,10 @@
     </EmptyState>
   {/if}
 {:else}
+  {#if downloadError}
+    <p class="error-message download-error">{downloadError}</p>
+  {/if}
+
   <div class="sbb-table-wrap table-view">
     <table class="sbb-table">
       <thead>
@@ -424,16 +455,15 @@
             onsort={changeSort}
           />
           <th class="c-actions"
-            >{auth.canManageMusic ? "Handling" : "Digitalt"}</th
+            >{auth.canReadLibrary ? "Handling" : "Digitalt"}</th
           >
         </tr>
       </thead>
       <tbody>
         {#each items as item (item.id)}
           <tr
-            class:clickable={auth.canManageMusic}
-            onclick={() =>
-              auth.canManageMusic ? goto("/set/edit/" + item.id) : null}
+            class:clickable={auth.canManageMusic || auth.canReadLibrary}
+            onclick={() => openSet(item)}
           >
             <td class="c-nr">{item.archiveNumber}</td>
             <td class="c-title">
@@ -444,7 +474,10 @@
             <td class="c-muted">{item.arranger ?? "—"}</td>
             <td class="c-actions">
               {#if item.hasBeenScanned}
-                {#if auth.canManageMusic}
+                <!-- The whole-set ZIP is a quick action alongside opening the
+                     row for individual parts — both are the library reader's;
+                     a Musikant picks parts from the project view instead. -->
+                {#if auth.canReadLibrary}
                   <button
                     class="zip"
                     title="Last ned som ZIP"
@@ -480,9 +513,8 @@
     {#each items as item (item.id)}
       <div
         class="sbb-card"
-        class:clickable={auth.canManageMusic}
-        onclick={() =>
-          auth.canManageMusic ? goto("/set/edit/" + item.id) : null}
+        class:clickable={auth.canManageMusic || auth.canReadLibrary}
+        onclick={() => openSet(item)}
       >
         <div class="body">
           <div class="t">
@@ -495,8 +527,9 @@
           </div>
           {@render categoryTags(item.categories)}
         </div>
-        <!-- No ZIP action on a phone — a folder of part PDFs is of little use
-             there — so the card only reports whether the set is scanned. -->
+        <!-- No whole-set ZIP action on a phone — a folder of part PDFs is of
+             little use there — but the card still opens onto individual parts
+             for a library reader, so the card only reports scan status. -->
         <div class="acts">
           {#if item.hasBeenScanned}
             <span class="check"><CheckCircle size={18} /></span>
@@ -711,5 +744,16 @@
     font-family: var(--font-text);
     font-size: 13px;
     color: var(--danger);
+  }
+  /* The list's own copy of it sits above the table, not under a dialog field. */
+  .download-error {
+    margin: 0 0 14px;
+  }
+  /* Pulled up under the heading, which brings its own 24px of space. */
+  .scope-note {
+    margin: -12px 0 20px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
   }
 </style>

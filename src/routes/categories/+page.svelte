@@ -256,9 +256,6 @@
 />
 
 <style>
-  .title-cell {
-    max-width: 560px;
-  }
   .lede {
     margin: 10px 0 0;
     font-size: 14px;

@@ -18,10 +18,12 @@ architecture and deployment.
 | `npm run check`   | `svelte-kit sync` + `svelte-check` (types)       |
 | `npm run lint`    | `prettier --check` + `eslint`                    |
 | `npm run format`  | `prettier --write`                               |
+| `npm test`        | Vitest unit tests (`src/**/*.test.ts`), one pass |
 | `npm run api:gen` | Regenerate API types from the live OpenAPI specs |
 
-**Always run `npm run check` and `npm run lint` before considering work done.**
-Both must be clean (0 errors). Run `npm run format` to fix Prettier issues.
+**Always run `npm run check`, `npm run lint` and `npm test` before considering
+work done.**
+All three must be clean (0 errors). Run `npm run format` to fix Prettier issues.
 Use the **PowerShell** tool for commands (Windows); the Bash tool prints a
 harmless `ng completion` warning.
 
@@ -183,11 +185,45 @@ accent (`#EA5B0C`).
   authenticated). Admin-only pages add a `+page.ts` calling `requireAdmin()`
   (`src/lib/guards.ts`).
 - Member hierarchy lives **under Hjem**: `/`, `/project/[id]`,
-  `/project/[projectId]/set/[id]`. Editors are admin: `/set/edit/[id]` (under
-  Arkivliste), `/project/edit/[id]` (under Prosjekter), `/user/edit/[id]` (under
-  Brukere), `/part/edit/[id]` (under Stemmekatalog). The Header's `sectionFor()`
-  maps paths to the active nav section accordingly — add new editor routes there
-  or the nav loses its active section.
+  `/project/[projectId]/set/[id]`. `/set/[id]` is its counterpart reached from
+  Arkivliste — a read-only set view (parts, downloads, no edit controls) for a
+  library reader (`requireReadLibrary`) who isn't also a Noteansvarlig/Admin.
+  Editors are admin: `/set/edit/[id]` (under Arkivliste), `/project/edit/[id]`
+  (under Prosjekter), `/user/edit/[id]` (under Brukere), `/part/edit/[id]`
+  (under Stemmekatalog). The Header's `sectionFor()` maps paths to the active
+  nav section accordingly — add new editor routes there or the nav loses its
+  active section.
+- `/profile` is self-service, reached from the account menu's "Min profil"
+  (`src/lib/components/AccountMenu.svelte`) rather than a nav item — any
+  authenticated user may edit their own name/email/password there, same
+  `UserModalBody` panel as the admin editor's "Profil" section. The API allows
+  this on the same `PUT /users/{id}` the admin editor uses: its handler permits
+  `authenticatedUserId == id` regardless of role, Admin or not — no separate
+  policy or endpoint. A successful save calls `auth.loadRoles()` so the account
+  menu's cached name/email (read once at login) picks up the change
+  immediately.
+  **Temporarily hidden for a pure Musikant** (`requireIndividualAccount` in
+  `guards.ts`, mirrored by `AccountMenu`'s `showProfileLink`) — that role is
+  currently one shared login used by many real people, so self-service would
+  let any of them change it for everyone. Remove both once every member has
+  their own account; nothing on the API side needs to change.
+- **Roles are additive grants, not tiers** (`src/lib/roles.ts` — keep it in step
+  with the backend's `Roles.All` by hand). `capabilitiesFrom()` is the single
+  place that turns role names into what the UI may offer; the `auth` store only
+  caches its answer (`isAdmin`, `canManageMusic`, `canManageProjects`,
+  `canReadLibrary`, `canAccessCatalog`) and the guards/pages read the flags.
+- **Catalog access is role-scoped server-side** (the API's
+  `CatalogAccessService`): `Musikant` sees only projects running today and the
+  sets on them, `Arkivleser` (plus `Noteansvarlig`/`Admin`) sees the whole
+  library, and a user with none of those gets no sets, projects or download
+  tokens. Collections come back filtered; a resource outside the scope answers
+  **403**, including `/zip/token`. So catalog reads use `client.getCatalog*` and
+  return a `CatalogResult` — pages must show "ingen tilgang" separately from
+  "kunne ikke laste", and neither may name the resource they couldn't show. Admin
+  editors that can't normally be refused unwrap it with `catalogData()`.
+- **Download tokens are one-time and bound to the token, not the set**, so every
+  download fetches its own (`downloadSetPart`/`downloadSetZip`, which report a
+  `DownloadOutcome` the caller turns into a message).
 - **Create in a modal, edit on a page.** List pages (`/users`, `/parts`) keep a
   create-only Flowbite `Modal`; clicking a row navigates to the editor page. The
   `*ModalBody` component is shared by both, so it holds only the fields of the

@@ -11,7 +11,7 @@
     type PasswordRuleKey,
   } from "$lib/password";
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
-  import { ROLES, type Role } from "$lib/roles";
+  import { ROLES, holdsRole, type Role } from "$lib/roles";
   import type {
     SaveState,
     UpdateUserRequest,
@@ -32,9 +32,11 @@
   // is described here too.
   const ROLE_DESCRIPTIONS: Record<Role, string> = {
     Musikant: "Kan se og laste ned noter på aktive prosjekt.",
-    Noteansvarlig: "Kan redigere arkiv, stemmer, prosjekter og kategorier.",
+    Arkivleser:
+      "Kan se og laste ned noter i hele arkivet, også gamle prosjekt.",
     Prosjektleder:
       "Kan opprette og redigere prosjekter, og legge til noter i dem.",
+    Noteansvarlig: "Kan redigere arkiv, stemmer, prosjekter og kategorier.",
     Admin: "Full tilgang — kan også administrere brukere.",
   };
 
@@ -178,9 +180,7 @@
   }
 
   function hasRole(role: Role): boolean {
-    return (user?.roles ?? []).some(
-      (assigned) => assigned.toLowerCase() === role.toLowerCase(),
-    );
+    return holdsRole(user?.roles ?? [], role);
   }
 
   /** Progress for one role's row — each row writes with no Lagre button. */

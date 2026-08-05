@@ -45,14 +45,33 @@ export type PartRequest = Omit<V1["schemas"]["PartRequest"], "sortOrder"> & {
 };
 
 /**
+ * The instrument-group classification a part can carry. Fixed by the backend
+ * (an `InstrumentGroup` enum, not user-definable) — a part's group is how its
+ * musicians get grouped wherever they're presented. `INSTRUMENT_GROUPS` lists
+ * them in the standard brass band section order, which drives the picker.
+ */
+export type InstrumentGroup = NonNullable<V1["schemas"]["InstrumentGroup"]>;
+export const INSTRUMENT_GROUPS: readonly InstrumentGroup[] = [
+  "Kornett",
+  "Horn og flygelhorn",
+  "Euphonium og baryton",
+  "Tromboner",
+  "Tuba",
+  "Slagverk",
+];
+
+/**
  * UI-only working model for the part create/edit form, mapping onto
  * `PartRequest`. Aliases are not here: the API manages them through dedicated
  * `/parts/{id}/aliases` endpoints, applied one at a time on the part edit page.
+ * `instrumentGroup` uses `""` as the "no group" sentinel since the Flowbite
+ * `Select` it binds to works on strings, not `null`.
  */
 export interface PartForm {
   name: string;
   sortOrder: number;
   indexable: boolean;
+  instrumentGroup: InstrumentGroup | "";
 }
 
 // --- Projects (v1.0) ---

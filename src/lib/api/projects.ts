@@ -51,9 +51,15 @@ export const projects = {
     return client.get<Project[]>(`/projects?${params}`);
   },
 
-  get: (id: string) => client.get<Project>(`/projects/${id}`),
+  /**
+   * A single project. Role-scoped like its sets below: a Musikant reaches only
+   * the projects running today and is refused the rest, so the answer is a
+   * `CatalogResult` that keeps "no access" apart from "couldn't load".
+   */
+  get: (id: string) => client.getCatalog<Project>(`/projects/${id}`),
 
-  getSets: (id: string) => client.get<MusicSet[]>(`/projects/${id}/sets`),
+  getSets: (id: string) =>
+    client.getCatalog<MusicSet[]>(`/projects/${id}/sets`),
 
   create: (body: NewProjectRequest) =>
     client.post<NewProjectRequest, Project>("/projects", body),

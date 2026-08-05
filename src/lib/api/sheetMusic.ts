@@ -39,9 +39,13 @@ export const sheetMusic = {
     return client.get<MusicSet[]>(`/sheetmusic/sets?${params}`);
   },
 
-  /** Returns the set including its parts. */
+  /**
+   * Returns the set including its parts. Role-scoped: a set outside what the
+   * user's roles reach is refused rather than returned, so callers get a
+   * `CatalogResult` and say "no access" apart from "couldn't load".
+   */
   getSetWithParts: (id: string) =>
-    client.get<MusicSet>(`/sheetmusic/sets/${id}/parts`),
+    client.getCatalog<MusicSet>(`/sheetmusic/sets/${id}/parts`),
 
   createSet: (body: SetRequest) =>
     client.post<SetRequest, MusicSet>("/sheetmusic/sets", body),
@@ -68,8 +72,14 @@ export const sheetMusic = {
   removeCategory: (setId: string, categoryId: string) =>
     client.del(`/sheetmusic/sets/${setId}/categories/${categoryId}`),
 
+  /**
+   * A one-time token authorising one download of this set. Issued only for a set
+   * the user's roles reach, so it is the point where a download is refused —
+   * hence the `CatalogResult`. The token is bound to the set and consumed by the
+   * first download that presents it; each download needs its own.
+   */
   getZipToken: (id: string) =>
-    client.getText(`/sheetmusic/sets/${id}/zip/token`),
+    client.getCatalogText(`/sheetmusic/sets/${id}/zip/token`),
 
   getPartPdf: (setId: string, partName: string, downloadToken: string) =>
     client.getBlob(

@@ -13,7 +13,7 @@
     isEditing = false,
     rejectedPasswordRules = [],
   }: {
-    form: UserForm;
+    form: Pick<UserForm, "name" | "email" | "password">;
     isEditing?: boolean;
     rejectedPasswordRules?: PasswordRuleKey[];
   } = $props();

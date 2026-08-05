@@ -25,6 +25,7 @@
   } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { sheetMusic } from "$lib/api/sheetMusic";
+  import { catalogData } from "$lib/api/client";
   import { toApiDate } from "$lib/utils/date";
   import { moveItem, isSameOrder } from "$lib/utils/reorder";
   import { reorderFlip, toastEnter } from "$lib/utils/motion";
@@ -106,9 +107,10 @@
       projectsApi.get(id),
       projectsApi.getSets(id),
     ]);
-    if (info) project = info;
+    const loaded = catalogData(info);
+    if (loaded) project = loaded;
     else loadFailed = true;
-    sets = projectSets ?? [];
+    sets = catalogData(projectSets) ?? [];
     loading = false;
   });
   onDestroy(() => {

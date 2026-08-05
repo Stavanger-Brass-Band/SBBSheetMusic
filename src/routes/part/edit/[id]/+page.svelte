@@ -16,11 +16,12 @@
   let loading = $state(true);
   let notFound = $state(false);
 
-  // Detaljer section (name/sortOrder/indexable, saved together via PUT).
+  // Detaljer section (name/sortOrder/indexable/instrumentGroup, saved together via PUT).
   let detailsForm = $state<PartForm>({
     name: "",
     sortOrder: 0,
     indexable: true,
+    instrumentGroup: "",
   });
   let savingDetails = $state(false);
   let detailsError = $state("");
@@ -58,6 +59,7 @@
         name: found.name ?? "",
         sortOrder: found.sortOrder ?? 0,
         indexable: found.indexable ?? false,
+        instrumentGroup: found.instrumentGroup ?? "",
       };
     }
     loading = false;
@@ -72,6 +74,7 @@
       name: detailsForm.name.trim(),
       sortOrder: detailsForm.sortOrder,
       indexable: detailsForm.indexable,
+      instrumentGroup: detailsForm.instrumentGroup || null,
     };
     try {
       const updated = await partsApi.update(part.id!, body);
@@ -81,6 +84,7 @@
         name: detailsForm.name.trim(),
         sortOrder: detailsForm.sortOrder,
         indexable: detailsForm.indexable,
+        instrumentGroup: detailsForm.instrumentGroup || null,
       };
       detailsSaved = true;
       clearTimeout(detailsSavedTimer);
@@ -179,11 +183,16 @@
       <h1 class="sbb-h1 title">{part.name}</h1>
       <p class="order">Rekkefølge {part.sortOrder ?? 0}</p>
     </div>
-    {#if part.indexable}
-      <Badge variant="success" dot>Indekseres</Badge>
-    {:else}
-      <Badge variant="neutral" dot>Skjult</Badge>
-    {/if}
+    <div class="badges">
+      {#if part.instrumentGroup}
+        <Badge variant="outline">{part.instrumentGroup}</Badge>
+      {/if}
+      {#if part.indexable}
+        <Badge variant="success" dot>Indekseres</Badge>
+      {:else}
+        <Badge variant="neutral" dot>Skjult</Badge>
+      {/if}
+    </div>
   </div>
 
   <!-- Detaljer -->
@@ -296,6 +305,12 @@
     gap: 20px;
     flex-wrap: wrap;
     margin-bottom: 28px;
+  }
+  .badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
   }
   .title {
     margin: 0;
