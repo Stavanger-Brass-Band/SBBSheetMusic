@@ -1,14 +1,18 @@
 <script lang="ts">
-  import { LogOut, Menu } from "@lucide/svelte";
+  import { Menu } from "@lucide/svelte";
   import { page } from "$app/state";
   import { auth } from "$lib/stores/auth.svelte";
-  import { Button } from "$lib/components/ui";
+  import AccountMenu from "$lib/components/AccountMenu.svelte";
 
   let menuOpen = $state(false);
 
   let items = $derived([
     { id: "home", label: "Hjem", href: "/" },
-    { id: "archive", label: "Arkivliste", href: "/archive" },
+    // Reading the catalogue — Musikant (active projects only), Arkivleser,
+    // Noteansvarlig or Admin. Without one of them the list has nothing in it.
+    ...(auth.canAccessCatalog
+      ? [{ id: "archive", label: "Arkivliste", href: "/archive" }]
+      : []),
     // Project admin — Admin, Noteansvarlig or Prosjektleder.
     ...(auth.canManageProjects
       ? [{ id: "projects", label: "Prosjekter", href: "/projects" }]
@@ -74,10 +78,8 @@
           {item.label}
         </a>
       {/each}
-      <div class="logout">
-        <Button variant="inverse" size="sm" onclick={() => auth.logout()}>
-          <LogOut size={15} /> Logg ut
-        </Button>
+      <div class="account">
+        <AccountMenu />
       </div>
     </nav>
   </div>
@@ -169,7 +171,7 @@
     height: 2px;
     background: var(--brass-500);
   }
-  .logout {
+  .account {
     margin-left: auto;
   }
 
@@ -204,7 +206,7 @@
     .nav-link.active::after {
       display: none;
     }
-    .logout {
+    .account {
       margin-left: 0;
       margin-top: 8px;
     }

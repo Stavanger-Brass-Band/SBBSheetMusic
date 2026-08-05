@@ -77,7 +77,7 @@ export async function refreshTokens(
 }
 
 /**
- * The outcome of reading the current user's roles.
+ * The outcome of reading the current user's profile.
  *
  * Failing has to be tellable from holding no roles: an empty `roles` array is a
  * real answer that should overwrite the cached access flags, while a read that
@@ -86,22 +86,23 @@ export async function refreshTokens(
  * unreadable body), which no amount of refreshing helps and which must not end
  * the session.
  */
-export type RolesResult =
-  | { status: "ok"; roles: string[] }
+export type MeResult =
+  | { status: "ok"; roles: string[]; name: string | null; email: string | null }
   | { status: "unauthorized" }
   | { status: "failed" };
 
 /**
- * The signed-in user's roles, from which the store derives what UI to show
- * (admin vs music/project management). `/users/me` answers for any
- * authenticated user — it is reading *other* users that needs admin — so the
- * roles on the body, not the status code, are what matter.
+ * The signed-in user's roles and identity — roles drive what UI to show (admin
+ * vs music/project management), name/email are display-only (the account
+ * menu). `/users/me` answers for any authenticated user — it is reading
+ * *other* users that needs admin — so the body, not the status code, is what
+ * matters.
  *
  * Bare fetch like the grants above, so the retry the shared client would have
  * given a 401 has to live with the caller: `auth.loadRoles()` does it, and owns
  * the refresh anyway.
  */
-export async function fetchRoles(token: string): Promise<RolesResult> {
+export async function fetchMe(token: string): Promise<MeResult> {
   const res = await fetch(
     `${PUBLIC_API_BASE_URL}/users/me?api-version=${VERSION}`,
     {
@@ -115,7 +116,12 @@ export async function fetchRoles(token: string): Promise<RolesResult> {
 
   try {
     const user = (await res.json()) as User;
-    return { status: "ok", roles: user.roles ?? [] };
+    return {
+      status: "ok",
+      roles: user.roles ?? [],
+      name: user.name ?? null,
+      email: user.email ?? null,
+    };
   } catch {
     // The response body is undefined in the OpenAPI document, so an empty or
     // non-JSON body is possible — it tells us nothing about the roles held.

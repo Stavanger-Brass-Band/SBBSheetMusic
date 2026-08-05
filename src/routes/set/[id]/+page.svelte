@@ -3,10 +3,8 @@
   import { page } from "$app/state";
   import { Headphones, ScanLine, FileX, Lock } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
-  import { projects as projectsApi } from "$lib/api/projects";
-  import { catalogData } from "$lib/api/client";
   import { getPartImageUrl } from "$lib/utils/partImage";
-  import type { MusicSet, MusicSetPart, Project } from "$lib/types";
+  import type { MusicSet, MusicSetPart } from "$lib/types";
   import {
     Badge,
     Breadcrumb,
@@ -18,17 +16,15 @@
   import PartPreviewModal from "$lib/components/PartPreviewModal.svelte";
 
   let setId = $derived(page.params.id!);
-  let projectId = $derived(page.params.projectId!);
 
   let set = $state<MusicSet>({});
-  let project = $state<Project | undefined>();
   let loading = $state(true);
   // The set is the page. `set` stays a plain object so the markup below can read
   // it without guarding every field, so the failed load needs saying separately.
   let loadFailed = $state(false);
-  // A set the user's roles don't reach — a Musikant following a link to a set
-  // that has left the active projects. Said apart from a failed load, and
-  // without naming the set.
+  // A set the user's roles don't reach — reading the whole library still isn't
+  // *unrestricted*, e.g. a role revoked mid-session. Said apart from a failed
+  // load, and without naming the set.
   let forbidden = $state(false);
 
   let previewOpen = $state(false);
@@ -39,7 +35,6 @@
     if (loaded.status === "ok") set = loaded.data;
     else if (loaded.status === "forbidden") forbidden = true;
     else loadFailed = true;
-    project = catalogData(await projectsApi.get(projectId));
     loading = false;
   });
 
@@ -52,8 +47,7 @@
 <Breadcrumb
   class="mb-6"
   items={[
-    { label: "Hjem", href: "/" },
-    { label: project?.name ?? "", href: `/project/${project?.id}` },
+    { label: "Arkivliste", href: "/archive" },
     { label: set.title ?? "" },
   ]}
 />
@@ -63,14 +57,14 @@
 {:else if forbidden}
   <EmptyState
     title="Ingen tilgang til notesettet"
-    description="Du har ikke tilgang til dette notesettet. Gå tilbake til Hjem for å se notene du har tilgang til."
+    description="Du har ikke tilgang til dette notesettet. Gå tilbake til arkivet og prøv igjen."
   >
     {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
 {:else if loadFailed}
   <EmptyState
     title="Fant ikke notesettet"
-    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til prosjektet og prøv igjen."
+    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til arkivet og prøv igjen."
   >
     {#snippet icon()}<FileX size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>

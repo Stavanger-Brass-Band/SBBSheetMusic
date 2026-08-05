@@ -13,7 +13,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Authenticate using Identity and receive a JWT token. */
+        /**
+         * Authenticate using Identity and receive a JWT access token and refresh token. Supports two
+         *     grant types via request.grant_type: "basic" (username/password) issues a new
+         *     token pair; "refresh_token" exchanges a still-active refresh token for a new, rotated pair.
+         */
         post: {
             parameters: {
                 query: {
@@ -24,7 +28,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description The username and password to authenticate with */
+            /** @description A previously issued refresh token. Required when string LoginRequest.grant_type is `"refresh_token"`. */
             requestBody: {
                 content: {
                     "application/x-www-form-urlencoded": {
@@ -36,7 +40,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The access token */
+                /** @description The access token and refresh token */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -131,7 +135,7 @@ export interface paths {
                 };
             };
         };
-        /** Update a user's password. Admins can update any user. */
+        /** Update a user's name, email address, or password. Admins can update any user. */
         put: {
             parameters: {
                 query: {
@@ -145,7 +149,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description The new password */
+            /** @description The updated user details */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["UpdateUserRequest"];
@@ -154,7 +158,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Password was updated successfully */
+                /** @description User was updated successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1318,6 +1322,7 @@ export interface components {
             categoryIdentifier?: string;
         };
         AssignRoleRequest: {
+            /** @description The name of the role to assign. Must be one of `Admin`, `Noteansvarlig`, `Musikant`, `Arkivleser` or `Prosjektleder`. */
             roleName?: string;
         };
         ExpressionType: number;

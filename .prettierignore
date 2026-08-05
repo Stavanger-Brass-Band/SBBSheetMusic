@@ -3,6 +3,10 @@ build/
 .svelte-kit/
 package-lock.json
 
+# Written by release-please in its own style — formatting it only creates churn
+# that the next release rewrites.
+CHANGELOG.md
+
 # Generated from OpenAPI specs
 src/lib/api/schema.v1.d.ts
 src/lib/api/schema.v2.d.ts

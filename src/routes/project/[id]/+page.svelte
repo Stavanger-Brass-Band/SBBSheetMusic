@@ -2,8 +2,9 @@
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { page } from "$app/state";
-  import { Music, FolderX } from "@lucide/svelte";
+  import { Music, FolderX, Lock } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
+  import { catalogData } from "$lib/api/client";
   import type { Project } from "$lib/types";
   import {
     Breadcrumb,
@@ -18,6 +19,9 @@
   let id = $derived(page.params.id!);
   let project = $state<Project | undefined>();
   let loading = $state(true);
+  // The roles refusing this project is not the same dead end as one that failed
+  // to load, and neither state may name the project it couldn't show.
+  let forbidden = $state(false);
   let setCount = $derived(project?.sets?.length ?? 0);
 
   onMount(async () => {
@@ -27,9 +31,11 @@
     ]);
     // A project that didn't load leaves `project` unset, which the markup shows
     // as a dead end rather than an empty page dressed up as a real project.
-    if (info) {
-      info.sets = sets ?? [];
-      project = info;
+    if (info.status === "ok") {
+      info.data.sets = catalogData(sets) ?? [];
+      project = info.data;
+    } else {
+      forbidden = info.status === "forbidden";
     }
     loading = false;
   });
@@ -42,6 +48,13 @@
 
 {#if loading}
   <LoadingSpinner label="Laster prosjekt…" />
+{:else if forbidden}
+  <EmptyState
+    title="Ingen tilgang til prosjektet"
+    description="Du har ikke tilgang til dette prosjektet. Gå tilbake til Hjem for å se de aktive prosjektene du har tilgang til."
+  >
+    {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
+  </EmptyState>
 {:else if !project}
   <EmptyState
     title="Fant ikke prosjektet"
