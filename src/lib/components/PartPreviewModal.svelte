@@ -115,7 +115,7 @@
   title={dialogTitle}
   bind:open
   size="none"
-  class="!w-[95vw] !max-w-[95vw] !h-[90vh] !max-h-[90vh]"
+  class="!w-[95%] !max-w-[95%] !h-[95vh] !max-h-[95vh] md:!w-[90%] md:!max-w-[1200px]"
   classes={{ body: "p-0 md:p-0 flex-1" }}
 >
   {#if loading}
