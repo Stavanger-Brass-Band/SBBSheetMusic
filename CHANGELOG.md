@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.2.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.1.0...v2.2.0) (2026-08-05)
+
+
+### Features
+
+* add Arkivleser role and role-scoped catalog access ([#35](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/35)) ([c93f619](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/c93f6197cb2f299cdc511c47d0cc0442ae7fec89))
+* **roles:** add Prosjektleder and allow users to hold several roles ([#32](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/32)) ([954201e](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/954201ea54edf12fe2e5122963e20e6cad6045e8))
+* use the part preview modal on the set-edit page too ([#38](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/38)) ([aac6197](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/aac6197159281f5299a8da7518b111793e33ac9c))
+
+
+### Bug Fixes
+
+* **mobile:** widen the part preview modal on small screens ([#37](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/37)) ([25ba892](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/25ba892524623ff0c199daf7d214a2382a14221b))
+* run svelte-kit sync via npm prepare so npm test works from a clean install ([#36](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/36)) ([98d4415](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/98d4415ac71b0a362624757062990379c5d4e526))
+
 ## [2.1.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.0.0...v2.1.0) (2026-07-31)
 
 
