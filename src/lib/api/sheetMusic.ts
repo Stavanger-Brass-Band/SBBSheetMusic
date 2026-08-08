@@ -1,4 +1,4 @@
-import { buildUrl, createClient } from "./client";
+import { createClient } from "./client";
 import type {
   AssignCategoryRequest,
   Category,
@@ -84,19 +84,6 @@ export const sheetMusic = {
   getPartPdf: (setId: string, partName: string, downloadToken: string) =>
     client.getBlob(
       `/sheetmusic/sets/${setId}/parts/${encodeURIComponent(partName)}/pdf?downloadToken=${downloadToken}`,
-    ),
-
-  /**
-   * The direct, tokened URL for a part's PDF — for a genuine browser
-   * navigation (a new tab) rather than a `fetch()`. iOS only gives a PDF its
-   * full native treatment (multi-page scrolling, and the complete system
-   * share sheet with document-provider extensions like forScore's) when it's
-   * the actual top-level document in a tab, not JS-fetched content.
-   */
-  partPdfUrl: (setId: string, partName: string, downloadToken: string) =>
-    buildUrl(
-      `/sheetmusic/sets/${setId}/parts/${encodeURIComponent(partName)}/pdf?downloadToken=${downloadToken}`,
-      "2.0",
     ),
 
   uploadPartContent: (setId: string, partName: string, file: File) =>

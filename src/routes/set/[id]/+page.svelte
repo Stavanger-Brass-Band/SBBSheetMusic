@@ -3,7 +3,7 @@
   import { page } from "$app/state";
   import { Headphones, ScanLine, FileX, Lock } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
-  import { downloadSetPart, openSetPartInBrowser } from "$lib/utils/download";
+  import { downloadSetPart } from "$lib/utils/download";
   import { getPartImageUrl } from "$lib/utils/partImage";
   import type { MusicSet, MusicSetPart } from "$lib/types";
   import {
@@ -18,6 +18,11 @@
   let setId = $derived(page.params.id!);
 
   let set = $state<MusicSet>({});
+  let downloadingPart = $state<MusicSetPart | null>(null);
+  // The part whose download just finished — shows a success check that the
+  // timer below clears after a moment.
+  let completedPart = $state<MusicSetPart | null>(null);
+  let completedTimer: ReturnType<typeof setTimeout> | undefined;
   let loading = $state(true);
   // The set is the page. `set` stays a plain object so the markup below can read
   // it without guarding every field, so the failed load needs saying separately.
@@ -26,18 +31,8 @@
   // *unrestricted*, e.g. a role revoked mid-session. Said apart from a failed
   // load, and without naming the set.
   let forbidden = $state(false);
-  // Why the last view/download didn't happen, if it didn't.
-  let actionError = $state("");
-
-  let viewingPart = $state<MusicSetPart | null>(null);
-  // The part whose view/download just finished — shows a success check that
-  // the matching timer below clears after a moment.
-  let completedViewPart = $state<MusicSetPart | null>(null);
-  let completedViewTimer: ReturnType<typeof setTimeout> | undefined;
-
-  let downloadingPart = $state<MusicSetPart | null>(null);
-  let completedDownloadPart = $state<MusicSetPart | null>(null);
-  let completedDownloadTimer: ReturnType<typeof setTimeout> | undefined;
+  // Why the last part download didn't happen, if it didn't.
+  let downloadError = $state("");
 
   onMount(async () => {
     const loaded = await sheetMusic.getSetWithParts(setId);
@@ -47,41 +42,12 @@
     loading = false;
   });
 
-  onDestroy(() => {
-    clearTimeout(completedViewTimer);
-    clearTimeout(completedDownloadTimer);
-  });
-
-  async function viewPart(part: MusicSetPart) {
-    if (viewingPart === part) return;
-    viewingPart = part;
-    actionError = "";
-    try {
-      const outcome = await openSetPartInBrowser(
-        setId,
-        part.name ?? "",
-        set.title ?? "",
-      );
-      if (outcome === "forbidden") {
-        actionError = "Du har ikke tilgang til å vise denne stemmen.";
-        return;
-      }
-      if (outcome === "failed") {
-        actionError = "Kunne ikke åpne stemmen. Prøv igjen.";
-        return;
-      }
-      completedViewPart = part;
-      clearTimeout(completedViewTimer);
-      completedViewTimer = setTimeout(() => (completedViewPart = null), 1600);
-    } finally {
-      viewingPart = null;
-    }
-  }
+  onDestroy(() => clearTimeout(completedTimer));
 
   async function downloadPart(part: MusicSetPart) {
     if (downloadingPart === part) return;
     downloadingPart = part;
-    actionError = "";
+    downloadError = "";
     try {
       const outcome = await downloadSetPart(
         setId,
@@ -89,33 +55,24 @@
         set.title ?? "",
       );
       if (outcome === "forbidden") {
-        actionError = "Du har ikke tilgang til å laste ned denne stemmen.";
+        downloadError = "Du har ikke tilgang til å laste ned denne stemmen.";
         return;
       }
       if (outcome === "failed") {
-        actionError = "Nedlastingen feilet. Prøv igjen.";
+        downloadError = "Nedlastingen feilet. Prøv igjen.";
         return;
       }
-      completedDownloadPart = part;
-      clearTimeout(completedDownloadTimer);
-      completedDownloadTimer = setTimeout(
-        () => (completedDownloadPart = null),
-        1600,
-      );
+      completedPart = part;
+      clearTimeout(completedTimer);
+      completedTimer = setTimeout(() => (completedPart = null), 1600);
     } finally {
       downloadingPart = null;
     }
   }
 
-  function viewStatus(part: MusicSetPart): "idle" | "loading" | "done" {
-    if (viewingPart === part) return "loading";
-    if (completedViewPart === part) return "done";
-    return "idle";
-  }
-
-  function downloadStatus(part: MusicSetPart): "idle" | "loading" | "done" {
+  function partStatus(part: MusicSetPart): "idle" | "loading" | "done" {
     if (downloadingPart === part) return "loading";
-    if (completedDownloadPart === part) return "done";
+    if (completedPart === part) return "done";
     return "idle";
   }
 </script>
@@ -171,11 +128,11 @@
 
   <div class="stage">
     <div class="stage-head">
-      <h3 class="sbb-h3 stage-title">Stemmer</h3>
+      <h3 class="sbb-h3 stage-title">Last ned noter</h3>
       <span class="sbb-mono count">{set.parts?.length ?? 0} stemmer</span>
     </div>
-    {#if actionError}
-      <p class="action-error">{actionError}</p>
+    {#if downloadError}
+      <p class="download-error">{downloadError}</p>
     {/if}
     {#if set.parts && set.parts.length > 0}
       <div class="parts">
@@ -183,10 +140,8 @@
           <PartTile
             name={part.name}
             instrument={getPartImageUrl(part.name)}
-            status={viewStatus(part)}
-            downloadStatus={downloadStatus(part)}
-            onclick={() => viewPart(part)}
-            onDownload={() => downloadPart(part)}
+            status={partStatus(part)}
+            onclick={() => downloadPart(part)}
           />
         {/each}
       </div>
@@ -250,7 +205,7 @@
     gap: 12px;
   }
   /* The stage sits on the dark surface, so the danger token needs lifting. */
-  .action-error {
+  .download-error {
     margin: 0 0 16px;
     font-size: 13px;
     color: color-mix(in srgb, var(--danger) 70%, var(--white));

@@ -15,7 +15,6 @@
     Pencil,
     Trash2,
     Download,
-    Eye,
     CloudUpload,
     Upload,
     Headphones,
@@ -32,11 +31,7 @@
   import { parts as partsApi } from "$lib/api/parts";
   import { categories as categoriesApi } from "$lib/api/categories";
   import { catalog } from "$lib/stores/catalog.svelte";
-  import {
-    downloadSetPart,
-    downloadSetZip,
-    openSetPartInBrowser,
-  } from "$lib/utils/download";
+  import { downloadSetPart, downloadSetZip } from "$lib/utils/download";
   import type {
     Category,
     MusicSet,
@@ -72,8 +67,7 @@
   // The details dialog has its own explicit save flow.
   let savingDetails = $state(false);
 
-  let viewingPart = $state<MusicSetPart | null>(null);
-  let downloadingPart = $state<MusicSetPart | null>(null);
+  let selectedPartForDownload = $state<MusicSetPart | null>(null);
   let justAdded = $state<Set<string>>(new Set());
 
   let isUploading = $state(false);
@@ -153,18 +147,11 @@
     catalog.updateMusicSet(set);
   }
 
-  async function viewPart(part: MusicSetPart) {
-    if (viewingPart === part) return;
-    viewingPart = part;
-    await openSetPartInBrowser(id, part.name ?? "", set.title ?? "");
-    viewingPart = null;
-  }
-
   async function downloadPart(part: MusicSetPart) {
-    if (downloadingPart === part) return;
-    downloadingPart = part;
+    if (selectedPartForDownload === part) return;
+    selectedPartForDownload = part;
     await downloadSetPart(id, part.name ?? "", set.title ?? "");
-    downloadingPart = null;
+    selectedPartForDownload = null;
   }
 
   function askRemovePart(part: MusicSetPart) {
@@ -557,21 +544,10 @@
                 <span class="acts">
                   <button
                     class="iconbtn"
-                    title="Vis"
-                    onclick={() => viewPart(part)}
-                  >
-                    {#if viewingPart === part}
-                      <Spinner size={16} inline />
-                    {:else}
-                      <Eye size={17} />
-                    {/if}
-                  </button>
-                  <button
-                    class="iconbtn"
                     title="Last ned"
                     onclick={() => downloadPart(part)}
                   >
-                    {#if downloadingPart === part}
+                    {#if selectedPartForDownload === part}
                       <Spinner size={16} inline />
                     {:else}
                       <Download size={17} />
