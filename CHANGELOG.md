@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.2.0...v2.3.0) (2026-08-08)
+
+
+### Features
+
+* open parts as real browser tabs instead of an in-app preview ([#39](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/39)) ([c119646](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/c119646c142dfe5cf5d7be5be05f9faec01cd4b2))
+
 ## [2.2.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.1.0...v2.2.0) (2026-08-05)
 
 
