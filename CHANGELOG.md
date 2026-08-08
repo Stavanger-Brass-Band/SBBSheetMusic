@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.3.0...v2.3.1) (2026-08-08)
+
+
+### Reverts
+
+* go back to instant per-part download ([#41](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/41)) ([143ecf9](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/143ecf960da74aae476f2be8ae79bafd6e64eb47))
+
 ## [2.3.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.2.0...v2.3.0) (2026-08-08)
 
 
