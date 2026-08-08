@@ -1,51 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sheetMusic } from "$lib/api/sheetMusic";
-import {
-  downloadPdf,
-  downloadSetPart,
-  downloadSetZip,
-  openSetPartInBrowser,
-} from "./download";
+import { downloadSetPart, downloadSetZip } from "./download";
 
 vi.mock("$lib/api/sheetMusic", () => ({
   sheetMusic: {
     getZipToken: vi.fn(),
     getPartPdf: vi.fn(),
-    partPdfUrl: vi.fn(
-      (setId: string, partName: string, token: string) =>
-        `https://api/sheetmusic/sets/${setId}/parts/${partName}/pdf?downloadToken=${token}`,
-    ),
   },
 }));
 
 const getZipToken = vi.mocked(sheetMusic.getZipToken);
 const getPartPdf = vi.mocked(sheetMusic.getPartPdf);
-
-describe("downloadPdf", () => {
-  // A stand-in for the anchor the helper clicks to save the PDF.
-  let link: { href: string; download: string; click: () => void };
-
-  beforeEach(() => {
-    link = { href: "", download: "", click: vi.fn() };
-    vi.stubGlobal("window", {
-      URL: { createObjectURL: () => "blob:pdf", revokeObjectURL: vi.fn() },
-    });
-    vi.stubGlobal("document", { createElement: () => link });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.resetAllMocks();
-  });
-
-  it("clicks a hidden anchor under the given filename", () => {
-    downloadPdf(new Blob(["pdf"]), "Fanfare - Kornett 1.pdf");
-
-    expect(link.href).toBe("blob:pdf");
-    expect(link.download).toBe("Fanfare - Kornett 1.pdf");
-    expect(link.click).toHaveBeenCalled();
-  });
-});
 
 /**
  * The download helpers are the only place a member's download can be refused —
@@ -53,6 +18,7 @@ describe("downloadPdf", () => {
  * they report is what the pages turn into "no access" rather than "failed".
  */
 describe("downloadSetPart", () => {
+  // A stand-in for the anchor the helper clicks to save the PDF.
   let link: { href: string; download: string; click: () => void };
 
   beforeEach(() => {
@@ -90,6 +56,15 @@ describe("downloadSetPart", () => {
     expect(getPartPdf).not.toHaveBeenCalled();
   });
 
+  it("reports 'failed' when the token request itself failed", async () => {
+    getZipToken.mockResolvedValue({ status: "failed" });
+
+    expect(await downloadSetPart("set-1", "Kornett 1", "Fanfare")).toBe(
+      "failed",
+    );
+    expect(getPartPdf).not.toHaveBeenCalled();
+  });
+
   it("reports 'failed' when the PDF doesn't arrive", async () => {
     getZipToken.mockResolvedValue({ status: "ok", data: "token-1" });
     getPartPdf.mockResolvedValue(undefined);
@@ -99,64 +74,25 @@ describe("downloadSetPart", () => {
     );
     expect(link.click).not.toHaveBeenCalled();
   });
-});
 
-/**
- * Opening in the browser needs a blank tab up front (before the token fetch)
- * so Safari doesn't treat the later navigation as a blocked popup.
- */
-describe("openSetPartInBrowser", () => {
-  let newTab: { location: { href: string }; close: () => void };
-  let open: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    newTab = { location: { href: "" }, close: vi.fn() };
-    open = vi.fn(() => newTab);
-    vi.stubGlobal("window", {
-      open,
-      URL: { createObjectURL: () => "blob:pdf", revokeObjectURL: vi.fn() },
-    });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.resetAllMocks();
-  });
-
-  it("opens a blank tab up front, then points it at the tokened PDF URL", async () => {
-    getZipToken.mockResolvedValue({ status: "ok", data: "token-1" });
-
-    const outcome = await openSetPartInBrowser("set-1", "Kornett 1", "Fanfare");
-
-    expect(outcome).toBe("done");
-    expect(open).toHaveBeenCalledWith("", "_blank");
-    expect(newTab.location.href).toBe(
-      "https://api/sheetmusic/sets/set-1/parts/Kornett 1/pdf?downloadToken=token-1",
-    );
-    expect(getPartPdf).not.toHaveBeenCalled();
-  });
-
-  it("closes the blank tab and reports 'forbidden' when the set is refused", async () => {
-    getZipToken.mockResolvedValue({ status: "forbidden" });
-
-    expect(await openSetPartInBrowser("set-1", "Kornett 1", "Fanfare")).toBe(
-      "forbidden",
-    );
-    expect(newTab.close).toHaveBeenCalled();
-  });
-
-  it("falls back to a normal download when popups are blocked outright", async () => {
-    open.mockReturnValue(null);
-    getZipToken.mockResolvedValue({ status: "ok", data: "token-1" });
+  // Tokens are consumed by the download that presents them, so every part has
+  // to fetch its own — reusing one would be rejected as replay.
+  it("fetches a fresh token per part", async () => {
+    getZipToken
+      .mockResolvedValueOnce({ status: "ok", data: "token-1" })
+      .mockResolvedValueOnce({ status: "ok", data: "token-2" });
     getPartPdf.mockResolvedValue(new Blob(["pdf"]));
-    const link = { href: "", download: "", click: vi.fn() };
-    vi.stubGlobal("document", { createElement: () => link });
 
-    const outcome = await openSetPartInBrowser("set-1", "Kornett 1", "Fanfare");
+    await downloadSetPart("set-1", "Kornett 1", "Fanfare");
+    await downloadSetPart("set-1", "Kornett 2", "Fanfare");
 
-    expect(outcome).toBe("done");
-    expect(link.download).toBe("Fanfare - Kornett 1.pdf");
-    expect(link.click).toHaveBeenCalled();
+    expect(getZipToken).toHaveBeenCalledTimes(2);
+    expect(getPartPdf).toHaveBeenNthCalledWith(
+      2,
+      "set-1",
+      "Kornett 2",
+      "token-2",
+    );
   });
 });
 

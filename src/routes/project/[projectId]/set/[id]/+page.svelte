@@ -5,7 +5,7 @@
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
-  import { openSetPartInBrowser } from "$lib/utils/download";
+  import { downloadSetPart } from "$lib/utils/download";
   import { getPartImageUrl } from "$lib/utils/partImage";
   import type { MusicSet, MusicSetPart, Project } from "$lib/types";
   import {
@@ -22,6 +22,11 @@
 
   let set = $state<MusicSet>({});
   let project = $state<Project | undefined>();
+  let downloadingPart = $state<MusicSetPart | null>(null);
+  // The part whose download just finished — shows a success check that the
+  // timer below clears after a moment.
+  let completedPart = $state<MusicSetPart | null>(null);
+  let completedTimer: ReturnType<typeof setTimeout> | undefined;
   let loading = $state(true);
   // The set is the page. `set` stays a plain object so the markup below can read
   // it without guarding every field, so the failed load needs saying separately.
@@ -30,14 +35,8 @@
   // that has left the active projects. Said apart from a failed load, and
   // without naming the set.
   let forbidden = $state(false);
-  // Why the last view didn't happen, if it didn't.
-  let actionError = $state("");
-
-  let viewingPart = $state<MusicSetPart | null>(null);
-  // The part whose view just finished — shows a success check that the timer
-  // below clears after a moment.
-  let completedViewPart = $state<MusicSetPart | null>(null);
-  let completedViewTimer: ReturnType<typeof setTimeout> | undefined;
+  // Why the last part download didn't happen, if it didn't.
+  let downloadError = $state("");
 
   onMount(async () => {
     const loaded = await sheetMusic.getSetWithParts(setId);
@@ -48,37 +47,37 @@
     loading = false;
   });
 
-  onDestroy(() => clearTimeout(completedViewTimer));
+  onDestroy(() => clearTimeout(completedTimer));
 
-  async function viewPart(part: MusicSetPart) {
-    if (viewingPart === part) return;
-    viewingPart = part;
-    actionError = "";
+  async function downloadPart(part: MusicSetPart) {
+    if (downloadingPart === part) return;
+    downloadingPart = part;
+    downloadError = "";
     try {
-      const outcome = await openSetPartInBrowser(
+      const outcome = await downloadSetPart(
         setId,
         part.name ?? "",
         set.title ?? "",
       );
       if (outcome === "forbidden") {
-        actionError = "Du har ikke tilgang til å vise denne stemmen.";
+        downloadError = "Du har ikke tilgang til å laste ned denne stemmen.";
         return;
       }
       if (outcome === "failed") {
-        actionError = "Kunne ikke åpne stemmen. Prøv igjen.";
+        downloadError = "Nedlastingen feilet. Prøv igjen.";
         return;
       }
-      completedViewPart = part;
-      clearTimeout(completedViewTimer);
-      completedViewTimer = setTimeout(() => (completedViewPart = null), 1600);
+      completedPart = part;
+      clearTimeout(completedTimer);
+      completedTimer = setTimeout(() => (completedPart = null), 1600);
     } finally {
-      viewingPart = null;
+      downloadingPart = null;
     }
   }
 
-  function viewStatus(part: MusicSetPart): "idle" | "loading" | "done" {
-    if (viewingPart === part) return "loading";
-    if (completedViewPart === part) return "done";
+  function partStatus(part: MusicSetPart): "idle" | "loading" | "done" {
+    if (downloadingPart === part) return "loading";
+    if (completedPart === part) return "done";
     return "idle";
   }
 </script>
@@ -135,11 +134,11 @@
 
   <div class="stage">
     <div class="stage-head">
-      <h3 class="sbb-h3 stage-title">Stemmer</h3>
+      <h3 class="sbb-h3 stage-title">Last ned noter</h3>
       <span class="sbb-mono count">{set.parts?.length ?? 0} stemmer</span>
     </div>
-    {#if actionError}
-      <p class="action-error">{actionError}</p>
+    {#if downloadError}
+      <p class="download-error">{downloadError}</p>
     {/if}
     {#if set.parts && set.parts.length > 0}
       <div class="parts">
@@ -147,8 +146,8 @@
           <PartTile
             name={part.name}
             instrument={getPartImageUrl(part.name)}
-            status={viewStatus(part)}
-            onclick={() => viewPart(part)}
+            status={partStatus(part)}
+            onclick={() => downloadPart(part)}
           />
         {/each}
       </div>
@@ -212,7 +211,7 @@
     gap: 12px;
   }
   /* The stage sits on the dark surface, so the danger token needs lifting. */
-  .action-error {
+  .download-error {
     margin: 0 0 16px;
     font-size: 13px;
     color: color-mix(in srgb, var(--danger) 70%, var(--white));
