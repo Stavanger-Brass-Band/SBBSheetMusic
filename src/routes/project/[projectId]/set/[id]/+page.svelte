@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { page } from "$app/state";
   import { Headphones, ScanLine, FileX, Lock } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
+  import { openSetPartInBrowser } from "$lib/utils/download";
   import { getPartImageUrl } from "$lib/utils/partImage";
   import type { MusicSet, MusicSetPart, Project } from "$lib/types";
   import {
@@ -15,7 +16,6 @@
     EmptyState,
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
-  import PartPreviewModal from "$lib/components/PartPreviewModal.svelte";
 
   let setId = $derived(page.params.id!);
   let projectId = $derived(page.params.projectId!);
@@ -30,9 +30,14 @@
   // that has left the active projects. Said apart from a failed load, and
   // without naming the set.
   let forbidden = $state(false);
+  // Why the last view didn't happen, if it didn't.
+  let actionError = $state("");
 
-  let previewOpen = $state(false);
-  let previewPart = $state<MusicSetPart | null>(null);
+  let viewingPart = $state<MusicSetPart | null>(null);
+  // The part whose view just finished — shows a success check that the timer
+  // below clears after a moment.
+  let completedViewPart = $state<MusicSetPart | null>(null);
+  let completedViewTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(async () => {
     const loaded = await sheetMusic.getSetWithParts(setId);
@@ -43,9 +48,38 @@
     loading = false;
   });
 
-  function openPreview(part: MusicSetPart) {
-    previewPart = part;
-    previewOpen = true;
+  onDestroy(() => clearTimeout(completedViewTimer));
+
+  async function viewPart(part: MusicSetPart) {
+    if (viewingPart === part) return;
+    viewingPart = part;
+    actionError = "";
+    try {
+      const outcome = await openSetPartInBrowser(
+        setId,
+        part.name ?? "",
+        set.title ?? "",
+      );
+      if (outcome === "forbidden") {
+        actionError = "Du har ikke tilgang til å vise denne stemmen.";
+        return;
+      }
+      if (outcome === "failed") {
+        actionError = "Kunne ikke åpne stemmen. Prøv igjen.";
+        return;
+      }
+      completedViewPart = part;
+      clearTimeout(completedViewTimer);
+      completedViewTimer = setTimeout(() => (completedViewPart = null), 1600);
+    } finally {
+      viewingPart = null;
+    }
+  }
+
+  function viewStatus(part: MusicSetPart): "idle" | "loading" | "done" {
+    if (viewingPart === part) return "loading";
+    if (completedViewPart === part) return "done";
+    return "idle";
   }
 </script>
 
@@ -104,13 +138,17 @@
       <h3 class="sbb-h3 stage-title">Stemmer</h3>
       <span class="sbb-mono count">{set.parts?.length ?? 0} stemmer</span>
     </div>
+    {#if actionError}
+      <p class="action-error">{actionError}</p>
+    {/if}
     {#if set.parts && set.parts.length > 0}
       <div class="parts">
         {#each set.parts as part}
           <PartTile
             name={part.name}
             instrument={getPartImageUrl(part.name)}
-            onclick={() => openPreview(part)}
+            status={viewStatus(part)}
+            onclick={() => viewPart(part)}
           />
         {/each}
       </div>
@@ -123,13 +161,6 @@
       </EmptyState>
     {/if}
   </div>
-
-  <PartPreviewModal
-    bind:open={previewOpen}
-    {setId}
-    part={previewPart}
-    setTitle={set.title ?? ""}
-  />
 {/if}
 
 <style>
@@ -179,5 +210,11 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
+  }
+  /* The stage sits on the dark surface, so the danger token needs lifting. */
+  .action-error {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: color-mix(in srgb, var(--danger) 70%, var(--white));
   }
 </style>
