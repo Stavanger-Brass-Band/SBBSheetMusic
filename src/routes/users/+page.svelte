@@ -22,9 +22,12 @@
   // every user in one call), matching on name or e-mail.
   let searchTerm = $state("");
   let filteredUsers = $derived.by(() => {
+    const sorted = [...users].sort((a, b) =>
+      (a.name ?? "").localeCompare(b.name ?? "", "nb-NO"),
+    );
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return users;
-    return users.filter(
+    if (!query) return sorted;
+    return sorted.filter(
       (user) =>
         (user.name ?? "").toLowerCase().includes(query) ||
         (user.email ?? "").toLowerCase().includes(query),
@@ -69,9 +72,10 @@
     isSaving = true;
     errorMessage = "";
     rejectedPasswordRules = [];
+    const email = form.email.trim();
     const response = await usersApi.create({
       name: form.name.trim(),
-      email: form.email.trim(),
+      email,
       password: form.password,
     });
     isSaving = false;
@@ -80,6 +84,13 @@
       loading = true;
       users = (await usersApi.list()) ?? [];
       loading = false;
+
+      // The endpoint returns no body, so the new user's id isn't known until
+      // we find it in the refreshed list — matched by the email we just sent.
+      const created = users.find(
+        (user) => (user.email ?? "").toLowerCase() === email.toLowerCase(),
+      );
+      if (created) goto(`/user/edit/${created.id}`);
       return;
     }
 
