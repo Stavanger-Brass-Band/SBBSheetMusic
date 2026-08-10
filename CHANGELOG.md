@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.4.0...v2.4.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* **set-upload:** allow changing a wrong part match before upload ([#45](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/45)) ([0f63fc1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/0f63fc1b37f9ce58fad0a34cb245131631a3d6ce))
+
 ## [2.4.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.3.1...v2.4.0) (2026-08-09)
 
 
