@@ -25,6 +25,7 @@
     Plus,
     X,
     FileX,
+    Replace,
   } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { catalogData } from "$lib/api/client";
@@ -41,6 +42,7 @@
     SetRequest,
   } from "$lib/types";
   import {
+    Badge,
     Breadcrumb,
     Button,
     EmptyState,
@@ -72,7 +74,13 @@
 
   let isUploading = $state(false);
   let review = $state<
-    { file: File; name: string; match: string; matching: boolean }[]
+    {
+      file: File;
+      name: string;
+      match: string;
+      matching: boolean;
+      chosenManually: boolean;
+    }[]
   >([]);
   let fileInput: HTMLInputElement;
   let dragging = $state(false);
@@ -117,6 +125,28 @@
   );
   let matchedCount = $derived(review.filter((r) => r.match).length);
   let isMatchingFiles = $derived(review.some((row) => row.matching));
+  /**
+   * The parts the index answered with for more than one file. A part that covers
+   * several players collides by design — "Solokornett 1" and "Solokornett 2" both
+   * match the part "Solokornett 1-2", and the two percussion files both match
+   * "Percussion 1" — and since the content upload is keyed by part name, sending
+   * both would leave only the last file on that part. The collision is the
+   * reader's to resolve, so it blocks the upload rather than losing a file.
+   */
+  let duplicateMatches = $derived(
+    review
+      .map((row) => row.match)
+      .filter(
+        (match, index, matches) => !!match && matches.indexOf(match) !== index,
+      ),
+  );
+  let hasDuplicateMatches = $derived(duplicateMatches.length > 0);
+  /**
+   * The parts the set already holds a file for. Uploading to one of them is a
+   * replacement rather than an addition — legitimate when a part is rescanned,
+   * but silent otherwise, so the review row says so before the upload runs.
+   */
+  let existingPartNames = $derived(presentParts.map((part) => part.name ?? ""));
   // Catalog options for the Flowbite Select pickers.
   let catalogItems = $derived(
     catalogParts.map((p) => ({ value: p.name ?? "", name: p.name ?? "" })),
@@ -207,6 +237,7 @@
       name: file.name,
       match: "",
       matching: true,
+      chosenManually: false,
     }));
     // Each row is looked up and settled on its own, so it can show that the
     // index is still answering rather than an empty match the reader would read
@@ -231,7 +262,7 @@
   }
 
   function assign(i: number, value: string) {
-    review[i] = { ...review[i], match: value };
+    review[i] = { ...review[i], match: value, chosenManually: true };
   }
   function dropFile(i: number) {
     review = review.filter((_, idx) => idx !== i);
@@ -606,25 +637,34 @@
               <span class="sum">
                 {#if isMatchingFiles}
                   Matcher filer mot stemmekatalogen…
+                {:else if hasDuplicateMatches}
+                  <span class="conflict">
+                    Flere filer peker på samme stemme — velg riktig stemme for
+                    hver.
+                  </span>
                 {:else}
-                  <b>{matchedCount}</b> av {review.length} filer matchet automatisk
+                  <b>{matchedCount}</b> av {review.length} filer klare
                 {/if}
               </span>
               <Button
                 size="sm"
                 onclick={commit}
                 loading={isUploading}
-                disabled={isMatchingFiles}
+                disabled={isMatchingFiles || hasDuplicateMatches}
               >
                 <Plus size={15} /> Legg til
               </Button>
             </div>
             {#each review as row, i}
+              {@const isDuplicate = duplicateMatches.includes(row.match)}
+              {@const isReplacing =
+                !!row.match && existingPartNames.includes(row.match)}
               <div
                 class="filerow"
-                class:matched={!!row.match}
+                class:matched={!!row.match && !isDuplicate}
                 class:unmatched={!row.match && !row.matching}
                 class:matching={row.matching}
+                class:duplicate={isDuplicate}
               >
                 <span class="ficon">
                   {#if row.matching}
@@ -634,23 +674,39 @@
                   {/if}
                 </span>
                 <div class="fbody">
-                  <div class="fname">{row.name}</div>
+                  <div class="fnamerow">
+                    <div class="fname">{row.name}</div>
+                    {#if isReplacing}
+                      <Badge variant="accent">
+                        <Replace size={11} /> Erstatter
+                      </Badge>
+                    {/if}
+                  </div>
                   {#if row.matching}
                     <div class="fstatus">Søker etter stemme…</div>
-                  {:else if row.match}
-                    <div class="fstatus">
-                      <CircleCheck size={13} /> Matchet til <b>{row.match}</b>
-                    </div>
                   {:else}
                     <div class="fstatus">
-                      <CircleAlert size={13} /> Fant ingen stemme — søk og velg
+                      {#if isDuplicate}
+                        <CircleAlert size={13} /> Samme stemme som en annen fil
+                      {:else if !row.match}
+                        <CircleAlert size={13} /> Fant ingen stemme — velg den selv
+                      {:else if row.chosenManually}
+                        <CircleCheck size={13} /> Valgt manuelt
+                      {:else}
+                        <CircleCheck size={13} /> Matchet automatisk
+                      {/if}
                     </div>
+                    <!-- Every settled file keeps its picker, not just the ones
+                         that missed: the index answers with the closest part it
+                         has, which can be the wrong one, and this is the only
+                         place that choice can be corrected before upload. -->
                     <div class="assign">
                       <Select
                         size="sm"
                         items={catalogItems}
                         value={row.match}
                         placeholder="Velg stemme…"
+                        aria-label={`Stemme for ${row.name}`}
                         onchange={(e) => assign(i, e.currentTarget.value)}
                       />
                     </div>
@@ -1110,6 +1166,9 @@
   .review__bar .sum b {
     color: var(--success);
   }
+  .review__bar .sum .conflict {
+    color: var(--danger);
+  }
   .filerow {
     display: flex;
     align-items: flex-start;
@@ -1141,11 +1200,26 @@
   .filerow.matching .fstatus {
     color: var(--text-muted);
   }
+  .filerow.duplicate {
+    border-color: var(--danger-soft);
+  }
+  .filerow.duplicate .ficon,
+  .filerow.duplicate .fstatus {
+    color: var(--danger);
+  }
   .filerow .fbody {
     flex: 1;
     min-width: 0;
   }
+  .filerow .fnamerow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
   .filerow .fname {
+    flex: 1;
+    min-width: 0;
     font-size: 13.5px;
     font-weight: 500;
     color: var(--text-primary);
