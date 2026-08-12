@@ -187,11 +187,21 @@
     gap: 2px;
     line-height: 1.1;
   }
+  /*
+   * Capped so the trigger's width doesn't grow with whoever is signed in — the
+   * header's collapse breakpoint is measured against it (see `TABLET_WIDTH` in
+   * `Header`), and an unbounded name would push the whole menu off screen at
+   * widths that fit everyone else. 160px clears the longest name in use; anything
+   * past it ellipsizes here and still reads in full in the open menu below.
+   */
   .acct__name {
+    max-width: 160px;
+    overflow: hidden;
     font-size: 13.5px;
     font-weight: 600;
     color: var(--white);
     white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .acct__role {
     font-size: 11px;
