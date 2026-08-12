@@ -1,5 +1,5 @@
 import { PUBLIC_API_BASE_URL } from "$env/static/public";
-import type { AccessTokens, User } from "$lib/types";
+import type { AccessTokens, InstrumentGroup, User } from "$lib/types";
 import type { ApiVersion } from "./client";
 
 /**
@@ -92,6 +92,8 @@ export type MeResult =
       roles: string[];
       /** Ids of the parts the user plays — see `auth.assignedPartIds`. */
       partIds: string[];
+      /** The instrument groups those parts belong to — see `auth.instrumentGroups`. */
+      instrumentGroups: string[];
       name: string | null;
       email: string | null;
     }
@@ -129,6 +131,16 @@ export async function fetchMe(token: string): Promise<MeResult> {
       partIds: (user.parts ?? [])
         .map((part) => part.id)
         .filter((id): id is string => !!id),
+      // Deduplicated, and left in the order the parts arrived — the API returns
+      // them by the catalogue's own sort order, which is the standard section
+      // order, so the groups come out in that order for free.
+      instrumentGroups: [
+        ...new Set(
+          (user.parts ?? [])
+            .map((part) => part.instrumentGroup)
+            .filter((group): group is InstrumentGroup => !!group),
+        ),
+      ],
       name: user.name ?? null,
       email: user.email ?? null,
     };

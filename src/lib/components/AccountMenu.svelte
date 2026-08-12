@@ -14,7 +14,18 @@
   // The widest-access role held, e.g. "Noteansvarlig" or "Administrator" — it
   // explains why the admin-gated controls elsewhere on the page are there or
   // aren't. `auth` already exposes each capability `primaryRoleLabel` reads.
+  // It sits inside the open menu rather than on the trigger: the section below is
+  // the more useful thing to carry at a glance, and a role is reference material
+  // you look up rather than something to keep in view.
   let roleLabel = $derived(primaryRoleLabel(auth));
+  /**
+   * The user's section, from the instrument groups of the parts they play. This is
+   * what will decide which notes a Musikant is shown, so naming it does for the
+   * member side what the role does for the admin side — explains the catalogue
+   * they get. Blank until someone has been assigned parts, in which case the
+   * trigger is just the name.
+   */
+  let groupLabel = $derived(auth.instrumentGroups.join(" · "));
   let hasElevatedRole = $derived(roleLabel !== "Medlem");
   // Musikant is currently one shared login used by many real people, so
   // letting any of them change its name, email or password would affect
@@ -91,9 +102,9 @@
     <span class="avatar">{initials}</span>
     <span class="acct__id">
       <span class="acct__name">{displayName}</span>
-      <span class="acct__role" class:elevated={hasElevatedRole}
-        >{roleLabel}</span
-      >
+      {#if groupLabel}
+        <span class="acct__group">{groupLabel}</span>
+      {/if}
     </span>
     <span class="chevron"><ChevronDown size={15} /></span>
   </button>
@@ -111,6 +122,9 @@
         <span class="acctmenu__txt">
           <b>{displayName}</b>
           <span>{auth.email ?? ""}</span>
+          <span class="acctmenu__role" class:elevated={hasElevatedRole}>
+            {roleLabel}
+          </span>
         </span>
       </div>
       {#if showProfileLink}
@@ -203,14 +217,18 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  .acct__role {
+  /* Capped like the name above, and for the same reason: group names run long
+     ("Horn og flygelhorn"), and the header's collapse breakpoint is measured
+     against a trigger of bounded width. */
+  .acct__group {
+    max-width: 160px;
+    overflow: hidden;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.06em;
     color: var(--gray-400);
-  }
-  .acct__role.elevated {
-    color: var(--brass-500);
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .chevron {
     display: inline-flex;
@@ -258,6 +276,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .acctmenu__role {
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .acctmenu__role.elevated {
+    color: var(--brass-500);
   }
   .acctmenu__item {
     display: flex;

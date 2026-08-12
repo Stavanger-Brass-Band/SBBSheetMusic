@@ -17,10 +17,11 @@
    * breaking, while a shorter nav — a Musikant's two, a Prosjektleder's three —
    * keeps its links down to `PHONE_WIDTH`.
    *
-   * That 975px assumes the account menu's name is capped (`.acct__name` in
-   * `AccountMenu`); it renders the signed-in user's own name, so without a bound
-   * the width the row needs would grow with whoever is logged in. Counting links
-   * rather than hardcoding roles keeps this honest as nav items come and go.
+   * That 975px assumes the account menu's two text lines are capped
+   * (`.acct__name` and `.acct__group` in `AccountMenu`); they render the signed-in
+   * user's own name and section, so without a bound the width the row needs would
+   * grow with whoever is logged in. Counting links rather than hardcoding roles
+   * keeps this honest as nav items come and go.
    */
   const PHONE_WIDTH = 768;
   const TABLET_WIDTH = 980;

@@ -19,22 +19,21 @@ const CAN_ACCESS_CATALOG_KEY = "canAccessCatalog";
 const NAME_KEY = "name";
 const EMAIL_KEY = "email";
 const ASSIGNED_PART_IDS_KEY = "assignedPartIds";
+const INSTRUMENT_GROUPS_KEY = "instrumentGroups";
 const LAST_USER_NAME_KEY = "lastUserName";
 const LOGIN_PATH = "/login";
 
 /**
- * The cached part ids, or none if there is nothing usable stored. Anything but a
- * list of strings is treated as absent rather than trusted — this is parsed back
- * out of localStorage, where an older build or a hand-edit could have left
- * something else.
+ * A cached list of strings, or none if there is nothing usable stored. Anything
+ * that isn't a list of strings is treated as absent rather than trusted — this is
+ * parsed back out of localStorage, where an older build or a hand-edit could have
+ * left something else.
  */
-function storedPartIds(): string[] {
+function storedStringList(key: string): string[] {
   try {
-    const parsed = JSON.parse(
-      localStorage.getItem(ASSIGNED_PART_IDS_KEY) ?? "",
-    );
+    const parsed = JSON.parse(localStorage.getItem(key) ?? "");
     return Array.isArray(parsed)
-      ? parsed.filter((id): id is string => typeof id === "string")
+      ? parsed.filter((value): value is string => typeof value === "string")
       : [];
   } catch {
     return [];
@@ -86,6 +85,10 @@ class AuthState {
   // batch, never whether a download is allowed — the API authorises every one of
   // those on its own, so a stale list can mislabel a tile but not open anything.
   #assignedPartIds = $state<string[]>([]);
+  // The instrument groups those parts fall in — what the account menu names under
+  // the user's name, since a section is the thing that explains which notes they
+  // are shown. Display-only for the same reason as the ids above.
+  #instrumentGroups = $state<string[]>([]);
   // One in-flight refresh shared by every 401 that races for it — the grant
   // rotates the refresh token, so a second concurrent call would spend an
   // already-consumed token and fail.
@@ -110,7 +113,8 @@ class AuthState {
         localStorage.getItem(CAN_ACCESS_CATALOG_KEY) !== "false";
       this.#name = localStorage.getItem(NAME_KEY);
       this.#email = localStorage.getItem(EMAIL_KEY);
-      this.#assignedPartIds = storedPartIds();
+      this.#assignedPartIds = storedStringList(ASSIGNED_PART_IDS_KEY);
+      this.#instrumentGroups = storedStringList(INSTRUMENT_GROUPS_KEY);
     }
   }
 
@@ -155,6 +159,15 @@ class AuthState {
    */
   get assignedPartIds(): string[] {
     return this.#assignedPartIds;
+  }
+
+  /**
+   * The instrument groups the user's parts belong to, in section order and
+   * without repeats. Usually one; empty when no parts are assigned, in which case
+   * the account menu simply names no section.
+   */
+  get instrumentGroups(): string[] {
+    return this.#instrumentGroups;
   }
 
   /**
@@ -288,6 +301,7 @@ class AuthState {
   #applyMe(me: {
     roles: string[];
     partIds: string[];
+    instrumentGroups: string[];
     name: string | null;
     email: string | null;
   }): void {
@@ -300,6 +314,7 @@ class AuthState {
     this.#name = me.name;
     this.#email = me.email;
     this.#assignedPartIds = me.partIds;
+    this.#instrumentGroups = me.instrumentGroups;
 
     if (browser) {
       localStorage.setItem(IS_ADMIN_KEY, String(this.#isAdmin));
@@ -320,6 +335,10 @@ class AuthState {
       localStorage.setItem(
         ASSIGNED_PART_IDS_KEY,
         JSON.stringify(this.#assignedPartIds),
+      );
+      localStorage.setItem(
+        INSTRUMENT_GROUPS_KEY,
+        JSON.stringify(this.#instrumentGroups),
       );
     }
   }
@@ -366,6 +385,7 @@ class AuthState {
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(EMAIL_KEY);
     localStorage.removeItem(ASSIGNED_PART_IDS_KEY);
+    localStorage.removeItem(INSTRUMENT_GROUPS_KEY);
   }
 
   #clearSession(): void {
@@ -379,6 +399,7 @@ class AuthState {
     this.#name = null;
     this.#email = null;
     this.#assignedPartIds = [];
+    this.#instrumentGroups = [];
   }
 }
 
