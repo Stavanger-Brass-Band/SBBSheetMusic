@@ -156,8 +156,18 @@
     deleteError = "";
     const response = await partsApi.remove(part.id!);
     isDeleting = false;
-    if (response.ok) goto("/parts");
-    else deleteError = "Kunne ikke slette stemmen. Prøv igjen.";
+    if (response.ok) {
+      goto("/parts");
+      return;
+    }
+
+    // A part still referenced by a musician or a set answers 409, and no amount
+    // of retrying changes that — the references have to go first. Saying "prøv
+    // igjen" there sends the user in a circle, so the two cases are told apart.
+    deleteError =
+      response.status === 409
+        ? "Stemmen er i bruk og kan ikke slettes. Den er koblet til minst én bruker eller ett notesett — fjern koblingene først."
+        : "Kunne ikke slette stemmen. Prøv igjen.";
   }
 </script>
 
