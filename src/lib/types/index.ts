@@ -95,6 +95,8 @@ export type Project = V1["schemas"]["ApiProject"] & {
 export type UserRequest = V2["schemas"]["UserRequest"];
 export type UpdateUserRequest = V2["schemas"]["UpdateUserRequest"];
 export type AssignRoleRequest = V2["schemas"]["AssignRoleRequest"];
+export type AssignPartsToUserRequest =
+  V2["schemas"]["AssignPartsToUserRequest"];
 export type ForgotPasswordRequest = V2["schemas"]["ForgotPasswordRequest"];
 export type ResetPasswordRequest = V2["schemas"]["ResetPasswordRequest"];
 
@@ -117,6 +119,12 @@ export type PasswordRequirements = Omit<
  * `GET /users/{identifier}` is documented to answer with "the user details,
  * including assigned roles", but without a schema, so `roles` stays optional —
  * `fetchRoles` reads it to derive access and treats its absence as none.
+ *
+ * `parts` is the user's assigned parts, carried by both the collection and the
+ * single-user read, ordered by the part's `sortOrder`. The API serves them as the
+ * very same view model as the parts catalogue, so the v1 `Part` alias above types
+ * them even though the rest of this shape is v2 — the v2 document leaves these
+ * responses undefined, so it declares no part schema of its own to alias.
  */
 export interface User {
   id: string;
@@ -124,6 +132,7 @@ export interface User {
   email: string | null;
   inactive: boolean;
   roles?: string[] | null;
+  parts?: Part[] | null;
 }
 
 /**

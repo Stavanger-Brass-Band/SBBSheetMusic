@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import type {
+  AssignPartsToUserRequest,
   AssignRoleRequest,
   ForgotPasswordRequest,
   PasswordRequirements,
@@ -13,9 +14,8 @@ const client = createClient("2.0");
 
 export const users = {
   /**
-   * Every user, for the list page. Note the response carries no roles — only
-   * `get` is documented to include them, so anything that needs a user's roles
-   * has to fetch that user.
+   * Every user, for the list page. Carries each user's roles and assigned parts
+   * just as `get` does, so a list row can show them without a read per user.
    */
   list: () => client.get<User[]>("/users"),
 
@@ -50,6 +50,18 @@ export const users = {
 
   removeRole: (id: string, roleName: string) =>
     client.del(`/users/${id}/roles/${encodeURIComponent(roleName)}`),
+
+  /**
+   * Sets which parts the user plays, replacing whatever was assigned before —
+   * there is no add or remove, so callers send the full list every time and an
+   * empty one clears it. The API refuses duplicates and unknown part ids
+   * outright, checking both before it writes, so a rejected call leaves the
+   * previous assignment intact. Returns 200 with no body.
+   */
+  assignParts: (id: string, partIds: string[]) =>
+    client.putNoContent<AssignPartsToUserRequest>(`/users/${id}/parts`, {
+      partIds,
+    }),
 
   /** Public: requests a password-reset email. Returns 200 with no body. */
   forgotPassword: (email: string) =>

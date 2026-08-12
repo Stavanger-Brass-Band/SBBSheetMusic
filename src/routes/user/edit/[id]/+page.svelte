@@ -3,8 +3,17 @@
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { Modal, Checkbox } from "flowbite-svelte";
-  import { Trash2, Check, UserX, UserCheck } from "@lucide/svelte";
+  import {
+    Trash2,
+    Check,
+    UserX,
+    UserCheck,
+    X,
+    Plus,
+    Music,
+  } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
+  import { parts as partsApi } from "$lib/api/parts";
   import {
     isPasswordAcceptable,
     readPasswordRejection,
@@ -12,7 +21,9 @@
   } from "$lib/password";
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import { ROLES, holdsRole, type Role } from "$lib/roles";
+  import { byCatalogOrder } from "$lib/utils/partOrder";
   import type {
+    Part,
     SaveState,
     UpdateUserRequest,
     User,
@@ -26,6 +37,7 @@
     SAVED_VISIBLE_MS,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
+  import PartPickerModalBody from "$lib/components/PartPickerModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   // Typed on `Role`, so adding a role to the backend list won't compile until it
@@ -73,6 +85,17 @@
   let savedRoleTimer: ReturnType<typeof setTimeout> | undefined;
   let roleError = $state("");
 
+  // Stemmer — which parts the user plays. The catalogue feeds the picker dialog;
+  // what the user already plays rides along on the user itself.
+  let catalogParts = $state<Part[]>([]);
+  let catalogFailed = $state(false);
+  let pickerOpen = $state(false);
+  // Ids ticked in the picker, held here so the dialog's footer can count them.
+  let pickerSelection = $state<string[]>([]);
+  let partsSaveState = $state<SaveState>("idle");
+  let partsSavedTimer: ReturnType<typeof setTimeout> | undefined;
+  let partsError = $state("");
+
   // Delete confirmation.
   let confirmOpen = $state(false);
   let hardDelete = $state(false);
@@ -91,18 +114,46 @@
         )),
   );
 
+  let assignedParts = $derived(user?.parts ?? []);
+
+  /**
+   * What the picker offers: the catalogue minus what the user already plays, and
+   * minus the parts not worth assigning to anyone. A part with no instrument group
+   * or with indexing turned off is a one-off or a leftover rather than a seat
+   * somebody sits in, so only the ordinary grouped parts are on offer.
+   *
+   * This limits what can be *added* only. A part already assigned stays listed and
+   * removable whether or not it would qualify today, and `writeParts` keeps
+   * sending it — the endpoint replaces the whole assignment, so anything filtered
+   * out here would otherwise be silently dropped on the next save.
+   */
+  let availableParts = $derived.by(() => {
+    const assignedIds = new Set(assignedParts.map((part) => part.id));
+    return catalogParts.filter(
+      (part) =>
+        !assignedIds.has(part.id) && !!part.indexable && !!part.instrumentGroup,
+    );
+  });
+
   onMount(load);
   onDestroy(() => {
     clearTimeout(profileSavedTimer);
     clearTimeout(savedRoleTimer);
     clearTimeout(statusSavedTimer);
+    clearTimeout(partsSavedTimer);
   });
 
   async function load() {
     loading = true;
-    // The single-user endpoint is the only one that answers with the user's
-    // roles — the list leaves them out — so the roles panel depends on it.
-    const response = await usersApi.get(id).catch(() => null);
+    // The user carries their own fields, roles and assigned parts; the parts
+    // catalogue is fetched alongside for the picker, and only that panel is
+    // affected if it doesn't arrive.
+    const [response, catalog] = await Promise.all([
+      usersApi.get(id).catch(() => null),
+      partsApi.list().catch(() => undefined),
+    ]);
+    catalogParts = catalog ?? [];
+    catalogFailed = catalog === undefined;
     // The API reports errors as a problem-details body, which the client parses
     // as happily as a real user, so trust the response only if it looks like one.
     const found = response?.id ? response : null;
@@ -237,6 +288,70 @@
       : "Kunne ikke gi rollen. Prøv igjen.";
   }
 
+  /**
+   * Save a new list of parts. The endpoint replaces the whole assignment rather
+   * than adding or removing one, so every write sends the full list. The UI moves
+   * first for an instant response; because a rejected write leaves the previous
+   * assignment standing on the server, failure re-reads the parts instead of
+   * leaving the optimistic list on screen.
+   */
+  async function writeParts(next: Part[]) {
+    if (!user || partsSaveState === "saving") return;
+
+    const userId = user.id;
+    const previous = assignedParts;
+    clearTimeout(partsSavedTimer);
+    partsSaveState = "saving";
+    partsError = "";
+    user = { ...user, parts: next };
+
+    const response = await usersApi
+      .assignParts(
+        userId,
+        next.map((part) => part.id!),
+      )
+      .catch(() => null);
+
+    if (response?.ok) {
+      partsSaveState = "saved";
+      partsSavedTimer = setTimeout(
+        () => (partsSaveState = "idle"),
+        SAVED_VISIBLE_MS,
+      );
+      return;
+    }
+
+    const fresh = await usersApi.get(userId).catch(() => null);
+    const parts = fresh?.id ? (fresh.parts ?? []) : previous;
+    if (user) user = { ...user, parts };
+    partsSaveState = "idle";
+    partsError = "Kunne ikke lagre stemmene. Prøv igjen.";
+  }
+
+  function openPicker() {
+    pickerSelection = [];
+    partsError = "";
+    pickerOpen = true;
+  }
+
+  /**
+   * Assigns everything ticked in the dialog, in one write — the endpoint replaces
+   * the whole assignment anyway, so adding several at once costs no more than
+   * adding one.
+   */
+  function addPickedParts() {
+    const picked = catalogParts.filter((part) =>
+      pickerSelection.includes(part.id!),
+    );
+    pickerOpen = false;
+    if (!picked.length) return;
+    writeParts([...assignedParts, ...picked].sort(byCatalogOrder));
+  }
+
+  function removePart(partId: string) {
+    writeParts(assignedParts.filter((part) => part.id !== partId));
+  }
+
   function askDelete() {
     deleteError = "";
     hardDelete = false;
@@ -280,99 +395,185 @@
     {/if}
   </div>
 
-  <!-- Profil -->
-  <section class="panel">
-    <h2 class="sbb-h3">Profil</h2>
-    <UserModalBody form={profileForm} isEditing {rejectedPasswordRules} />
-    {#if profileError}<p class="err">{profileError}</p>{/if}
-    <div class="panel-foot">
-      {#if profileSaved}
-        <span class="saved"><Check size={15} /> Lagret</span>
-      {/if}
-      <Button
-        loading={savingProfile}
-        disabled={!canSaveProfile}
-        onclick={saveProfile}
-      >
-        Lagre endringer
-      </Button>
-    </div>
-  </section>
+  <!--
+    Two columns on a wide screen, one below it. The split is by weight rather
+    than by kind: Profil and Roller are the tall panels, so the three short ones
+    ride together on the right instead of trailing a long scroll.
+  -->
+  <div class="panels">
+    <div class="column">
+      <!-- Profil -->
+      <section class="panel">
+        <h2 class="sbb-h3">Profil</h2>
+        <UserModalBody form={profileForm} isEditing {rejectedPasswordRules} />
+        {#if profileError}<p class="err">{profileError}</p>{/if}
+        <div class="panel-foot">
+          {#if profileSaved}
+            <span class="saved"><Check size={15} /> Lagret</span>
+          {/if}
+          <Button
+            loading={savingProfile}
+            disabled={!canSaveProfile}
+            onclick={saveProfile}
+          >
+            Lagre endringer
+          </Button>
+        </div>
+      </section>
 
-  <!-- Roller -->
-  <section class="panel">
-    <h2 class="sbb-h3">Roller</h2>
-    <p class="hint">
-      Velg rollene brukeren skal ha. En bruker kan ha flere roller, og
-      rettighetene legges sammen. Endringer lagres med én gang.
-    </p>
-    <div class="roles" role="group" aria-label="Roller">
-      {#each ROLES as role (role)}
-        <button
-          type="button"
-          class="role-option"
-          class:selected={hasRole(role)}
-          role="checkbox"
-          aria-checked={hasRole(role)}
-          disabled={savingRole !== null}
-          onclick={() => toggleRole(role)}
-        >
-          <span class="checkbox" aria-hidden="true">
-            {#if hasRole(role)}<Check size={13} strokeWidth={3} />{/if}
-          </span>
-          <span class="role">
-            <span class="role__name">{role}</span>
-            <span class="role__desc">{ROLE_DESCRIPTIONS[role]}</span>
-          </span>
-          <SaveIndicator state={roleSaveState(role)} />
-        </button>
-      {/each}
-    </div>
-    {#if roleError}<p class="err">{roleError}</p>{/if}
-  </section>
-
-  <!-- Status -->
-  <section class="panel">
-    <div class="panel-head">
-      <div>
-        <h2 class="sbb-h3">Status</h2>
+      <!-- Roller -->
+      <section class="panel">
+        <h2 class="sbb-h3">Roller</h2>
         <p class="hint">
-          Inaktive brukere beholdes, men kan ikke logge inn før de aktiveres
-          igjen.
+          Velg rollene brukeren skal ha. En bruker kan ha flere roller, og
+          rettighetene legges sammen. Endringer lagres med én gang.
         </p>
-      </div>
+        <div class="roles" role="group" aria-label="Roller">
+          {#each ROLES as role (role)}
+            <button
+              type="button"
+              class="role-option"
+              class:selected={hasRole(role)}
+              role="checkbox"
+              aria-checked={hasRole(role)}
+              disabled={savingRole !== null}
+              onclick={() => toggleRole(role)}
+            >
+              <span class="checkbox" aria-hidden="true">
+                {#if hasRole(role)}<Check size={13} strokeWidth={3} />{/if}
+              </span>
+              <span class="role">
+                <span class="role__name">{role}</span>
+                <span class="role__desc">{ROLE_DESCRIPTIONS[role]}</span>
+              </span>
+              <SaveIndicator state={roleSaveState(role)} />
+            </button>
+          {/each}
+        </div>
+        {#if roleError}<p class="err">{roleError}</p>{/if}
+      </section>
     </div>
-    {#if statusError}<p class="err">{statusError}</p>{/if}
-    <div class="status-row">
-      <Button
-        variant={user.inactive ? "primary" : "secondary"}
-        loading={savingStatus}
-        onclick={toggleStatus}
-      >
-        {#if user.inactive}
-          <UserCheck size={16} /> Aktiver bruker
-        {:else}
-          <UserX size={16} /> Deaktiver bruker
-        {/if}
-      </Button>
-      {#if statusSaved}
-        <span class="saved"><Check size={15} /> {statusSaved}</span>
-      {/if}
-    </div>
-  </section>
 
-  <!-- Faresone -->
-  <section class="panel danger">
-    <h2 class="sbb-h3">Faresone</h2>
-    <p class="hint">
-      Slett brukeren fra systemet. Uten permanent sletting deaktiveres brukeren
-      og kan gjenopprettes senere.
-    </p>
-    <Button variant="danger" onclick={askDelete}>
-      <Trash2 size={16} /> Slett bruker
-    </Button>
-  </section>
+    <div class="column">
+      <!-- Stemmer -->
+      <section class="panel">
+        <div class="panel-head parts-head">
+          <h2 class="sbb-h3">Stemmer</h2>
+          <div class="head-actions">
+            <SaveIndicator state={partsSaveState} />
+            <Button
+              size="sm"
+              onclick={openPicker}
+              disabled={catalogFailed ||
+                partsSaveState === "saving" ||
+                availableParts.length === 0}
+              title={availableParts.length === 0
+                ? "Det er ingen flere stemmer å legge til"
+                : undefined}
+            >
+              <Plus size={15} /> Legg til stemmer
+            </Button>
+          </div>
+        </div>
+
+        {#if catalogFailed}
+          <p class="err">
+            Kunne ikke laste stemmekatalogen, så stemmer kan ikke legges til nå.
+            Last siden på nytt.
+          </p>
+        {/if}
+        {#if partsError}<p class="err">{partsError}</p>{/if}
+
+        {#if assignedParts.length === 0}
+          <div class="part-empty">
+            <span class="part-empty__icon"><Music size={20} /></span>
+            <p class="part-empty__title">Ingen stemmer lagt til</p>
+            <p class="part-empty__desc">
+              Legg til stemmene brukeren spiller, så vet vi hvilke noter som er
+              deres.
+            </p>
+          </div>
+        {:else}
+          <ul class="part-list">
+            {#each assignedParts as part (part.id)}
+              <li class="part-row">
+                <span class="part-row__name">{part.name}</span>
+                {#if part.instrumentGroup}
+                  <span class="part-row__group">{part.instrumentGroup}</span>
+                {/if}
+                <button
+                  type="button"
+                  class="part-row__remove"
+                  onclick={() => removePart(part.id!)}
+                  disabled={partsSaveState === "saving"}
+                  aria-label={`Fjern ${part.name}`}
+                >
+                  <X size={16} />
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
+
+      <!-- Status -->
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="sbb-h3">Status</h2>
+            <p class="hint">
+              Inaktive brukere beholdes, men kan ikke logge inn før de aktiveres
+              igjen.
+            </p>
+          </div>
+        </div>
+        {#if statusError}<p class="err">{statusError}</p>{/if}
+        <div class="status-row">
+          <Button
+            variant={user.inactive ? "primary" : "secondary"}
+            loading={savingStatus}
+            onclick={toggleStatus}
+          >
+            {#if user.inactive}
+              <UserCheck size={16} /> Aktiver bruker
+            {:else}
+              <UserX size={16} /> Deaktiver bruker
+            {/if}
+          </Button>
+          {#if statusSaved}
+            <span class="saved"><Check size={15} /> {statusSaved}</span>
+          {/if}
+        </div>
+      </section>
+
+      <!-- Faresone -->
+      <section class="panel danger">
+        <h2 class="sbb-h3">Faresone</h2>
+        <p class="hint">
+          Slett brukeren fra systemet. Uten permanent sletting deaktiveres
+          brukeren og kan gjenopprettes senere.
+        </p>
+        <Button variant="danger" onclick={askDelete}>
+          <Trash2 size={16} /> Slett bruker
+        </Button>
+      </section>
+    </div>
+  </div>
 {/if}
+
+<Modal title="Legg til stemmer" bind:open={pickerOpen} size="md">
+  <PartPickerModalBody
+    parts={availableParts}
+    bind:selectedIds={pickerSelection}
+  />
+  {#snippet footer()}
+    <Button variant="ghost" onclick={() => (pickerOpen = false)}>Avbryt</Button>
+    <Button disabled={pickerSelection.length === 0} onclick={addPickedParts}>
+      <Check size={16} />
+      Legg til{pickerSelection.length ? ` (${pickerSelection.length})` : ""}
+    </Button>
+  {/snippet}
+</Modal>
 
 <Modal bind:open={confirmOpen} size="xs">
   <div class="confirm-body">
@@ -416,13 +617,34 @@
     color: var(--text-secondary);
   }
 
+  /*
+   * Each column stacks its own panels, so the panels themselves carry no outer
+   * spacing or width — the grid decides both.
+   */
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+  @media (max-width: 1024px) {
+    .panels {
+      grid-template-columns: minmax(0, 1fr);
+      max-width: 640px;
+    }
+  }
+
   .panel {
     padding: 24px;
     background: var(--surface-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    margin-bottom: 20px;
-    max-width: 640px;
   }
   .panel h2 {
     margin: 0 0 16px;
@@ -439,6 +661,20 @@
   }
   .panel-head h2 {
     margin: 0 0 4px;
+  }
+  /* No subtitle under this one's heading, so the title and its action sit on a
+     shared centre line instead of hanging from the top. */
+  .panel-head.parts-head {
+    align-items: center;
+  }
+  .panel-head.parts-head h2 {
+    margin: 0;
+  }
+  .head-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
   }
   .panel-foot {
     display: flex;
@@ -471,6 +707,109 @@
     margin: 14px 0 0;
     font-size: 13px;
     color: var(--danger);
+  }
+
+  /* Assigned parts — one row each, remove action trailing on the right. */
+  .part-list {
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .part-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 12px 14px 18px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+  .part-row__name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Pushed to the right so the remove buttons line up whatever the name's
+     length, with the group reading as a trailing note on the name. */
+  .part-row__group {
+    margin-right: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .part-row__name:last-of-type {
+    margin-right: auto;
+  }
+  .part-row__remove {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast),
+      background var(--dur-fast);
+  }
+  .part-row__remove:hover:not(:disabled) {
+    color: var(--danger);
+    background: var(--danger-soft);
+  }
+  .part-row__remove:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Compact zero-state — `ui/EmptyState` is built for a whole page and its 56px
+     of padding would dwarf a panel this size. */
+  .part-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    margin-top: 22px;
+    padding: 32px 24px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  .part-empty__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 2px;
+    color: var(--text-secondary);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+  }
+  .part-empty__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+  .part-empty__desc {
+    margin: 0;
+    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
   }
 
   /* Role picker — multi-select, one option per role. */
