@@ -1,5 +1,5 @@
 import { PUBLIC_API_BASE_URL } from "$env/static/public";
-import type { AccessTokens, User } from "$lib/types";
+import type { AccessTokens, InstrumentGroup, User } from "$lib/types";
 import type { ApiVersion } from "./client";
 
 /**
@@ -87,16 +87,25 @@ export async function refreshTokens(
  * the session.
  */
 export type MeResult =
-  | { status: "ok"; roles: string[]; name: string | null; email: string | null }
+  | {
+      status: "ok";
+      roles: string[];
+      /** Ids of the parts the user plays — see `auth.assignedPartIds`. */
+      partIds: string[];
+      /** The instrument groups those parts belong to — see `auth.instrumentGroups`. */
+      instrumentGroups: string[];
+      name: string | null;
+      email: string | null;
+    }
   | { status: "unauthorized" }
   | { status: "failed" };
 
 /**
- * The signed-in user's roles and identity — roles drive what UI to show (admin
- * vs music/project management), name/email are display-only (the account
- * menu). `/users/me` answers for any authenticated user — it is reading
- * *other* users that needs admin — so the body, not the status code, is what
- * matters.
+ * The signed-in user's roles, identity and assigned parts — roles drive what UI
+ * to show (admin vs music/project management), name/email are display-only (the
+ * account menu), and the part ids let a set mark which of its parts are this
+ * user's. `/users/me` answers for any authenticated user — it is reading *other*
+ * users that needs admin — so the body, not the status code, is what matters.
  *
  * Bare fetch like the grants above, so the retry the shared client would have
  * given a 401 has to live with the caller: `auth.loadRoles()` does it, and owns
@@ -119,6 +128,19 @@ export async function fetchMe(token: string): Promise<MeResult> {
     return {
       status: "ok",
       roles: user.roles ?? [],
+      partIds: (user.parts ?? [])
+        .map((part) => part.id)
+        .filter((id): id is string => !!id),
+      // Deduplicated, and left in the order the parts arrived — the API returns
+      // them by the catalogue's own sort order, which is the standard section
+      // order, so the groups come out in that order for free.
+      instrumentGroups: [
+        ...new Set(
+          (user.parts ?? [])
+            .map((part) => part.instrumentGroup)
+            .filter((group): group is InstrumentGroup => !!group),
+        ),
+      ],
       name: user.name ?? null,
       email: user.email ?? null,
     };

@@ -256,6 +256,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{id}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the parts assigned to a user's musician record. Admin only. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user to assign parts to */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description The identifiers of the parts to assign */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssignPartsToUserRequest"];
+                    "text/json": components["schemas"]["AssignPartsToUserRequest"];
+                    "application/*+json": components["schemas"]["AssignPartsToUserRequest"];
+                };
+            };
+            responses: {
+                /** @description Parts were assigned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{id}/activate": {
         parameters: {
             query?: never;
@@ -904,6 +951,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sheetmusic/agent/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks the sheet-music agent a question about a set identified by its name. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description The request cancellation token. */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetAgentQuestionRequest"];
+                    "text/json": components["schemas"]["SetAgentQuestionRequest"];
+                    "application/*+json": components["schemas"]["SetAgentQuestionRequest"];
+                };
+            };
+            responses: {
+                /** @description The agent response. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSetAgentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sheetmusic/sets/{setIdentifier}/categories": {
         parameters: {
             query?: never;
@@ -1173,7 +1266,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description The file that has all parts. Needs to be a zip file. */
+            /** @description Cancellation token for the upload operation. */
             requestBody: {
                 content: {
                     "multipart/form-data": {
@@ -1225,6 +1318,87 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Part content was added successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Creates a new set and imports recognized parts from a combined score PDF. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The set and its recognized parts were created. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiSet"];
+                        "application/json": components["schemas"]["ApiSet"];
+                        "text/json": components["schemas"]["ApiSet"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sheetmusic/sets/{setId}/parts/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Imports recognized parts from a combined score PDF into an existing set. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The target set identifier. */
+                    setId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No content when the import completes. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1305,6 +1479,9 @@ export interface components {
             /** @description The categories assigned to this set */
             categories?: components["schemas"]["ApiCategory"][];
         };
+        ApiSetAgentResponse: {
+            answer: null | string;
+        };
         ApiSheetMusicPart: {
             /** Format: uuid */
             relationshipId?: string;
@@ -1320,6 +1497,10 @@ export interface components {
         AssignCategoryRequest: {
             /** @description Identifier (guid or name) of the category to assign */
             categoryIdentifier?: string;
+        };
+        AssignPartsToUserRequest: {
+            /** @description The identifiers of the parts to assign to the user. */
+            partIds?: string[];
         };
         AssignRoleRequest: {
             /** @description The name of the role to assign. Must be one of `Admin`, `Noteansvarlig`, `Musikant`, `Arkivleser` or `Prosjektleder`. */
@@ -1355,6 +1536,10 @@ export interface components {
             email?: string;
             token?: string;
             newPassword?: string;
+        };
+        SetAgentQuestionRequest: {
+            setName?: string;
+            question?: string;
         };
         SetRequest: {
             /** Format: int32 */

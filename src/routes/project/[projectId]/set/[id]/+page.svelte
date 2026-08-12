@@ -1,20 +1,13 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { Headphones, ScanLine, FileX, Lock } from "@lucide/svelte";
+  import { Headphones, FileX, Lock } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
-  import { downloadSetPart } from "$lib/utils/download";
-  import { getPartImageUrl } from "$lib/utils/partImage";
-  import type { MusicSet, MusicSetPart, Project } from "$lib/types";
-  import {
-    Badge,
-    Breadcrumb,
-    Button,
-    PartTile,
-    EmptyState,
-  } from "$lib/components/ui";
+  import type { MusicSet, Project } from "$lib/types";
+  import { Badge, Breadcrumb, Button, EmptyState } from "$lib/components/ui";
+  import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let setId = $derived(page.params.id!);
@@ -22,11 +15,6 @@
 
   let set = $state<MusicSet>({});
   let project = $state<Project | undefined>();
-  let downloadingPart = $state<MusicSetPart | null>(null);
-  // The part whose download just finished — shows a success check that the
-  // timer below clears after a moment.
-  let completedPart = $state<MusicSetPart | null>(null);
-  let completedTimer: ReturnType<typeof setTimeout> | undefined;
   let loading = $state(true);
   // The set is the page. `set` stays a plain object so the markup below can read
   // it without guarding every field, so the failed load needs saying separately.
@@ -35,8 +23,6 @@
   // that has left the active projects. Said apart from a failed load, and
   // without naming the set.
   let forbidden = $state(false);
-  // Why the last part download didn't happen, if it didn't.
-  let downloadError = $state("");
 
   onMount(async () => {
     const loaded = await sheetMusic.getSetWithParts(setId);
@@ -46,40 +32,6 @@
     project = catalogData(await projectsApi.get(projectId));
     loading = false;
   });
-
-  onDestroy(() => clearTimeout(completedTimer));
-
-  async function downloadPart(part: MusicSetPart) {
-    if (downloadingPart === part) return;
-    downloadingPart = part;
-    downloadError = "";
-    try {
-      const outcome = await downloadSetPart(
-        setId,
-        part.name ?? "",
-        set.title ?? "",
-      );
-      if (outcome === "forbidden") {
-        downloadError = "Du har ikke tilgang til å laste ned denne stemmen.";
-        return;
-      }
-      if (outcome === "failed") {
-        downloadError = "Nedlastingen feilet. Prøv igjen.";
-        return;
-      }
-      completedPart = part;
-      clearTimeout(completedTimer);
-      completedTimer = setTimeout(() => (completedPart = null), 1600);
-    } finally {
-      downloadingPart = null;
-    }
-  }
-
-  function partStatus(part: MusicSetPart): "idle" | "loading" | "done" {
-    if (downloadingPart === part) return "loading";
-    if (completedPart === part) return "done";
-    return "idle";
-  }
 </script>
 
 <Breadcrumb
@@ -132,34 +84,7 @@
     {/if}
   </div>
 
-  <div class="stage">
-    <div class="stage-head">
-      <h3 class="sbb-h3 stage-title">Last ned noter</h3>
-      <span class="sbb-mono count">{set.parts?.length ?? 0} stemmer</span>
-    </div>
-    {#if downloadError}
-      <p class="download-error">{downloadError}</p>
-    {/if}
-    {#if set.parts && set.parts.length > 0}
-      <div class="parts">
-        {#each set.parts as part}
-          <PartTile
-            name={part.name}
-            instrument={getPartImageUrl(part.name)}
-            status={partStatus(part)}
-            onclick={() => downloadPart(part)}
-          />
-        {/each}
-      </div>
-    {:else}
-      <EmptyState
-        title="Ikke skannet enda"
-        description="Notene til dette settet har ikke blitt skannet inn i arkivet enda."
-      >
-        {#snippet icon()}<ScanLine size={28} strokeWidth={1.6} />{/snippet}
-      </EmptyState>
-    {/if}
-  </div>
+  <SetPartDownloads {setId} setTitle={set.title ?? ""} parts={set.parts} />
 {/if}
 
 <style>
@@ -186,34 +111,5 @@
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 12px;
-  }
-  .stage {
-    margin-top: 28px;
-  }
-  .stage-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .stage-title {
-    margin: 0;
-    color: var(--white);
-    font-size: 22px;
-  }
-  .count {
-    font-size: 12px;
-    color: var(--gray-400);
-  }
-  .parts {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
-  }
-  /* The stage sits on the dark surface, so the danger token needs lifting. */
-  .download-error {
-    margin: 0 0 16px;
-    font-size: 13px;
-    color: color-mix(in srgb, var(--danger) 70%, var(--white));
   }
 </style>

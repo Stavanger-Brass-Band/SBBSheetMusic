@@ -541,6 +541,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sheetmusic/agent/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks the sheet-music agent a question about a set identified by its name. */
+        post: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "1.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description The request cancellation token. */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetAgentQuestionRequest"];
+                    "text/json": components["schemas"]["SetAgentQuestionRequest"];
+                    "application/*+json": components["schemas"]["SetAgentQuestionRequest"];
+                };
+            };
+            responses: {
+                /** @description The agent response. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSetAgentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sheetmusic/sets/{setIdentifier}/categories": {
         parameters: {
             query?: never;
@@ -810,7 +856,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description The file that has all parts. Needs to be a zip file. */
+            /** @description Cancellation token for the upload operation. */
             requestBody: {
                 content: {
                     "multipart/form-data": {
@@ -1624,6 +1670,9 @@ export interface components {
             /** @description The categories assigned to this set */
             categories?: components["schemas"]["ApiCategory"][];
         };
+        ApiSetAgentResponse: {
+            answer: null | string;
+        };
         ApiSheetMusicPart: {
             /** Format: uuid */
             relationshipId?: string;
@@ -1683,6 +1732,10 @@ export interface components {
             sortOrder?: number | string;
             indexable?: null | boolean;
             instrumentGroup?: null | components["schemas"]["InstrumentGroup"];
+        };
+        SetAgentQuestionRequest: {
+            setName?: string;
+            question?: string;
         };
         SetCollectionRequest: {
             setIdentifiers?: string[];

@@ -1,10 +1,37 @@
 <script lang="ts">
   import { Menu } from "@lucide/svelte";
+  import { browser } from "$app/environment";
   import { page } from "$app/state";
   import { auth } from "$lib/stores/auth.svelte";
   import AccountMenu from "$lib/components/AccountMenu.svelte";
 
+  /**
+   * When the header gives up on a horizontal nav and falls back to the hamburger.
+   *
+   * Narrower than `PHONE_WIDTH` there is never room, whatever roles the user
+   * holds. From there up to `TABLET_WIDTH` it depends on how many links those
+   * roles produce: an admin's full six, beside the brand and the account menu,
+   * measure about 975px of content, so on an iPad in portrait they overflowed and
+   * pushed the account menu off screen — the links don't shrink, so the account is
+   * what leaves. Past `MAX_TABLET_NAV_LINKS` links the row collapses rather than
+   * breaking, while a shorter nav — a Musikant's two, a Prosjektleder's three —
+   * keeps its links down to `PHONE_WIDTH`.
+   *
+   * That 975px assumes the account menu's two text lines are capped
+   * (`.acct__name` and `.acct__group` in `AccountMenu`); they render the signed-in
+   * user's own name and section, so without a bound the width the row needs would
+   * grow with whoever is logged in. Counting links rather than hardcoding roles
+   * keeps this honest as nav items come and go.
+   */
+  const PHONE_WIDTH = 768;
+  const TABLET_WIDTH = 980;
+  const MAX_TABLET_NAV_LINKS = 3;
+
   let menuOpen = $state(false);
+  // Seeded from the real width rather than left to the binding to fill in on
+  // mount: this decides the layout, so a first paint at width 0 would flash the
+  // wrong one. There is no SSR here (`ssr = false`), so the window is available.
+  let viewportWidth = $state(browser ? window.innerWidth : 0);
 
   let items = $derived([
     { id: "home", label: "Hjem", href: "/" },
@@ -50,9 +77,22 @@
   }
 
   let activeSection = $derived(sectionFor(page.url.pathname));
+
+  let navCollapsed = $derived(
+    viewportWidth <= PHONE_WIDTH ||
+      (viewportWidth <= TABLET_WIDTH && items.length > MAX_TABLET_NAV_LINKS),
+  );
+
+  // A menu left open while the window grows would otherwise still be open the
+  // next time the header collapses, with nothing on screen having asked for it.
+  $effect(() => {
+    if (!navCollapsed) menuOpen = false;
+  });
 </script>
 
-<header class="topbar">
+<svelte:window bind:innerWidth={viewportWidth} />
+
+<header class="topbar" class:collapsed={navCollapsed}>
   <div class="inner">
     <a class="brand" href="/" onclick={() => (menuOpen = false)}>
       <img src="/img/logo.jpg" alt="SBB" width="38" height="38" />
@@ -175,40 +215,44 @@
     margin-left: auto;
   }
 
-  @media (max-width: 768px) {
-    .topbar {
-      align-items: stretch;
-    }
-    .inner {
-      flex-wrap: wrap;
-      align-items: center;
-      padding-top: 16px;
-      padding-bottom: 16px;
-      gap: 0;
-    }
-    .brand {
-      flex: 1;
-    }
-    .hamburger {
-      display: inline-flex;
-    }
-    .nav {
-      display: none;
-      flex-basis: 100%;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 2px;
-      margin-top: 16px;
-    }
-    .nav.open {
-      display: flex;
-    }
-    .nav-link.active::after {
-      display: none;
-    }
-    .account {
-      margin-left: 0;
-      margin-top: 8px;
-    }
+  /*
+   * The collapsed header: brand and hamburger on one row, the nav dropping below
+   * it as a stack when opened. Keyed on a class rather than a media query because
+   * the width alone doesn't decide it — see `navCollapsed`, which also weighs how
+   * many links the user's roles produce.
+   */
+  .topbar.collapsed {
+    align-items: stretch;
+  }
+  .topbar.collapsed .inner {
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    gap: 0;
+  }
+  .topbar.collapsed .brand {
+    flex: 1;
+  }
+  .topbar.collapsed .hamburger {
+    display: inline-flex;
+  }
+  .topbar.collapsed .nav {
+    display: none;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin-top: 16px;
+  }
+  .topbar.collapsed .nav.open {
+    display: flex;
+  }
+  .topbar.collapsed .nav-link.active::after {
+    display: none;
+  }
+  .topbar.collapsed .account {
+    margin-left: 0;
+    margin-top: 8px;
   }
 </style>

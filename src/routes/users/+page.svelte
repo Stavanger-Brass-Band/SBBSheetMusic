@@ -55,6 +55,13 @@
     return { name: "", email: "", password: "", active: true, roles: [] };
   }
 
+  /** The parts a user plays, as plain names for the chip list. */
+  function partNames(user: User): string[] {
+    return (user.parts ?? [])
+      .map((part) => part.name ?? "")
+      .filter((name) => name !== "");
+  }
+
   onMount(async () => {
     users = (await usersApi.list()) ?? [];
     loading = false;
@@ -114,11 +121,17 @@
   {/if}
 {/snippet}
 
-{#snippet roleChips(roles: string[] | null | undefined)}
-  {#if roles && roles.length}
+{#snippet metaLine(label: string, values: string[])}
+  {#if values.length}
+    <div class="meta card-meta">{label}: {values.join(" · ")}</div>
+  {/if}
+{/snippet}
+
+{#snippet chipList(labels: string[] | null | undefined)}
+  {#if labels && labels.length}
     <div class="chips">
-      {#each roles as role}
-        <span class="chip">{role}</span>
+      {#each labels as label}
+        <span class="chip">{label}</span>
       {/each}
     </div>
   {:else}
@@ -149,18 +162,23 @@
     <table class="sbb-table">
       <thead>
         <tr>
-          <th>Navn</th>
-          <th>E-post</th>
+          <th class="c-user">Bruker</th>
           <th class="c-roles">Roller</th>
+          <th class="c-parts">Stemmer</th>
           <th class="c-status">Status</th>
         </tr>
       </thead>
       <tbody>
         {#each filteredUsers as user (user.id)}
           <tr class="clickable" onclick={() => goto(`/user/edit/${user.id}`)}>
-            <td class="c-name">{user.name}</td>
-            <td class="c-muted">{user.email}</td>
-            <td class="c-roles">{@render roleChips(user.roles)}</td>
+            <!-- Name over email in one cell: two chip columns need the width
+                 more than the e-mail needs its own. -->
+            <td class="c-user">
+              <div class="user-name">{user.name}</div>
+              <div class="user-email">{user.email}</div>
+            </td>
+            <td class="c-roles">{@render chipList(user.roles)}</td>
+            <td class="c-parts">{@render chipList(partNames(user))}</td>
             <td class="c-status">{@render statusBadge(user)}</td>
           </tr>
         {/each}
@@ -178,9 +196,11 @@
         <div class="body">
           <div class="t">{user.name}</div>
           <div class="meta">{user.email}</div>
-          {#if user.roles && user.roles.length}
-            <div class="card-chips">{@render roleChips(user.roles)}</div>
-          {/if}
+          <!-- Roles and parts read as labelled text here rather than chips: the
+               card has no column headers, so chips both wrap badly at this width
+               and leave the two lists indistinguishable. -->
+          {@render metaLine("Roller", user.roles ?? [])}
+          {@render metaLine("Stemmer", partNames(user))}
         </div>
         <div class="acts">{@render statusBadge(user)}</div>
       </div>
@@ -202,14 +222,22 @@
 </Modal>
 
 <style>
-  .c-name {
+  .c-user {
+    width: 32%;
+  }
+  .user-name {
     font-weight: 500;
   }
-  .c-muted {
+  .user-email {
+    margin-top: 2px;
+    font-size: 12.5px;
     color: var(--text-secondary);
   }
   .c-roles {
-    width: 34%;
+    width: 26%;
+  }
+  .c-parts {
+    width: 22%;
   }
   .c-status {
     width: 130px;
@@ -240,8 +268,8 @@
     background: transparent;
     border-color: transparent;
   }
-  .card-chips {
-    margin-top: 8px;
+  .card-meta {
+    color: var(--text-muted);
   }
 
   .error-message {
