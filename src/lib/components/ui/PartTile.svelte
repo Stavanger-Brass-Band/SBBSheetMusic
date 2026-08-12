@@ -5,22 +5,37 @@
 
   // `status` drives the trailing icon so the central download action gets a
   // payoff: download → spinner → a brief success check → back to download.
+  // `mine` marks a part the signed-in user plays, so their own sheets stand out
+  // in a grid of thirty.
   let {
     name = "",
     instrument = "",
     status = "idle",
+    mine = false,
     onclick,
   }: {
     name?: string | null;
     instrument?: string;
     status?: "idle" | "loading" | "done";
+    mine?: boolean;
     onclick?: (e: MouseEvent) => void;
   } = $props();
 </script>
 
-<button type="button" class="tile" class:done={status === "done"} {onclick}>
+<button
+  type="button"
+  class="tile"
+  class:done={status === "done"}
+  class:mine
+  {onclick}
+>
   <Avatar src={instrument} alt={name ?? ""} size={52} />
-  <span class="name">{name}</span>
+  <span class="text">
+    <span class="name">{name}</span>
+    {#if mine}
+      <span class="mine-tag">Min stemme</span>
+    {/if}
+  </span>
   <span class="action">
     {#if status === "loading"}
       <Spinner size={18} inline />
@@ -50,12 +65,45 @@
   .tile:hover {
     background: var(--ink-700);
   }
-  .name {
+  /* `min-width: 0` is what lets a long part name shrink and ellipsise instead of
+     pushing the download icon out past the tile's edge — the grid gives each tile
+     as little as 260px. */
+  .text {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+  }
+  .name {
+    max-width: 100%;
     font-family: var(--font-text);
     font-weight: 500;
     font-size: 16px;
     color: var(--white);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* The user's own part: a brass edge, plus a caption so the distinction doesn't
+     rest on colour alone. It sits under the name rather than beside it — the tile
+     has vertical room to spare, and horizontally it would compete with the name
+     for the little the grid allows. */
+  .tile.mine {
+    border-color: var(--brass-500);
+    background: color-mix(in srgb, var(--brass-500) 12%, var(--ink-800));
+  }
+  .tile.mine:hover {
+    background: color-mix(in srgb, var(--brass-500) 20%, var(--ink-800));
+  }
+  .mine-tag {
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--brass-500);
   }
   .action {
     display: inline-flex;

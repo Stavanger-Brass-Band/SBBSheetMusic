@@ -18,8 +18,28 @@ const CAN_READ_LIBRARY_KEY = "canReadLibrary";
 const CAN_ACCESS_CATALOG_KEY = "canAccessCatalog";
 const NAME_KEY = "name";
 const EMAIL_KEY = "email";
+const ASSIGNED_PART_IDS_KEY = "assignedPartIds";
 const LAST_USER_NAME_KEY = "lastUserName";
 const LOGIN_PATH = "/login";
+
+/**
+ * The cached part ids, or none if there is nothing usable stored. Anything but a
+ * list of strings is treated as absent rather than trusted — this is parsed back
+ * out of localStorage, where an older build or a hand-edit could have left
+ * something else.
+ */
+function storedPartIds(): string[] {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(ASSIGNED_PART_IDS_KEY) ?? "",
+    );
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 /** Norwegian copy for a rejected sign-in — the API's body is English. */
 function loginFailureMessage(data: TokenResponse): string {
@@ -61,6 +81,11 @@ class AuthState {
   // blank line in the menu, not a wrongly shown control.
   #name = $state<string | null>(null);
   #email = $state<string | null>(null);
+  // The parts this user plays. Display-only in the same sense as the name above:
+  // it decides which of a set's parts get marked as theirs and offered as a
+  // batch, never whether a download is allowed — the API authorises every one of
+  // those on its own, so a stale list can mislabel a tile but not open anything.
+  #assignedPartIds = $state<string[]>([]);
   // One in-flight refresh shared by every 401 that races for it — the grant
   // rotates the refresh token, so a second concurrent call would spend an
   // already-consumed token and fail.
@@ -85,6 +110,7 @@ class AuthState {
         localStorage.getItem(CAN_ACCESS_CATALOG_KEY) !== "false";
       this.#name = localStorage.getItem(NAME_KEY);
       this.#email = localStorage.getItem(EMAIL_KEY);
+      this.#assignedPartIds = storedPartIds();
     }
   }
 
@@ -120,6 +146,15 @@ class AuthState {
   /** The signed-in user's email, for the account menu. */
   get email(): string | null {
     return this.#email;
+  }
+
+  /**
+   * Ids of the parts the signed-in user plays, empty when none are assigned. A
+   * set view matches these against its own parts to mark which are the user's;
+   * holding none simply means nothing is marked.
+   */
+  get assignedPartIds(): string[] {
+    return this.#assignedPartIds;
   }
 
   /**
@@ -252,6 +287,7 @@ class AuthState {
 
   #applyMe(me: {
     roles: string[];
+    partIds: string[];
     name: string | null;
     email: string | null;
   }): void {
@@ -263,6 +299,7 @@ class AuthState {
     this.#canAccessCatalog = capabilities.canAccessCatalog;
     this.#name = me.name;
     this.#email = me.email;
+    this.#assignedPartIds = me.partIds;
 
     if (browser) {
       localStorage.setItem(IS_ADMIN_KEY, String(this.#isAdmin));
@@ -280,6 +317,10 @@ class AuthState {
       else localStorage.removeItem(NAME_KEY);
       if (this.#email !== null) localStorage.setItem(EMAIL_KEY, this.#email);
       else localStorage.removeItem(EMAIL_KEY);
+      localStorage.setItem(
+        ASSIGNED_PART_IDS_KEY,
+        JSON.stringify(this.#assignedPartIds),
+      );
     }
   }
 
@@ -324,6 +365,7 @@ class AuthState {
     localStorage.removeItem(CAN_ACCESS_CATALOG_KEY);
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(ASSIGNED_PART_IDS_KEY);
   }
 
   #clearSession(): void {
@@ -336,6 +378,7 @@ class AuthState {
     this.#canAccessCatalog = false;
     this.#name = null;
     this.#email = null;
+    this.#assignedPartIds = [];
   }
 }
 
