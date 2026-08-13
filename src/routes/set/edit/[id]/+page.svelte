@@ -52,6 +52,7 @@
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
+  import SetProjectHistory from "$lib/components/SetProjectHistory.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   let id = $derived(page.params.id!);
@@ -811,6 +812,11 @@
         </div>
       </div>
     </aside>
+
+    <!-- Brukshistorikk -->
+    <div class="col-history">
+      <SetProjectHistory setId={set.id} archiveNumber={set.archiveNumber} />
+    </div>
   </div>
 {/if}
 
@@ -931,8 +937,9 @@
     grid-template-areas:
       "list upload"
       "list info"
+      "list history"
       "list .";
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     gap: 24px;
     align-items: start;
   }
@@ -944,6 +951,9 @@
   }
   .col-info {
     grid-area: info;
+  }
+  .col-history {
+    grid-area: history;
   }
 
   .panel {

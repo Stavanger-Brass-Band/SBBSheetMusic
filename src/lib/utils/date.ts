@@ -13,6 +13,11 @@ const dmyFmt = new Intl.DateTimeFormat(LOCALE, {
   month: "2-digit",
   year: "numeric",
 });
+const dmyShortFmt = new Intl.DateTimeFormat(LOCALE, {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+});
 
 type DateInput = string | number | Date;
 /** The API leaves every date optional, so the formatters take nothing too. */
@@ -48,6 +53,15 @@ export function formatDayMonth(date: OptionalDateInput): {
 export function formatDmy(date: OptionalDateInput): string {
   if (date === null || date === undefined) return NO_DATE;
   return dmyFmt.format(new Date(date));
+}
+
+/**
+ * `DD.MM.YY` (e.g. `07.06.26`) — for the tight spots where two dates share a
+ * line with text that can be any length, and the century is never in doubt.
+ */
+export function formatDmyShort(date: OptionalDateInput): string {
+  if (date === null || date === undefined) return NO_DATE;
+  return dmyShortFmt.format(new Date(date));
 }
 
 /**

@@ -3,6 +3,7 @@ import type {
   AssignCategoryRequest,
   Category,
   MusicSet,
+  ProjectSummary,
   SetRequest,
 } from "$lib/types";
 
@@ -46,6 +47,38 @@ export const sheetMusic = {
    */
   getSetWithParts: (id: string) =>
     client.getCatalog<MusicSet>(`/sheetmusic/sets/${id}/parts`),
+
+  /**
+   * The projects a set is connected to — the sets it has been played on, which
+   * is the only way round the relation can be read: a project lists its sets,
+   * but nothing lists a set's projects except `$expand=projects`.
+   *
+   * That expansion lives on the set *collection*; neither single-set endpoint
+   * takes query options. So the set's own row is fetched back off the collection
+   * by its archive number, which is what the documented `$filter` accepts —
+   * matching on the guid is not among the examples the API documents. The row
+   * that comes back is checked against the set's id before its projects are
+   * used, so a `$filter` the API ignored hands back nothing rather than another
+   * set's history.
+   *
+   * Role-scoped by the API: it expands only the projects the caller may see, so
+   * a Musikant gets the running ones instead of a refusal. `undefined` means the
+   * lookup failed; an empty array means the set has never been used.
+   */
+  listSetProjects: async (
+    setId: string,
+    archiveNumber: number,
+  ): Promise<ProjectSummary[] | undefined> => {
+    const params = new URLSearchParams({
+      $filter: `archiveNumber eq ${archiveNumber}`,
+      $expand: "projects",
+      $top: "1",
+    });
+    const matches = await client.get<MusicSet[]>(`/sheetmusic/sets?${params}`);
+    const row = matches?.find((candidate) => candidate.id === setId);
+    if (!row) return undefined;
+    return row.projects ?? [];
+  },
 
   createSet: (body: SetRequest) =>
     client.post<SetRequest, MusicSet>("/sheetmusic/sets", body),

@@ -613,8 +613,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Gets complete list of sheet music sets (without parts), or the ones matching queryParams.Search.Search if provided
-         *     Use ZipDownloadUrl for complete parts download and PartsUrl to list parts
+         * Gets complete list of sheet music sets, optionally expanding parts or projects, or the ones matching queryParams.Search.Search if provided.
+         *     Use ZipDownloadUrl for complete parts download and PartsUrl to list parts.
          */
         get: {
             parameters: {
@@ -1448,6 +1448,16 @@ export interface components {
             /** Format: int32 */
             requiredUniqueChars?: number | string;
         };
+        /** @description A project summary included in an expanded sheet music set. */
+        ApiProjectSummary: {
+            /**
+             * Format: uuid
+             * @description Identifier in the database.
+             */
+            id?: string;
+            /** @description Project name. */
+            name?: string;
+        };
         ApiSet: {
             /**
              * Format: uuid
@@ -1476,6 +1486,8 @@ export interface components {
             partsUrl?: string;
             /** @description A list of parts for the set, if included */
             parts?: null | components["schemas"]["ApiSheetMusicPart"][];
+            /** @description The projects connected to the set, if included */
+            projects?: null | components["schemas"]["ApiProjectSummary"][];
             /** @description The categories assigned to this set */
             categories?: components["schemas"]["ApiCategory"][];
         };
