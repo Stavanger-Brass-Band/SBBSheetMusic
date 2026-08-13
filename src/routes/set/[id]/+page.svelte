@@ -6,6 +6,7 @@
   import type { MusicSet } from "$lib/types";
   import { Badge, Breadcrumb, Button, EmptyState } from "$lib/components/ui";
   import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
+  import SetProjectHistory from "$lib/components/SetProjectHistory.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let setId = $derived(page.params.id!);
@@ -79,6 +80,10 @@
   </div>
 
   <SetPartDownloads {setId} setTitle={set.title ?? ""} parts={set.parts} />
+
+  <div class="history">
+    <SetProjectHistory setId={set.id} archiveNumber={set.archiveNumber} />
+  </div>
 {/if}
 
 <style>
@@ -105,5 +110,9 @@
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 12px;
+  }
+  .history {
+    margin-top: 28px;
+    max-width: 760px;
   }
 </style>

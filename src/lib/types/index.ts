@@ -25,6 +25,14 @@ export type MusicSet = Omit<V2["schemas"]["ApiSet"], "archiveNumber"> & {
 export type MusicSetPart = V2["schemas"]["ApiSheetMusicPart"];
 export type SetRequest = V2["schemas"]["SetRequest"];
 
+/**
+ * A project as it appears inside an expanded set (`$expand=projects`): its id
+ * and name, and only for the projects the caller's roles reach. Everything else
+ * about the project — its dates above all — still comes from the v1 projects
+ * endpoint.
+ */
+export type ProjectSummary = V2["schemas"]["ApiProjectSummary"];
+
 // --- Categories (catalog on v1.0, set assignment on v2.0) ---
 export type Category = V1["schemas"]["ApiCategory"];
 export type CategoryRequest = V1["schemas"]["CategoryRequest"];
@@ -87,6 +95,19 @@ export type SetCollectionRequest = V1["schemas"]["SetCollectionRequest"];
 export type Project = V1["schemas"]["ApiProject"] & {
   sets?: MusicSet[];
 };
+
+/**
+ * One appearance of a set on a project — a row of the set's usage history. The
+ * name comes from the summary the set carries, the dates from the project read
+ * back for them, so both stay optional: a project whose details didn't arrive
+ * keeps its place in the history rather than disappearing from it.
+ */
+export interface SetProjectUsage {
+  id: string;
+  name: string;
+  startDate?: string;
+  endDate?: string;
+}
 
 // --- Users (v2.0) ---
 // User management runs on v2 throughout, so these all alias the v2 schema —
