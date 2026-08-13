@@ -8,6 +8,8 @@
     DropdownItem,
     DropdownDivider,
     Select,
+    Tabs,
+    TabItem,
   } from "flowbite-svelte";
   import {
     Check,
@@ -26,6 +28,7 @@
     X,
     FileX,
     Replace,
+    Sparkles,
   } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { catalogData } from "$lib/api/client";
@@ -33,6 +36,11 @@
   import { categories as categoriesApi } from "$lib/api/categories";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { downloadSetPart, downloadSetZip } from "$lib/utils/download";
+  import {
+    addedEntries,
+    classifyUnresolved,
+    splitMissingParts,
+  } from "$lib/utils/pdfImportSummary";
   import type {
     Category,
     MusicSet,
@@ -52,6 +60,7 @@
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
+  import PdfImportPanel from "$lib/components/PdfImportPanel.svelte";
   import SetProjectHistory from "$lib/components/SetProjectHistory.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
@@ -94,6 +103,14 @@
   let confirmDeleteOpen = $state(false);
   let confirmRemovePartOpen = $state(false);
   let partToRemove = $state<MusicSetPart | null>(null);
+
+  // Moving an already-uploaded file onto the part it should have gone to — the
+  // fix for a wrong auto-match, which otherwise costs a delete and a re-upload.
+  let movePartOpen = $state(false);
+  let partToMove = $state<MusicSetPart | null>(null);
+  let moveTarget = $state("");
+  let movingPart = $state(false);
+  let moveError = $state("");
 
   // Add a single part by picking it from the catalog, then uploading its PDF.
   let addOpen = $state(false);
@@ -151,6 +168,24 @@
   // Catalog options for the Flowbite Select pickers.
   let catalogItems = $derived(
     catalogParts.map((p) => ({ value: p.name ?? "", name: p.name ?? "" })),
+  );
+  /**
+   * Where a file can be moved to. A part the set already holds a file for can't
+   * take another — the content endpoint answers 409 — so those stay in the list
+   * but unselectable, saying why. Dropping them entirely was worse: the reader
+   * looked for the stemme they knew was in the catalogue, didn't find it, and had
+   * nothing to tell them whether it was occupied or the list was broken.
+   */
+  let moveTargets = $derived(
+    catalogItems.map((item) =>
+      existingPartNames.includes(item.value)
+        ? {
+            ...item,
+            name: `${item.name} — har allerede en fil`,
+            disabled: true,
+          }
+        : item,
+    ),
   );
 
   onMount(async () => {
@@ -281,6 +316,132 @@
     review = [];
     await reloadParts();
     flash(added);
+  }
+
+  // ---- move an uploaded file to the right part ----
+  /**
+   * Reassigning a file that is already on the set has no endpoint of its own:
+   * the set-part relationship takes only GET and DELETE, and content is posted
+   * per part. So the move is orchestrated here — fetch the file, put it on the
+   * right part, and only then drop the wrong one.
+   *
+   * That order is the point. Deleting first would leave nothing to fall back on
+   * if the upload then failed, and the file only exists in the archive; this way
+   * a failure halfway leaves it exactly where it was.
+   */
+  async function movePart() {
+    const part = partToMove;
+    const targetName = moveTarget;
+    if (!part || !targetName) return;
+
+    movingPart = true;
+    moveError = "";
+    try {
+      const token = await sheetMusic.getZipToken(id);
+      if (token.status !== "ok") {
+        moveError =
+          token.status === "forbidden"
+            ? "Du har ikke tilgang til filene i dette settet."
+            : "Kunne ikke hente filen som skal flyttes. Prøv igjen.";
+        return;
+      }
+
+      const blob = await sheetMusic.getPartPdf(id, part.name ?? "", token.data);
+      if (!blob) {
+        moveError = "Kunne ikke hente filen som skal flyttes. Prøv igjen.";
+        return;
+      }
+
+      const uploaded = await sheetMusic.uploadPartContent(
+        id,
+        targetName,
+        new File([blob], `${targetName}.pdf`, { type: "application/pdf" }),
+      );
+      if (!uploaded || !("success" in uploaded)) {
+        moveError = `Kunne ikke legge filen på «${targetName}». Den ligger fortsatt på «${part.name}».`;
+        return;
+      }
+
+      const removed = await sheetMusic.deletePart(id, part.musicPartId ?? "");
+      await reloadParts();
+      if (!removed.ok) {
+        // The file is safe — it is on both parts now — so this says which half
+        // is left to finish rather than pretending the move failed.
+        moveError = `Filen ligger nå på «${targetName}», men «${part.name}» ble ikke fjernet. Fjern den manuelt.`;
+        return;
+      }
+
+      movePartOpen = false;
+      flash([targetName]);
+    } finally {
+      movingPart = false;
+    }
+  }
+
+  function askMovePart(part: MusicSetPart) {
+    partToMove = part;
+    moveTarget = "";
+    moveError = "";
+    movePartOpen = true;
+  }
+
+  // ---- import from one combined PDF ----
+  /**
+   * What the set held before an import ran. The API answers the import with 204
+   * — neither the parts it placed, the pages it chose, nor the headers it
+   * couldn't read come back — so the only way to tell what it did is to compare
+   * the set with how it looked beforehand.
+   */
+  let partNamesBeforeImport: string[] = [];
+  let unrecognizedBeforeImport: string[] = [];
+  let importAddedParts = $state<string[]>([]);
+  let importUnrecognized = $state<string[]>([]);
+  // Pages the API couldn't read a header on at all. They are left out of the set
+  // rather than stored, so this is its own line in the summary — a partitur run
+  // through the import usually ends here.
+  let importDroppedPages = $state(false);
+  let importSummaryShown = $state(false);
+  let importRunning = $state(false);
+
+  async function importPdfParts(file: File) {
+    partNamesBeforeImport = [...existingPartNames];
+    unrecognizedBeforeImport = splitMissingParts(set.missingParts);
+    importSummaryShown = false;
+    // Held on the page, not inside the panel: the tabs render only the open
+    // panel, so the other tab has to know not to let itself be opened while
+    // this is still in the air.
+    importRunning = true;
+    try {
+      return await sheetMusic.importPartsFromPdf(id, file);
+    } finally {
+      importRunning = false;
+    }
+  }
+
+  async function onPartsImported() {
+    const result = catalogData(await sheetMusic.getSetWithParts(id));
+    if (!result) return;
+    set.parts = [...(result.parts ?? [])];
+    set.hasBeenScanned = !!set.parts && set.parts.length > 0;
+    // The import appends to the same field a person writes their own notes in,
+    // so the summary below credits it with only what it added.
+    set.missingParts = result.missingParts;
+    catalog.updateMusicSet(set);
+
+    importAddedParts = addedEntries(
+      partNamesBeforeImport,
+      (result.parts ?? []).map((part) => part.name ?? ""),
+    );
+    const unresolved = classifyUnresolved(
+      addedEntries(
+        unrecognizedBeforeImport,
+        splitMissingParts(result.missingParts),
+      ),
+    );
+    importUnrecognized = unresolved.headerTexts;
+    importDroppedPages = unresolved.hadUnreadablePages;
+    importSummaryShown = true;
+    flash(importAddedParts);
   }
 
   // ---- add single part from catalog ----
@@ -586,6 +747,13 @@
                     {/if}
                   </button>
                   <button
+                    class="iconbtn"
+                    title="Bytt stemme"
+                    onclick={() => askMovePart(part)}
+                  >
+                    <Replace size={17} />
+                  </button>
+                  <button
                     class="iconbtn danger"
                     title="Fjern"
                     onclick={() => askRemovePart(part)}
@@ -604,122 +772,222 @@
     <section class="col-upload panel">
       <div class="panel__head"><h2>Last opp stemmer</h2></div>
       <div class="panel__body">
-        <div
-          class="drop"
-          class:drag={dragging}
-          role="button"
-          tabindex="0"
-          onclick={() => fileInput.click()}
-          onkeydown={(e) => (e.key === "Enter" ? fileInput.click() : null)}
-          ondragover={(e) => {
-            e.preventDefault();
-            dragging = true;
-          }}
-          ondragleave={() => (dragging = false)}
-          ondrop={(e) => {
-            e.preventDefault();
-            dragging = false;
-            onFilesSelected(e.dataTransfer?.files ?? null);
+        <!-- The two ways files get onto a set are alternatives, not steps, and
+             they take different things: files already split per stemme in one,
+             a single combined PDF in the other. Side by side they read as two
+             near-identical drop zones, so which one you want is a choice made
+             up front instead. Each tab is disabled while the other is
+             mid-flight: only the open tab's panel is rendered, so switching
+             away would tear down an upload that is still running. -->
+        <Tabs
+          tabStyle="underline"
+          class="flex w-full space-x-0"
+          classes={{
+            content:
+              "mt-0 p-0 pt-4 bg-transparent dark:bg-transparent rounded-none",
           }}
         >
-          <span class="ic"><CloudUpload size={30} /></span>
-          <div class="t">
-            Dra PDF-filer hit, eller <span class="lnk">velg filer</span>
-          </div>
-          <div class="s">
-            Vi matcher hver fil til riktig stemme automatisk ut fra filnavnet.
-            Kun PDF.
-          </div>
-        </div>
-
-        {#if review.length > 0}
-          <div class="review">
-            <div class="review__bar">
-              <span class="sum">
-                {#if isMatchingFiles}
-                  Matcher filer mot stemmekatalogen…
-                {:else if hasDuplicateMatches}
-                  <span class="conflict">
-                    Flere filer peker på samme stemme — velg riktig stemme for
-                    hver.
-                  </span>
-                {:else}
-                  <b>{matchedCount}</b> av {review.length} filer klare
-                {/if}
-              </span>
-              <Button
-                size="sm"
-                onclick={commit}
-                loading={isUploading}
-                disabled={isMatchingFiles || hasDuplicateMatches}
-              >
-                <Plus size={15} /> Legg til
-              </Button>
+          <TabItem
+            open
+            title="Én fil per stemme"
+            disabled={importRunning}
+            class="flex-1"
+            classes={{ button: "w-full cursor-pointer" }}
+          >
+            <div
+              class="drop"
+              class:drag={dragging}
+              role="button"
+              tabindex="0"
+              onclick={() => fileInput.click()}
+              onkeydown={(e) => (e.key === "Enter" ? fileInput.click() : null)}
+              ondragover={(e) => {
+                e.preventDefault();
+                dragging = true;
+              }}
+              ondragleave={() => (dragging = false)}
+              ondrop={(e) => {
+                e.preventDefault();
+                dragging = false;
+                onFilesSelected(e.dataTransfer?.files ?? null);
+              }}
+            >
+              <span class="ic"><CloudUpload size={30} /></span>
+              <div class="t">
+                Dra PDF-filer hit, eller <span class="lnk">velg filer</span>
+              </div>
+              <div class="s">
+                Én PDF per stemme. Vi matcher hver fil mot stemmekatalogen ut
+                fra filnavnet, og du får se og rette treffene før noe lastes
+                opp.
+              </div>
             </div>
-            {#each review as row, i}
-              {@const isDuplicate = duplicateMatches.includes(row.match)}
-              {@const isReplacing =
-                !!row.match && existingPartNames.includes(row.match)}
-              <div
-                class="filerow"
-                class:matched={!!row.match && !isDuplicate}
-                class:unmatched={!row.match && !row.matching}
-                class:matching={row.matching}
-                class:duplicate={isDuplicate}
-              >
-                <span class="ficon">
-                  {#if row.matching}
-                    <Spinner size={16} inline />
-                  {:else}
-                    <FileText size={18} />
-                  {/if}
-                </span>
-                <div class="fbody">
-                  <div class="fnamerow">
-                    <div class="fname">{row.name}</div>
-                    {#if isReplacing}
-                      <Badge variant="accent">
-                        <Replace size={11} /> Erstatter
-                      </Badge>
+
+            {#if review.length > 0}
+              <div class="review">
+                <div class="review__bar">
+                  <span class="sum">
+                    {#if isMatchingFiles}
+                      Matcher filer mot stemmekatalogen…
+                    {:else if hasDuplicateMatches}
+                      <span class="conflict">
+                        Flere filer peker på samme stemme — velg riktig stemme
+                        for hver.
+                      </span>
+                    {:else}
+                      <b>{matchedCount}</b> av {review.length} filer klare
                     {/if}
-                  </div>
-                  {#if row.matching}
-                    <div class="fstatus">Søker etter stemme…</div>
-                  {:else}
-                    <div class="fstatus">
-                      {#if isDuplicate}
-                        <CircleAlert size={13} /> Samme stemme som en annen fil
-                      {:else if !row.match}
-                        <CircleAlert size={13} /> Fant ingen stemme — velg den selv
-                      {:else if row.chosenManually}
-                        <CircleCheck size={13} /> Valgt manuelt
+                  </span>
+                  <Button
+                    size="sm"
+                    onclick={commit}
+                    loading={isUploading}
+                    disabled={isMatchingFiles || hasDuplicateMatches}
+                  >
+                    <Plus size={15} /> Legg til
+                  </Button>
+                </div>
+                {#each review as row, i}
+                  {@const isDuplicate = duplicateMatches.includes(row.match)}
+                  {@const isReplacing =
+                    !!row.match && existingPartNames.includes(row.match)}
+                  <div
+                    class="filerow"
+                    class:matched={!!row.match && !isDuplicate}
+                    class:unmatched={!row.match && !row.matching}
+                    class:matching={row.matching}
+                    class:duplicate={isDuplicate}
+                  >
+                    <span class="ficon">
+                      {#if row.matching}
+                        <Spinner size={16} inline />
                       {:else}
-                        <CircleCheck size={13} /> Matchet automatisk
+                        <FileText size={18} />
+                      {/if}
+                    </span>
+                    <div class="fbody">
+                      <div class="fnamerow">
+                        <div class="fname">{row.name}</div>
+                        {#if isReplacing}
+                          <Badge variant="accent">
+                            <Replace size={11} /> Erstatter
+                          </Badge>
+                        {/if}
+                      </div>
+                      {#if row.matching}
+                        <div class="fstatus">Søker etter stemme…</div>
+                      {:else}
+                        <div class="fstatus">
+                          {#if isDuplicate}
+                            <CircleAlert size={13} /> Samme stemme som en annen fil
+                          {:else if !row.match}
+                            <CircleAlert size={13} /> Fant ingen stemme — velg den
+                            selv
+                          {:else if row.chosenManually}
+                            <CircleCheck size={13} /> Valgt manuelt
+                          {:else}
+                            <CircleCheck size={13} /> Matchet automatisk
+                          {/if}
+                        </div>
+                        <!-- Every settled file keeps its picker, not just the
+                             ones that missed: the index answers with the closest
+                             part it has, which can be the wrong one, and this is
+                             the only place that choice can be corrected before
+                             upload. -->
+                        <div class="assign">
+                          <Select
+                            size="sm"
+                            items={catalogItems}
+                            value={row.match}
+                            placeholder="Velg stemme…"
+                            aria-label={`Stemme for ${row.name}`}
+                            onchange={(e) => assign(i, e.currentTarget.value)}
+                          />
+                        </div>
                       {/if}
                     </div>
-                    <!-- Every settled file keeps its picker, not just the ones
-                         that missed: the index answers with the closest part it
-                         has, which can be the wrong one, and this is the only
-                         place that choice can be corrected before upload. -->
-                    <div class="assign">
-                      <Select
-                        size="sm"
-                        items={catalogItems}
-                        value={row.match}
-                        placeholder="Velg stemme…"
-                        aria-label={`Stemme for ${row.name}`}
-                        onchange={(e) => assign(i, e.currentTarget.value)}
-                      />
-                    </div>
-                  {/if}
-                </div>
-                <button class="rm" title="Fjern" onclick={() => dropFile(i)}>
-                  <X size={17} />
-                </button>
+                    <button
+                      class="rm"
+                      title="Fjern"
+                      onclick={() => dropFile(i)}
+                    >
+                      <X size={17} />
+                    </button>
+                  </div>
+                {/each}
               </div>
-            {/each}
-          </div>
-        {/if}
+            {/if}
+          </TabItem>
+
+          <TabItem
+            disabled={isUploading || isMatchingFiles}
+            class="flex-1"
+            classes={{ button: "w-full cursor-pointer" }}
+          >
+            {#snippet titleSlot()}
+              <span class="tabtitle"
+                ><Sparkles size={15} /> Samle-PDF med AI</span
+              >
+            {/snippet}
+
+            <PdfImportPanel
+              description="Stemmenavnet leses fra toppteksten på hver side, og filen deles i én PDF per stemme. Stemmer settet allerede har, hoppes over. Kun PDF, maks 300 MB."
+              importFile={importPdfParts}
+              onimported={onPartsImported}
+              failedMessage="Importen feilet, eller svaret tok for lang tid. Last siden på nytt og sjekk om stemmene likevel ble lagt til før du prøver igjen."
+            />
+
+            <p class="mode-tip">
+              Bruk «Alle stemmer»-filen her. Et partitur har sjelden stemmenavn
+              i toppteksten og bør legges til med «Legg til stemme» i stedet —
+              og ikke slå partitur og stemmer sammen til én PDF: sider uten
+              lesbar topptekst havner i stemmen foran.
+            </p>
+
+            {#if importSummaryShown}
+              <div class="importsum">
+                <div class="importsum__row ok">
+                  <CircleCheck size={15} />
+                  <span>
+                    {#if importAddedParts.length > 0}
+                      La til {importAddedParts.length}
+                      {importAddedParts.length === 1 ? "stemme" : "stemmer"}:
+                      {importAddedParts.join(", ")}
+                    {:else}
+                      Ingen nye stemmer ble lagt til.
+                    {/if}
+                  </span>
+                </div>
+                {#if importUnrecognized.length > 0}
+                  <div class="importsum__row warn">
+                    <CircleAlert size={15} />
+                    <span>
+                      Fant ingen stemme som passer {importUnrecognized.join(
+                        ", ",
+                      )} — lagt i «Manglende noter». Legg navnet inn som alias på
+                      riktig stemme, så treffer neste import.
+                    </span>
+                  </div>
+                {/if}
+                {#if importDroppedPages}
+                  <div class="importsum__row warn">
+                    <CircleAlert size={15} />
+                    <span>
+                      Noen sider hadde ingen lesbar topptekst og ble
+                      <b>ikke lagt til</b> i settet. Last dem opp selv med «Legg til
+                      stemme».
+                    </span>
+                  </div>
+                {/if}
+                <p class="importsum__note">
+                  Sjekk stemmelisten: ligger en fil på feil stemme, flytt den
+                  med «Bytt stemme». Sammenlign også sidetallet med originalen
+                  før du regner settet som komplett.
+                </p>
+              </div>
+            {/if}
+          </TabItem>
+        </Tabs>
       </div>
     </section>
 
@@ -834,6 +1102,47 @@
   confirmTitle="Slett"
   onconfirm={removePart}
 />
+
+<Modal
+  title="Bytt stemme"
+  bind:open={movePartOpen}
+  size="xs"
+  dismissable={!movingPart}
+  outsideclose={!movingPart}
+>
+  <div class="field" style="margin-bottom:0">
+    <label for="moveTarget">
+      Flytt filen fra «{partToMove?.name ?? ""}» til
+    </label>
+    <Select
+      id="moveTarget"
+      items={moveTargets}
+      bind:value={moveTarget}
+      placeholder="Velg riktig stemme…"
+      disabled={movingPart}
+    />
+    <span class="hint">
+      Samme PDF legges på stemmen du velger, og fjernes fra «{partToMove?.name ??
+        ""}». En stemme som allerede har en fil kan ikke velges — fjern den
+      filen først hvis den er feil.
+    </span>
+  </div>
+  {#if moveError}
+    <p class="error-message">{moveError}</p>
+  {/if}
+  {#snippet footer()}
+    <Button onclick={movePart} loading={movingPart} disabled={!moveTarget}>
+      <Replace size={16} /> Flytt
+    </Button>
+    <Button
+      variant="ghost"
+      disabled={movingPart}
+      onclick={() => (movePartOpen = false)}
+    >
+      Avbryt
+    </Button>
+  {/snippet}
+</Modal>
 
 <Modal title="Legg til stemme" bind:open={addOpen} size="xs">
   <div class="field" style="margin-bottom:0">
@@ -1159,6 +1468,57 @@
     margin-top: 4px;
   }
 
+  /* The AI tab's title, so the sparkle sits on the accent rather than reading as
+     one more grey glyph. */
+  .tabtitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .tabtitle :global(svg) {
+    color: var(--accent);
+  }
+  .mode-tip {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .importsum {
+    margin-top: 14px;
+  }
+  .importsum__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .importsum__row + .importsum__row {
+    margin-top: 6px;
+  }
+  .importsum__row :global(svg) {
+    flex: none;
+    margin-top: 2px;
+  }
+  .importsum__row.ok {
+    color: var(--text-secondary);
+  }
+  .importsum__row.ok :global(svg) {
+    color: var(--success);
+  }
+  .importsum__row.warn {
+    color: var(--text-secondary);
+  }
+  .importsum__row.warn :global(svg) {
+    color: var(--brass-400);
+  }
+  .importsum__note {
+    margin: 8px 0 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
   .review {
     margin-top: 16px;
   }
@@ -1393,8 +1753,9 @@
       grid-template-areas:
         "upload"
         "list"
-        "info";
-      grid-template-rows: auto auto auto;
+        "info"
+        "history";
+      grid-template-rows: auto auto auto auto;
       gap: 16px;
     }
     .title {

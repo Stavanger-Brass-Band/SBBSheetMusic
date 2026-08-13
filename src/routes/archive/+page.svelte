@@ -2,7 +2,7 @@
   import { onMount, onDestroy, tick } from "svelte";
   import { beforeNavigate, goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { Modal } from "flowbite-svelte";
+  import { Modal, Tabs, TabItem } from "flowbite-svelte";
   import {
     SearchX,
     Library,
@@ -11,6 +11,7 @@
     Check,
     CheckCircle,
     Tag,
+    Sparkles,
   } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
@@ -29,6 +30,7 @@
   } from "$lib/utils/listQuery";
   import type { Category, MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
+  import PdfImportPanel from "$lib/components/PdfImportPanel.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import {
     Button,
@@ -99,6 +101,21 @@
   let isOpen = $state(false);
   let isSaving = $state(false);
   let createError = $state("");
+
+  // The two ways to create a set, as the keys of the dialog's tabs. The open one
+  // decides whether the footer offers a Lagre at all.
+  const MANUAL_TAB = "manual";
+  const AI_TAB = "ai";
+  let createMode = $state<string>(MANUAL_TAB);
+
+  // Creating a set by importing a combined score PDF. The set it answers with is
+  // held here so the navigation afterwards knows where to go.
+  let importedSet = $state<MusicSet | null>(null);
+  // An import runs for minutes and the set it creates is only named in its
+  // answer, so the dialog stays put until that answer arrives: closing it early
+  // would leave a set created behind the reader's back, with nothing to say
+  // which one it was.
+  let importRunning = $state(false);
   // Title is the only field the API requires; everything else may be filled in
   // later on the editor page.
   let canSave = $derived(!!newSet.title?.trim());
@@ -328,7 +345,28 @@
   function openModal() {
     newSet = {};
     createError = "";
+    importedSet = null;
+    createMode = MANUAL_TAB;
     isOpen = true;
+  }
+
+  async function importSetFromPdf(file: File) {
+    importRunning = true;
+    const result = await sheetMusic.createSetFromPdf(file);
+    importRunning = false;
+    importedSet = result.status === "ok" ? result.data : null;
+    return result;
+  }
+
+  /**
+   * The import creates the set and its parts in one go, and answers with neither
+   * the page ranges it chose nor the headers it couldn't read — so the editor is
+   * where the result gets checked, and that is where this lands.
+   */
+  function onSetImported() {
+    if (!importedSet?.id) return;
+    isOpen = false;
+    goto("/set/edit/" + importedSet.id);
   }
 </script>
 
@@ -553,20 +591,102 @@
   </div>
 {/if}
 
-<Modal title="Registrer nytt notesett" bind:open={isOpen} size="sm">
-  <MusicSetModalBody set={newSet} />
-  {#if createError}
-    <p class="error-message">{createError}</p>
-  {/if}
+<!-- The body's own padding is dropped so the tab row can reach both edges of the
+     dialog, sitting straight under the title the way the header rule does; each
+     tab panel puts that padding back around its own content. `space-y-4` goes
+     with it — it was the gap that pushed the tabs down away from the header. -->
+<Modal
+  title="Nytt notesett"
+  bind:open={isOpen}
+  size="sm"
+  dismissable={!importRunning}
+  outsideclose={!importRunning}
+  classes={{ body: "p-0 md:p-0 space-y-0 overflow-y-auto overscroll-contain" }}
+>
+  <!-- Registering a set by hand and importing one from a combined PDF are two
+       answers to the same question, so they are two tabs of one dialog rather
+       than two buttons above the list. The footer follows the open tab: the AI
+       tab has no Lagre of its own, since choosing the file is what starts it. -->
+  <Tabs
+    tabStyle="underline"
+    bind:selected={createMode}
+    class="flex w-full space-x-0"
+    classes={{
+      content:
+        "mt-0 p-4 md:p-5 bg-transparent dark:bg-transparent rounded-none",
+    }}
+  >
+    <TabItem
+      key={MANUAL_TAB}
+      title="Fyll inn selv"
+      disabled={importRunning}
+      class="flex-1"
+      classes={{ button: "w-full cursor-pointer" }}
+    >
+      <MusicSetModalBody set={newSet} />
+      {#if createError}
+        <p class="error-message">{createError}</p>
+      {/if}
+    </TabItem>
+
+    <TabItem
+      key={AI_TAB}
+      disabled={isSaving}
+      class="flex-1"
+      classes={{ button: "w-full cursor-pointer" }}
+    >
+      {#snippet titleSlot()}
+        <span class="tabtitle"><Sparkles size={15} /> Fra samle-PDF</span>
+      {/snippet}
+
+      <PdfImportPanel
+        description="Tittel, komponist og arrangør leses fra toppteksten på sidene, og filen deles i én PDF per stemme. Kun PDF, maks 300 MB."
+        importFile={importSetFromPdf}
+        onimported={onSetImported}
+        failedMessage="Importen feilet, eller svaret tok for lang tid. Sjekk øverst i arkivlisten om settet likevel ble opprettet før du prøver igjen."
+      />
+      <p class="pdf-note">
+        Bruk «Alle stemmer»-filen — ett partitur alene har sjelden stemmenavn i
+        toppteksten. Gjennomgangen skjer etterpå: du kommer til settsiden, der
+        hver stemme har «Bytt stemme» for filer som ble plassert feil, og der du
+        kan legge til partituret og laste opp det som mangler.
+      </p>
+    </TabItem>
+  </Tabs>
+
   {#snippet footer()}
-    <Button loading={isSaving} disabled={!canSave} onclick={saveNewSet}>
-      Lagre
+    {#if createMode === MANUAL_TAB}
+      <Button loading={isSaving} disabled={!canSave} onclick={saveNewSet}>
+        Lagre
+      </Button>
+    {/if}
+    <Button
+      variant="ghost"
+      disabled={importRunning}
+      onclick={() => (isOpen = false)}
+    >
+      Lukk
     </Button>
-    <Button variant="ghost" onclick={() => (isOpen = false)}>Lukk</Button>
   {/snippet}
 </Modal>
 
 <style>
+  /* The AI tab's title, so the sparkle sits on the accent rather than reading as
+     one more grey glyph. */
+  .tabtitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .tabtitle :global(svg) {
+    color: var(--accent);
+  }
+  .pdf-note {
+    margin: 14px 0 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
   /* ---- category filter ---- */
   .filters {
     display: flex;
