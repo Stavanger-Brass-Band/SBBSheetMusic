@@ -5,12 +5,19 @@
   import { Modal } from "flowbite-svelte";
   import { Plus, X, Trash2, Check, AlertTriangle } from "@lucide/svelte";
   import { parts as partsApi } from "$lib/api/parts";
+  import { partsListHref } from "$lib/utils/partsListQuery";
   import type { Part, PartForm, PartRequest } from "$lib/types";
   import { Badge, Breadcrumb, Button } from "$lib/components/ui";
   import PartModalBody from "$lib/components/PartModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let id = $derived(page.params.id!);
+  /**
+   * Back to the catalogue as the reader left it. The list passes its search and
+   * group filter along in `from`, so every way out of this page returns to the
+   * same filtered view rather than to the whole catalogue.
+   */
+  let listHref = $derived(partsListHref(page.url.searchParams.get("from")));
 
   let part = $state<Part | null>(null);
   let loading = $state(true);
@@ -157,7 +164,7 @@
     const response = await partsApi.remove(part.id!);
     isDeleting = false;
     if (response.ok) {
-      goto("/parts");
+      goto(listHref);
       return;
     }
 
@@ -174,7 +181,7 @@
 <Breadcrumb
   class="mb-4"
   items={[
-    { label: "Stemmekatalog", href: "/parts" },
+    { label: "Stemmekatalog", href: listHref },
     { label: part?.name ?? "-" },
   ]}
 />
@@ -185,7 +192,7 @@
   <div class="notfound">
     <h1 class="sbb-h1">Fant ikke stemmen</h1>
     <p>Stemmen finnes ikke, eller er allerede slettet.</p>
-    <Button onclick={() => goto("/parts")}>Til stemmekatalog</Button>
+    <Button onclick={() => goto(listHref)}>Til stemmekatalog</Button>
   </div>
 {:else}
   <div class="head">
