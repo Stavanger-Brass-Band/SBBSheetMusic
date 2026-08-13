@@ -1,11 +1,29 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { Modal } from "flowbite-svelte";
-  import { Plus, SearchX, ListMusic, Pencil, Check } from "@lucide/svelte";
+  import { Plus, SearchX, ListMusic, Pencil, Check, Tag } from "@lucide/svelte";
   import { parts as partsApi } from "$lib/api/parts";
-  import type { Part, PartForm, PartRequest } from "$lib/types";
-  import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
+  import { replaceListUrl } from "$lib/utils/listQuery";
+  import {
+    NO_GROUP_FILTER,
+    partsListQueryParams,
+    readPartsListQuery,
+  } from "$lib/utils/partsListQuery";
+  import {
+    INSTRUMENT_GROUPS,
+    type Part,
+    type PartForm,
+    type PartRequest,
+  } from "$lib/types";
+  import {
+    Badge,
+    Button,
+    EmptyState,
+    FilterChip,
+    SearchInput,
+  } from "$lib/components/ui";
   import PartModalBody from "$lib/components/PartModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
@@ -14,23 +32,75 @@
   let allParts = $state<Part[]>([]);
   let loading = $state(true);
 
-  // Client-side search over the loaded catalog (the endpoint returns every
-  // part in one call), matching on name or any alias, sorted by sortOrder.
+  // Search and the group filter are client-side — the endpoint returns every
+  // part in one call — but both live in the URL all the same, so opening a part
+  // and coming back lands on the same filtered list (see `partsListQuery`).
   let searchTerm = $state("");
+  let selectedGroup = $state("");
+
   let filtered = $derived.by(() => {
     const sorted = [...allParts].sort(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
     );
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return sorted;
-    return sorted.filter(
-      (part) =>
+    return sorted.filter((part) => {
+      if (selectedGroup === NO_GROUP_FILTER) {
+        if (part.instrumentGroup) return false;
+      } else if (selectedGroup && part.instrumentGroup !== selectedGroup) {
+        return false;
+      }
+      if (!query) return true;
+      return (
         (part.name ?? "").toLowerCase().includes(query) ||
         (part.aliases ?? []).some((alias) =>
           alias.toLowerCase().includes(query),
-        ),
-    );
+        )
+      );
+    });
   });
+  let isFiltered = $derived(!!searchTerm.trim() || !!selectedGroup);
+  /**
+   * Why the list is empty, naming whichever filters are on — a reader who has
+   * both a search and a group narrowed needs to know both are in play before
+   * concluding the stemme isn't in the catalogue.
+   */
+  let emptyResultDescription = $derived.by(() => {
+    const query = searchTerm.trim();
+    const groupLabel =
+      selectedGroup === NO_GROUP_FILTER ? "uten gruppe" : selectedGroup;
+    if (query && selectedGroup)
+      return `Fant ingen stemmer som passer «${query}» blant stemmene ${selectedGroup === NO_GROUP_FILTER ? groupLabel : `i ${groupLabel}`}. Prøv et annet søk, en annen gruppe, eller sjekk om navnet finnes som et alias.`;
+    if (query)
+      return `Fant ingen stemmer som passer «${query}». Prøv et annet søk, eller sjekk om navnet finnes som et alias.`;
+    return selectedGroup === NO_GROUP_FILTER
+      ? "Alle stemmer i katalogen har en gruppe."
+      : `Ingen stemmer er lagt i gruppen ${groupLabel}.`;
+  });
+
+  /**
+   * The current view as a query string, handed to the editor so its way back
+   * returns here rather than to the unfiltered catalogue.
+   */
+  let listQuery = $derived(
+    partsListQueryParams(searchTerm, selectedGroup).join("&"),
+  );
+
+  function openPart(partId: string) {
+    const query = listQuery;
+    goto(
+      `/part/edit/${partId}${query ? `?from=${encodeURIComponent(query)}` : ""}`,
+    );
+  }
+
+  /** Mirror the view into the URL, replacing the entry rather than stacking one. */
+  function syncUrl() {
+    replaceListUrl(partsListQueryParams(searchTerm, selectedGroup), "/parts");
+  }
+
+  function selectGroup(group: string) {
+    selectedGroup = selectedGroup === group ? "" : group;
+    syncUrl();
+  }
   let indexableCount = $derived(
     allParts.filter((part) => part.indexable).length,
   );
@@ -50,6 +120,14 @@
   let canSave = $derived(!!form.name.trim());
 
   onMount(async () => {
+    // The URL is read before the fetch, so the list paints already filtered
+    // rather than showing the whole catalogue for a frame first.
+    const restored = readPartsListQuery(
+      page.url.searchParams,
+      INSTRUMENT_GROUPS,
+    );
+    searchTerm = restored.searchTerm;
+    selectedGroup = restored.selectedGroup;
     allParts = (await partsApi.list()) ?? [];
     loading = false;
   });
@@ -141,16 +219,38 @@
   </Button>
 </div>
 
-<SearchInput placeholder="Søk i stemmer og aliaser…" bind:value={searchTerm} />
+<SearchInput
+  placeholder="Søk i stemmer og aliaser…"
+  bind:value={searchTerm}
+  oninput={syncUrl}
+/>
+
+<div class="sbb-filter-row">
+  <span class="sbb-filter-label"><Tag size={14} /> Gruppe</span>
+  <FilterChip active={!selectedGroup} onclick={() => selectGroup("")}>
+    Alle
+  </FilterChip>
+  {#each INSTRUMENT_GROUPS as group}
+    <FilterChip
+      active={selectedGroup === group}
+      onclick={() => selectGroup(group)}
+    >
+      {group}
+    </FilterChip>
+  {/each}
+  <FilterChip
+    active={selectedGroup === NO_GROUP_FILTER}
+    onclick={() => selectGroup(NO_GROUP_FILTER)}
+  >
+    Uten gruppe
+  </FilterChip>
+</div>
 
 {#if loading}
   <LoadingSpinner label="Laster stemmekatalog…" />
 {:else if filtered.length === 0}
-  {#if searchTerm.trim()}
-    <EmptyState
-      title="Ingen treff"
-      description={`Fant ingen stemmer som passer «${searchTerm.trim()}». Prøv et annet søk, eller sjekk om navnet finnes som et alias.`}
-    >
+  {#if isFiltered}
+    <EmptyState title="Ingen treff" description={emptyResultDescription}>
       {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
     </EmptyState>
   {:else}
@@ -176,7 +276,7 @@
       </thead>
       <tbody>
         {#each filtered as part (part.id)}
-          <tr class="clickable" onclick={() => goto(`/part/edit/${part.id}`)}>
+          <tr class="clickable" onclick={() => openPart(part.id!)}>
             <td class="c-order">{part.sortOrder}</td>
             <td class="c-name">{part.name}</td>
             <td class="c-aliases">{@render aliasChips(part.aliases ?? [])}</td>
@@ -194,10 +294,7 @@
   <!-- Mobile: the table reflows into a card list. -->
   <div class="sbb-card-list">
     {#each filtered as part (part.id)}
-      <div
-        class="sbb-card clickable"
-        onclick={() => goto(`/part/edit/${part.id}`)}
-      >
+      <div class="sbb-card clickable" onclick={() => openPart(part.id!)}>
         <div class="body">
           <div class="t">
             <span class="card-order">{part.sortOrder}</span> - {part.name}

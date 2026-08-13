@@ -353,6 +353,32 @@ dialog::backdrop {
 }
 
 /* ============================================================
+   Filter row — the pill filters above a list (Arkivliste's categories,
+   Stemmekatalog's instrument groups). The row and its label live here
+   because more than one list needs them; the pills themselves are the
+   `ui/FilterChip` primitive.
+   ============================================================ */
+.sbb-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.sbb-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 4px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* ============================================================
    Responsive list — on phones the editorial .sbb-table (Arkivliste /
    Brukere / Prosjekter) reflows into a card list. Render both: add
    `.table-view` to the table wrapper and a sibling `.sbb-card-list` of
