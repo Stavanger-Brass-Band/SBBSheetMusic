@@ -124,4 +124,28 @@ export const sheetMusic = {
       `/sheetmusic/sets/${setId}/parts/${encodeURIComponent(partName)}/content`,
       file,
     ),
+
+  /**
+   * Creates a set from one combined score PDF. The API reads each page's top
+   * band with OCR, has a model infer the title/composer/arranger the headers
+   * share and the part name each page carries, then splits the file locally
+   * into one PDF per part it can place in the part catalogue — by name, by
+   * alias, or by a model match, which also records a new alias so the same
+   * header text resolves on its own next time.
+   *
+   * Only the created set comes back. Which pages went where, and how sure the
+   * OCR was, is not in the response, so what landed can only be read back off
+   * the set: its parts, and the header texts appended to `missingParts` for
+   * everything that couldn't be placed.
+   */
+  createSetFromPdf: (file: File) =>
+    client.postPdf<MusicSet>("/sheetmusic/sets/pdf", file),
+
+  /**
+   * The same import into a set that already exists, which answers 204 — reload
+   * the set to see what it did. Takes the set's guid only, unlike the routes
+   * that accept an archive number or title.
+   */
+  importPartsFromPdf: (setId: string, file: File) =>
+    client.postPdfNoContent(`/sheetmusic/sets/${setId}/parts/pdf`, file),
 };

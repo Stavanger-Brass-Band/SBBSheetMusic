@@ -156,6 +156,59 @@ async function getCatalog<T>(
   }
 }
 
+/**
+ * The outcome of importing a combined score PDF.
+ *
+ * The API distinguishes four ways this fails and a person needs to be told
+ * which one happened, because the next move differs every time: an unreadable
+ * file is theirs to replace, a missing title means the scan's page headers
+ * never carried one, a vanished set means someone else deleted it, and OCR
+ * being down is nobody's fault and worth retrying later. Collapsing them into
+ * one "failed" would leave the reader guessing at all four.
+ */
+export type PdfImportResult<T> =
+  | { status: "ok"; data: T }
+  | { status: "invalidFile" }
+  | { status: "noMetadata" }
+  | { status: "notFound" }
+  | { status: "ocrUnavailable" }
+  | { status: "failed" };
+
+/**
+ * POST a PDF as multipart and map the import's statuses onto
+ * `PdfImportResult`. The endpoints read the body straight off the request
+ * rather than through model binding, so the OpenAPI document declares no
+ * request body and the multipart is assembled here: one file section, whose
+ * field name the API ignores — it takes the first section that carries a
+ * filename.
+ */
+async function postPdf<T>(
+  path: string,
+  version: ApiVersion,
+  file: File,
+  parse: (res: Response) => Promise<T>,
+): Promise<PdfImportResult<T>> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await authedFetch(buildUrl(path, version), {
+    method: "POST",
+    body: formData,
+  });
+
+  if (res.status === 400) return { status: "invalidFile" };
+  if (res.status === 404) return { status: "notFound" };
+  if (res.status === 422) return { status: "noMetadata" };
+  if (res.status === 503) return { status: "ocrUnavailable" };
+  if (!res.ok) return { status: "failed" };
+
+  try {
+    return { status: "ok", data: await parse(res) };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
 async function postFile(
   path: string,
   version: ApiVersion,
@@ -276,6 +329,14 @@ export function createClient(version: ApiVersion) {
       writeJson(path, version, "PUT", body),
 
     postFile: (path: string, file: File) => postFile(path, version, file),
+
+    /** POST a combined score PDF to an import that answers with a body. */
+    postPdf: <T>(path: string, file: File) =>
+      postPdf<T>(path, version, file, (r) => r.json() as Promise<T>),
+
+    /** POST a combined score PDF to an import that answers 204. */
+    postPdfNoContent: (path: string, file: File) =>
+      postPdf<void>(path, version, file, async () => undefined),
 
     del: (path: string, body?: unknown) => del(path, version, body),
   };
