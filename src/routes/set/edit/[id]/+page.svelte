@@ -320,14 +320,10 @@
 
   // ---- move an uploaded file to the right part ----
   /**
-   * Reassigning a file that is already on the set has no endpoint of its own:
-   * the set-part relationship takes only GET and DELETE, and content is posted
-   * per part. So the move is orchestrated here — fetch the file, put it on the
-   * right part, and only then drop the wrong one.
-   *
-   * That order is the point. Deleting first would leave nothing to fall back on
-   * if the upload then failed, and the file only exists in the archive; this way
-   * a failure halfway leaves it exactly where it was.
+   * Hands the assignment over to the part the reader picked. The API carries the
+   * PDF across and rolls its own copy back if the move fails, so there is no
+   * half-moved state for this to recover from — a failure leaves the file exactly
+   * where it was, and the message only has to say why.
    */
   async function movePart() {
     const part = partToMove;
@@ -337,45 +333,40 @@
     movingPart = true;
     moveError = "";
     try {
-      const token = await sheetMusic.getZipToken(id);
-      if (token.status !== "ok") {
-        moveError =
-          token.status === "forbidden"
-            ? "Du har ikke tilgang til filene i dette settet."
-            : "Kunne ikke hente filen som skal flyttes. Prøv igjen.";
-        return;
-      }
-
-      const blob = await sheetMusic.getPartPdf(id, part.name ?? "", token.data);
-      if (!blob) {
-        moveError = "Kunne ikke hente filen som skal flyttes. Prøv igjen.";
-        return;
-      }
-
-      const uploaded = await sheetMusic.uploadPartContent(
+      const response = await sheetMusic.changePart(
         id,
+        part.musicPartId ?? part.name ?? "",
         targetName,
-        new File([blob], `${targetName}.pdf`, { type: "application/pdf" }),
       );
-      if (!uploaded || !("success" in uploaded)) {
-        moveError = `Kunne ikke legge filen på «${targetName}». Den ligger fortsatt på «${part.name}».`;
-        return;
-      }
-
-      const removed = await sheetMusic.deletePart(id, part.musicPartId ?? "");
-      await reloadParts();
-      if (!removed.ok) {
-        // The file is safe — it is on both parts now — so this says which half
-        // is left to finish rather than pretending the move failed.
-        moveError = `Filen ligger nå på «${targetName}», men «${part.name}» ble ikke fjernet. Fjern den manuelt.`;
+      if (!response.ok) {
+        moveError = moveFailureMessage(response.status, part.name, targetName);
         return;
       }
 
       movePartOpen = false;
+      await reloadParts();
       flash([targetName]);
     } finally {
       movingPart = false;
     }
+  }
+
+  /**
+   * Why a move was refused. A 409 is the one worth spelling out: the set already
+   * holds the part picked, and the API refuses rather than merging the two — the
+   * picker leaves those unselectable, so reaching this means the list moved under
+   * the reader.
+   */
+  function moveFailureMessage(
+    status: number,
+    fromName: string | undefined,
+    toName: string,
+  ): string {
+    if (status === 409)
+      return `«${toName}» har allerede en fil i dette settet. Fjern den først hvis den er feil.`;
+    if (status === 404)
+      return "Stemmen finnes ikke lenger. Last siden på nytt.";
+    return `Kunne ikke flytte filen til «${toName}». Den ligger fortsatt på «${fromName ?? ""}».`;
   }
 
   function askMovePart(part: MusicSetPart) {

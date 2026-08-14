@@ -2,6 +2,7 @@ import { createClient } from "./client";
 import type {
   AssignCategoryRequest,
   Category,
+  ChangePartRequest,
   MusicSet,
   ProjectSummary,
   SetRequest,
@@ -90,6 +91,28 @@ export const sheetMusic = {
 
   deletePart: (setId: string, partId: string) =>
     client.del(`/sheetmusic/sets/${setId}/parts/${partId}`),
+
+  /**
+   * Re-points an existing part assignment at a different part, carrying the PDF
+   * across: the API copies the content to the replacement, moves the assignment
+   * row, and only then drops the old content, rolling the copy back if the move
+   * fails. So the file cannot end up on neither part, and the client no longer
+   * has to fetch and re-upload it to correct a wrong match.
+   *
+   * Answers the raw response rather than the updated assignment it returns,
+   * because the outcome is what the caller needs: 409 means the set already has
+   * the replacement part, which is refused rather than merged, and 404 means the
+   * assignment or the replacement is gone. Callers reload the set for the result.
+   */
+  changePart: (
+    setId: string,
+    currentPartIdentifier: string,
+    replacementPartIdentifier: string,
+  ) =>
+    client.putNoContent<ChangePartRequest>(
+      `/sheetmusic/sets/${setId}/parts/${encodeURIComponent(currentPartIdentifier)}`,
+      { partIdentifier: replacementPartIdentifier },
+    ),
 
   /** The categories currently assigned to a set. */
   listSetCategories: (setId: string) =>
