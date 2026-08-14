@@ -24,6 +24,8 @@ export type MusicSet = Omit<V2["schemas"]["ApiSet"], "archiveNumber"> & {
 };
 export type MusicSetPart = V2["schemas"]["ApiSheetMusicPart"];
 export type SetRequest = V2["schemas"]["SetRequest"];
+/** Body of the part-change endpoint: the part that takes over the assignment. */
+export type ChangePartRequest = V2["schemas"]["ChangePartRequest"];
 
 /**
  * A project as it appears inside an expanded set (`$expand=projects`): its id,
