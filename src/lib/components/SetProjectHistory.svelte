@@ -2,13 +2,11 @@
   import { onMount } from "svelte";
   import { History } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
-  import { projects as projectsApi } from "$lib/api/projects";
-  import { catalogData } from "$lib/api/client";
   import {
     formatUsagePeriod,
     toSetProjectHistory,
   } from "$lib/utils/setProjectHistory";
-  import type { Project, ProjectSummary, SetProjectUsage } from "$lib/types";
+  import type { SetProjectUsage } from "$lib/types";
   import { Spinner } from "$lib/components/ui";
 
   /**
@@ -16,9 +14,8 @@
    * first, each linking on to the project itself.
    *
    * It loads its own data because it is nobody else's concern — the pages that
-   * show it have already fetched the set by the time it mounts, and two extra
-   * rounds of requests have no business holding up the parts and downloads
-   * people came for.
+   * show it have already fetched the set by the time it mounts, and a second
+   * request has no business holding up the parts and downloads people came for.
    */
   let {
     setId,
@@ -55,37 +52,10 @@
         return;
       }
 
-      usages = toSetProjectHistory(
-        summaries,
-        await loadProjectDates(summaries),
-      );
+      usages = toSetProjectHistory(summaries);
     } finally {
       loading = false;
     }
-  }
-
-  /**
-   * The dates the expanded summaries don't carry, read straight off the
-   * projects. One request each: the set is expanded with only the projects the
-   * caller may see, so these are reads that are expected to land, and a set is
-   * on few enough projects for a fetch per row to be cheaper than paging the
-   * whole project list to find them. A read that doesn't land costs its row the
-   * dates, not its place in the list.
-   */
-  async function loadProjectDates(
-    summaries: ProjectSummary[],
-  ): Promise<Project[]> {
-    const results = await Promise.all(
-      summaries
-        .filter((summary): summary is ProjectSummary & { id: string } =>
-          Boolean(summary.id),
-        )
-        .map((summary) => projectsApi.get(summary.id)),
-    );
-
-    return results
-      .map((result) => catalogData(result))
-      .filter((project): project is Project => project !== undefined);
   }
 </script>
 

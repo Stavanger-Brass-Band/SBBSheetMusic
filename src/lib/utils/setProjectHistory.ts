@@ -1,42 +1,34 @@
 /**
  * A set's usage history: the projects it has been played on, newest first.
  *
- * The API answers the relation in two halves. `$expand=projects` on a set
- * carries `{ id, name }` per connected project and no dates, so "when" has to be
- * read back off the projects themselves and joined here.
+ * `$expand=projects` on a set carries everything a row needs — id, name and the
+ * project's dates — so the whole history is one response.
  */
 
 import { formatDmyShort } from "$lib/utils/date";
-import type { Project, ProjectSummary, SetProjectUsage } from "$lib/types";
+import type { ProjectSummary, SetProjectUsage } from "$lib/types";
 
 /**
- * Join the project summaries a set came back with against the projects fetched
- * for their dates.
+ * Order the project summaries a set came back with, newest first.
  *
- * A project whose details didn't arrive still belongs in the list — the set was
- * played on it either way — so it keeps the name the summary carried and loses
- * only its dates. A summary without an id is dropped: it can neither be linked
- * to nor joined against anything.
+ * The API leaves every field of a summary optional, so this is also where a row
+ * settles into the shape the list renders: a summary without an id is dropped,
+ * since it can't be linked to, and the dates stay optional because a project
+ * whose own dates were never set has none to carry.
  */
 export function toSetProjectHistory(
   summaries: ProjectSummary[],
-  details: Project[],
 ): SetProjectUsage[] {
-  const detailsById = new Map(details.map((project) => [project.id, project]));
-
   return summaries
     .filter(
       (summary): summary is ProjectSummary & { id: string } => !!summary.id,
     )
-    .map((summary) => {
-      const project = detailsById.get(summary.id);
-      return {
-        id: summary.id,
-        name: project?.name ?? summary.name ?? "",
-        startDate: project?.startDate,
-        endDate: project?.endDate,
-      };
-    })
+    .map((summary) => ({
+      id: summary.id,
+      name: summary.name ?? "",
+      startDate: summary.startDate,
+      endDate: summary.endDate,
+    }))
     .sort(byMostRecentFirst);
 }
 

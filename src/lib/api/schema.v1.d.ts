@@ -1648,6 +1648,16 @@ export interface components {
             id?: string;
             /** @description Project name. */
             name?: string;
+            /**
+             * Format: date-time
+             * @description Project start date.
+             */
+            startDate?: string;
+            /**
+             * Format: date-time
+             * @description Project end date.
+             */
+            endDate?: string;
         };
         ApiSet: {
             /**
