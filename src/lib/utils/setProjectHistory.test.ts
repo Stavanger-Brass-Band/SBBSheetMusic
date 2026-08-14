@@ -1,27 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { formatUsagePeriod, toSetProjectHistory } from "./setProjectHistory";
-import type { Project } from "$lib/types";
-
-const project = (
-  id: string,
-  name: string,
-  startDate?: string,
-  endDate?: string,
-): Project => ({ id, name, startDate, endDate });
 
 describe("toSetProjectHistory", () => {
-  it("joins the expanded summaries with the dates read off the projects", () => {
-    const history = toSetProjectHistory(
-      [{ id: "p1", name: "Julekonsert" }],
-      [
-        project(
-          "p1",
-          "Julekonsert",
-          "2025-12-12T12:00:00Z",
-          "2025-12-14T12:00:00Z",
-        ),
-      ],
-    );
+  it("takes the name and dates straight off the expanded summary", () => {
+    const history = toSetProjectHistory([
+      {
+        id: "p1",
+        name: "Julekonsert",
+        startDate: "2025-12-12T12:00:00Z",
+        endDate: "2025-12-14T12:00:00Z",
+      },
+    ]);
 
     expect(history).toEqual([
       {
@@ -34,38 +23,29 @@ describe("toSetProjectHistory", () => {
   });
 
   it("orders the projects most recent first", () => {
-    const history = toSetProjectHistory(
-      [
-        { id: "old", name: "NM 2019" },
-        { id: "new", name: "NM 2026" },
-        { id: "middle", name: "NM 2022" },
-      ],
-      [
-        project("old", "NM 2019", "2019-02-01T12:00:00Z"),
-        project("new", "NM 2026", "2026-02-01T12:00:00Z"),
-        project("middle", "NM 2022", "2022-02-01T12:00:00Z"),
-      ],
-    );
+    const history = toSetProjectHistory([
+      { id: "old", name: "NM 2019", startDate: "2019-02-01T12:00:00Z" },
+      { id: "new", name: "NM 2026", startDate: "2026-02-01T12:00:00Z" },
+      { id: "middle", name: "NM 2022", startDate: "2022-02-01T12:00:00Z" },
+    ]);
 
     expect(history.map((usage) => usage.id)).toEqual(["new", "middle", "old"]);
   });
 
   /**
-   * The dates come from a second round of requests, so one of them failing must
-   * not cost the reader a project the set was genuinely played on.
+   * Every field of a summary is optional, so a project whose own dates were
+   * never set still has to land somewhere — in the list, at the bottom, rather
+   * than dropped or jumping the timeline.
    */
-  it("keeps a project whose details never arrived, without dates and last", () => {
-    const history = toSetProjectHistory(
-      [
-        { id: "known", name: "Vårkonsert" },
-        { id: "unreachable", name: "Sommerturné" },
-      ],
-      [project("known", "Vårkonsert", "2025-04-05T12:00:00Z")],
-    );
+  it("keeps a project with no dates, and puts it last", () => {
+    const history = toSetProjectHistory([
+      { id: "dated", name: "Vårkonsert", startDate: "2025-04-05T12:00:00Z" },
+      { id: "undated", name: "Sommerturné" },
+    ]);
 
-    expect(history.map((usage) => usage.id)).toEqual(["known", "unreachable"]);
+    expect(history.map((usage) => usage.id)).toEqual(["dated", "undated"]);
     expect(history[1]).toEqual({
-      id: "unreachable",
+      id: "undated",
       name: "Sommerturné",
       startDate: undefined,
       endDate: undefined,
@@ -73,24 +53,18 @@ describe("toSetProjectHistory", () => {
   });
 
   it("orders projects sharing a start date, and undated ones, by name", () => {
-    const history = toSetProjectHistory(
-      [
-        { id: "b", name: "Bykonsert" },
-        { id: "a", name: "Aftenkonsert" },
-        { id: "z", name: "Ukjent turné" },
-        { id: "y", name: "Annen ukjent" },
-      ],
-      [
-        project("b", "Bykonsert", "2025-05-01T12:00:00Z"),
-        project("a", "Aftenkonsert", "2025-05-01T12:00:00Z"),
-      ],
-    );
+    const history = toSetProjectHistory([
+      { id: "b", name: "Bykonsert", startDate: "2025-05-01T12:00:00Z" },
+      { id: "a", name: "Aftenkonsert", startDate: "2025-05-01T12:00:00Z" },
+      { id: "z", name: "Ukjent turné" },
+      { id: "y", name: "Annen ukjent" },
+    ]);
 
     expect(history.map((usage) => usage.id)).toEqual(["a", "b", "y", "z"]);
   });
 
-  it("drops a summary with no id, which nothing can be joined or linked to", () => {
-    expect(toSetProjectHistory([{ name: "Uten id" }], [])).toEqual([]);
+  it("drops a summary with no id, which nothing can be linked to", () => {
+    expect(toSetProjectHistory([{ name: "Uten id" }])).toEqual([]);
   });
 });
 

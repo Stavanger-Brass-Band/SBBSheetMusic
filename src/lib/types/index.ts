@@ -26,10 +26,9 @@ export type MusicSetPart = V2["schemas"]["ApiSheetMusicPart"];
 export type SetRequest = V2["schemas"]["SetRequest"];
 
 /**
- * A project as it appears inside an expanded set (`$expand=projects`): its id
- * and name, and only for the projects the caller's roles reach. Everything else
- * about the project — its dates above all — still comes from the v1 projects
- * endpoint.
+ * A project as it appears inside an expanded set (`$expand=projects`): its id,
+ * name and dates, and only for the projects the caller's roles reach. Enough to
+ * render a set's usage history without reading the projects themselves.
  */
 export type ProjectSummary = V2["schemas"]["ApiProjectSummary"];
 
@@ -97,10 +96,10 @@ export type Project = V1["schemas"]["ApiProject"] & {
 };
 
 /**
- * One appearance of a set on a project — a row of the set's usage history. The
- * name comes from the summary the set carries, the dates from the project read
- * back for them, so both stay optional: a project whose details didn't arrive
- * keeps its place in the history rather than disappearing from it.
+ * One appearance of a set on a project — a row of the set's usage history, as
+ * the expanded summary settles into once it has an id to be listed by. The dates
+ * stay optional: a project whose own dates were never set has none to carry, and
+ * the row belongs in the history regardless.
  */
 export interface SetProjectUsage {
   id: string;

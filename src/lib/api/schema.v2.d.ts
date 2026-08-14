@@ -772,7 +772,42 @@ export interface paths {
                 };
             };
         };
-        put?: never;
+        /** Changes an existing part assignment on a set to the selected replacement part. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description A value uniquely identifying set. Either guid, archive number or title. */
+                    setIdentifier: string;
+                    /** @description A value uniquely identifying the currently assigned part. Either guid or part name. */
+                    partIdentifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The selected replacement part. */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePartRequest"];
+                    "text/json": components["schemas"]["ChangePartRequest"];
+                    "application/*+json": components["schemas"]["ChangePartRequest"];
+                };
+            };
+            responses: {
+                /** @description The part assignment was changed successfully. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiSheetMusicPart"];
+                    };
+                };
+            };
+        };
         post?: never;
         /** Deletes the PDF content and the relationship for partIdentifier of set with setIdentifier. */
         delete: {
@@ -1457,6 +1492,16 @@ export interface components {
             id?: string;
             /** @description Project name. */
             name?: string;
+            /**
+             * Format: date-time
+             * @description Project start date.
+             */
+            startDate?: string;
+            /**
+             * Format: date-time
+             * @description Project end date.
+             */
+            endDate?: string;
         };
         ApiSet: {
             /**
@@ -1517,6 +1562,10 @@ export interface components {
         AssignRoleRequest: {
             /** @description The name of the role to assign. Must be one of `Admin`, `Noteansvarlig`, `Musikant`, `Arkivleser` or `Prosjektleder`. */
             roleName?: string;
+        };
+        ChangePartRequest: {
+            /** @description Identifier (guid or name) of the part that replaces the current assignment. */
+            partIdentifier?: string;
         };
         ExpressionType: number;
         ForgotPasswordRequest: {
