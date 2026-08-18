@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.5.0...v2.6.0) (2026-08-18)
+
+
+### Features
+
+* **users:** filter and sort the user list ([#54](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/54)) ([59fb744](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/59fb744f37bc61cc465bd341dfefde5d0d031b65))
+
 ## [2.5.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.4.1...v2.5.0) (2026-08-14)
 
 
