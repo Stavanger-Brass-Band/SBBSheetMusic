@@ -7,6 +7,7 @@ import {
   NO_ROLE_FILTER,
   applyUsersListView,
   readUsersListQuery,
+  userInstrumentGroups,
   toUserStatusFilter,
   usersListHref,
   usersListQueryParams,
@@ -36,17 +37,45 @@ function user(overrides: Partial<User> = {}): User {
   };
 }
 
-const part = (id: string): Part => ({ id, name: id });
+/**
+ * A part as the users endpoint hands it over: an id and a name, and nothing
+ * else — no group and no `sortOrder`. Everything the filters and the sort need
+ * beyond that has to come out of the catalogue.
+ */
+const assignedPart = (id: string): Part => ({ id, name: id });
 
-/** The parts catalogue as `applyUsersListView` takes it: part id → group. */
-const partGroups = new Map([
-  ["kornett-1", "Kornett"],
-  ["kornett-2", "Kornett"],
-  ["tuba-1", "Tuba"],
-]);
+/**
+ * The parts catalogue as `applyUsersListView` takes it: id → the part. The ranks
+ * run in section order the way the real catalogue's do, and "Kornett 10" ranks
+ * after "Kornett 2" while sorting before it by name.
+ */
+const catalogue = new Map<string, Part>(
+  (
+    [
+      { id: "kornett-1", name: "Kornett 1", group: "Kornett", rank: 10 },
+      { id: "kornett-2", name: "Kornett 2", group: "Kornett", rank: 20 },
+      { id: "kornett-10", name: "Kornett 10", group: "Kornett", rank: 30 },
+      {
+        id: "horn-1",
+        name: "Horn 1",
+        group: "Horn og flygelhorn",
+        rank: 40,
+      },
+      { id: "tuba-1", name: "Tuba 1", group: "Tuba", rank: 90 },
+    ] as const
+  ).map((entry) => [
+    entry.id,
+    {
+      id: entry.id,
+      name: entry.name,
+      instrumentGroup: entry.group,
+      sortOrder: entry.rank,
+    },
+  ]),
+);
 
 const apply = (users: User[], overrides: Partial<UsersListView> = {}) =>
-  applyUsersListView(users, view(overrides), partGroups);
+  applyUsersListView(users, view(overrides), catalogue);
 
 const names = (users: User[]) => users.map((entry) => entry.name);
 
@@ -96,14 +125,14 @@ describe("usersListQueryParams", () => {
 describe("readUsersListQuery", () => {
   it("reads a view back out of the URL", () => {
     const params = new URLSearchParams(
-      "search=ola&role=Admin&group=Tuba&status=active&sort=parts&dir=desc",
+      "search=ola&role=Admin&group=Tuba&status=active&sort=group&dir=desc",
     );
     expect(readUsersListQuery(params)).toEqual({
       searchTerm: "ola",
       selectedRole: "Admin",
       selectedGroup: "Tuba",
       selectedStatus: "active",
-      sort: { field: "parts", direction: "desc" },
+      sort: { field: "group", direction: "desc" },
     });
   });
 
@@ -161,6 +190,36 @@ describe("toUserStatusFilter", () => {
   });
 });
 
+describe("userInstrumentGroups", () => {
+  it("names the sections a user's stemmer sit in, in catalogue order", () => {
+    const player = user({
+      parts: [assignedPart("tuba-1"), assignedPart("kornett-1")],
+    });
+    expect(userInstrumentGroups(player, catalogue)).toEqual([
+      "Kornett",
+      "Tuba",
+    ]);
+  });
+
+  it("names a section once however many stemmer a user holds in it", () => {
+    const player = user({
+      parts: [assignedPart("kornett-1"), assignedPart("kornett-2")],
+    });
+    expect(userInstrumentGroups(player, catalogue)).toEqual(["Kornett"]);
+  });
+
+  it("has nothing to name for a user with no stemmer", () => {
+    expect(userInstrumentGroups(user({ parts: [] }), catalogue)).toEqual([]);
+    expect(userInstrumentGroups(user({ parts: null }), catalogue)).toEqual([]);
+  });
+
+  /** Without the catalogue behind it there is no group to name — see the store. */
+  it("has nothing to name for a stemme the catalogue doesn't have", () => {
+    const player = user({ parts: [assignedPart("ikke-i-katalogen")] });
+    expect(userInstrumentGroups(player, catalogue)).toEqual([]);
+  });
+});
+
 describe("applyUsersListView — filtering", () => {
   const users = [
     user({ name: "Admin Anne", email: "anne@sbb.no", roles: ["Admin"] }),
@@ -168,14 +227,14 @@ describe("applyUsersListView — filtering", () => {
       name: "Bendik Bass",
       email: "bendik@sbb.no",
       roles: ["Musikant"],
-      parts: [part("tuba-1")],
+      parts: [assignedPart("tuba-1")],
     }),
     user({ name: "Cecilie Kornett", email: "cecilie@sbb.no", roles: [] }),
     user({
       name: "Dag Dirigent",
       email: "dag@sbb.no",
       roles: ["Musikant", "Noteansvarlig"],
-      parts: [part("kornett-1"), part("tuba-1")],
+      parts: [assignedPart("kornett-1"), assignedPart("tuba-1")],
       inactive: true,
     }),
   ];
@@ -257,7 +316,10 @@ describe("applyUsersListView — filtering", () => {
    */
   it("keeps a user whose part is missing from the catalogue out of every group", () => {
     const withUnknownPart = [
-      user({ name: "Ukjent stemme", parts: [part("ikke-i-katalogen")] }),
+      user({
+        name: "Ukjent stemme",
+        parts: [assignedPart("ikke-i-katalogen")],
+      }),
     ];
     expect(apply(withUnknownPart, { selectedGroup: "Kornett" })).toHaveLength(
       0,
@@ -331,16 +393,65 @@ describe("applyUsersListView — sorting", () => {
     ]);
   });
 
-  it("sorts by how many stemmer a user has, so the unassigned come first", () => {
+  /**
+   * Sections come in the order `INSTRUMENT_GROUPS` has them, and inside a section
+   * the catalogue rank decides — sorting either as text would put "Kornett 10"
+   * ahead of "Kornett 2", and "Kornett" ahead of "Horn og flygelhorn".
+   */
+  it("sorts by the catalogue rank of the first stemme, not by its name", () => {
     const users = [
-      user({ name: "To stemmer", parts: [part("kornett-1"), part("tuba-1")] }),
-      user({ name: "Ingen stemmer", parts: [] }),
-      user({ name: "Én stemme", parts: [part("tuba-1")] }),
+      user({ name: "Tubaisten", parts: [assignedPart("tuba-1")] }),
+      user({ name: "Kornett tiende", parts: [assignedPart("kornett-10")] }),
+      user({ name: "Kornett andre", parts: [assignedPart("kornett-2")] }),
     ];
-    expect(sortedBy(users, { field: "parts", direction: "asc" })).toEqual([
+    expect(sortedBy(users, { field: "group", direction: "asc" })).toEqual([
+      "Kornett andre",
+      "Kornett tiende",
+      "Tubaisten",
+    ]);
+  });
+
+  /** Several stemmer place a user by the first of them in catalogue order. */
+  it("places a user by their highest-ranked stemme, however many they hold", () => {
+    const users = [
+      user({ name: "Bare tuba", parts: [assignedPart("tuba-1")] }),
+      user({
+        name: "Tuba og kornett",
+        parts: [assignedPart("tuba-1"), assignedPart("kornett-1")],
+      }),
+    ];
+    expect(sortedBy(users, { field: "group", direction: "asc" })).toEqual([
+      "Tuba og kornett",
+      "Bare tuba",
+    ]);
+  });
+
+  it("sorts users with no stemme, or an unranked one, after everyone ranked", () => {
+    const users = [
+      user({ name: "Ingen stemmer", parts: [] }),
+      user({
+        name: "Ukjent stemme",
+        parts: [assignedPart("ikke-i-katalogen")],
+      }),
+      user({ name: "Kornettisten", parts: [assignedPart("kornett-1")] }),
+    ];
+    expect(sortedBy(users, { field: "group", direction: "asc" })).toEqual([
+      "Kornettisten",
       "Ingen stemmer",
-      "Én stemme",
-      "To stemmer",
+      "Ukjent stemme",
+    ]);
+  });
+
+  it("sorts sections in the catalogue's own order, not alphabetically", () => {
+    const users = [
+      user({ name: "Tubaisten", parts: [assignedPart("tuba-1")] }),
+      user({ name: "Hornisten", parts: [assignedPart("horn-1")] }),
+      user({ name: "Kornettisten", parts: [assignedPart("kornett-1")] }),
+    ];
+    expect(sortedBy(users, { field: "group", direction: "asc" })).toEqual([
+      "Kornettisten",
+      "Hornisten",
+      "Tubaisten",
     ]);
   });
 
