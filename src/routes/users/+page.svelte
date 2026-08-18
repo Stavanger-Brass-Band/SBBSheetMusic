@@ -27,12 +27,18 @@
     NO_ROLE_FILTER,
     applyUsersListView,
     readUsersListQuery,
+    userInstrumentGroups,
     toUserStatusFilter,
     usersListQueryParams,
     type UserStatusFilter,
     type UsersListView,
   } from "$lib/utils/usersListQuery";
-  import { INSTRUMENT_GROUPS, type User, type UserForm } from "$lib/types";
+  import {
+    INSTRUMENT_GROUPS,
+    type Part,
+    type User,
+    type UserForm,
+  } from "$lib/types";
   import {
     Badge,
     Button,
@@ -79,13 +85,14 @@
   let selectedGroup = $state("");
   let selectedStatus = $state<UserStatusFilter>("");
   /**
-   * Which instrument group each part belongs to, read from the parts catalogue —
-   * see `applyUsersListView` for why the group can't be taken off the user's own
-   * parts. An empty map means the catalogue didn't load (or holds no parts), and
-   * the group filter is left out of the page entirely rather than silently
-   * matching nobody.
+   * The parts catalogue keyed by id, which is where both the instrument group
+   * and the catalogue rank of a user's stemmer come from — see
+   * `applyUsersListView` for why neither can be taken off the user's own parts.
+   * An empty map means the catalogue didn't load (or holds no parts), and the
+   * group filter is left out of the page entirely rather than silently matching
+   * nobody.
    */
-  let groupByPartId = $state<ReadonlyMap<string, string>>(new Map());
+  let partsById = $state<ReadonlyMap<string, Part>>(new Map());
   let sort = $state<SortState>(DEFAULT_USER_SORT);
 
   let view = $derived<UsersListView>({
@@ -95,14 +102,14 @@
     selectedStatus,
     sort,
   });
-  let filteredUsers = $derived(applyUsersListView(users, view, groupByPartId));
+  let filteredUsers = $derived(applyUsersListView(users, view, partsById));
   let isFiltered = $derived(
     !!searchTerm.trim() ||
       !!selectedRole ||
       !!selectedGroup ||
       !!selectedStatus,
   );
-  let hasGroupFilter = $derived(groupByPartId.size > 0);
+  let hasGroupFilter = $derived(partsById.size > 0);
 
   /**
    * Why the list is empty, naming every filter that is on — a reader who has
@@ -207,11 +214,15 @@
     return { name: "", email: "", password: "", active: true, roles: [] };
   }
 
-  /** The parts a user plays, as plain names for the chip list. */
-  function partNames(user: User): string[] {
-    return (user.parts ?? [])
-      .map((part) => part.name ?? "")
-      .filter((name) => name !== "");
+  /**
+   * The sections a user sits in, for the chip list. The column shows these
+   * rather than the individual stemmer: a section is what decides which notes a
+   * member is shown, it is what the filter above narrows by, and six values read
+   * at a glance where thirty part names did not. The stemmer themselves are on
+   * the user's own page.
+   */
+  function groupNames(user: User): string[] {
+    return userInstrumentGroups(user, partsById);
   }
 
   async function loadUsers() {
@@ -223,20 +234,21 @@
   }
 
   /**
-   * The parts catalogue, as the map the group filter needs. A failure just
-   * leaves the page without that filter rather than breaking the list, so it is
-   * fetched on its own and never awaited alongside the users.
+   * The parts catalogue, keyed the way the group filter and the Gruppe column
+   * need it. A failure just leaves the page without that filter rather than
+   * breaking the list, so it is fetched on its own and never awaited alongside
+   * the users.
    */
-  async function loadPartGroups() {
+  async function loadPartCatalogue() {
     const catalogue = await partsApi.list().catch(() => null);
-    groupByPartId = new Map(
+    partsById = new Map(
       (catalogue ?? [])
-        .filter((part) => !!part.id && !!part.instrumentGroup)
-        .map((part) => [part.id!, part.instrumentGroup!]),
+        .filter((part) => !!part.id)
+        .map((part) => [part.id!, part]),
     );
     // A group the URL asked for is unusable without the catalogue behind it, so
     // drop it and say so in the URL rather than showing an empty list.
-    if (!groupByPartId.size && selectedGroup) {
+    if (!partsById.size && selectedGroup) {
       selectedGroup = "";
       syncUrl();
     }
@@ -251,7 +263,7 @@
     selectedGroup = restored.selectedGroup;
     selectedStatus = restored.selectedStatus;
     sort = restored.sort;
-    void loadPartGroups();
+    void loadPartCatalogue();
     await loadUsers();
   });
 
@@ -420,8 +432,8 @@
             onsort={changeSort}
           />
           <SortableTableHeader
-            field="parts"
-            label="Stemmer"
+            field="group"
+            label="Gruppe"
             {sort}
             onsort={changeSort}
           />
@@ -449,7 +461,7 @@
               </div>
             </td>
             <td class="c-roles">{@render chipList(user.roles)}</td>
-            <td class="c-parts">{@render chipList(partNames(user))}</td>
+            <td class="c-group">{@render chipList(groupNames(user))}</td>
             <td class="c-status">{@render statusBadge(user)}</td>
           </tr>
         {/each}
@@ -472,11 +484,11 @@
               <div class="meta">{user.email}</div>
             </div>
           </div>
-          <!-- Roles and parts read as labelled text here rather than chips: the
-               card has no column headers, so chips both wrap badly at this width
-               and leave the two lists indistinguishable. -->
+          <!-- Roles and sections read as labelled text here rather than chips:
+               the card has no column headers, so chips both wrap badly at this
+               width and leave the two lists indistinguishable. -->
           {@render metaLine("Roller", user.roles ?? [])}
-          {@render metaLine("Stemmer", partNames(user))}
+          {@render metaLine("Gruppe", groupNames(user))}
         </div>
         <div class="acts">{@render statusBadge(user)}</div>
       </div>
@@ -557,7 +569,7 @@
   .c-roles {
     width: 26%;
   }
-  .c-parts {
+  .c-group {
     width: 22%;
   }
   .c-status {

@@ -33,6 +33,7 @@
   import {
     Badge,
     Breadcrumb,
+    InitialsAvatar,
     Button,
     SaveIndicator,
     SAVED_VISIBLE_MS,
@@ -392,9 +393,15 @@
   </div>
 {:else}
   <div class="head">
-    <div class="title-cell">
-      <h1 class="sbb-h1 title">{user.name}</h1>
-      <p class="email">{user.email}</p>
+    <!-- The avatar belongs to the page heading, at the one size on the page big
+         enough to read as a portrait: this is where the page says who is being
+         edited, and every panel below it is a detail of that person. -->
+    <div class="identity">
+      <InitialsAvatar name={user.name} size={72} />
+      <div class="title-cell">
+        <h1 class="sbb-h1 title">{user.name}</h1>
+        <p class="email">{user.email}</p>
+      </div>
     </div>
     {#if user.inactive}
       <Badge variant="neutral" dot>Inaktiv</Badge>
@@ -614,6 +621,14 @@
     gap: 20px;
     flex-wrap: wrap;
     margin-bottom: 28px;
+  }
+  /* The avatar centres on the name and e-mail together rather than on the
+     heading alone, so the disc reads as belonging to the pair. */
+  .identity {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
   }
   .title {
     margin: 0;

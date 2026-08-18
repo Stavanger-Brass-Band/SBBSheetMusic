@@ -14,7 +14,12 @@
  */
 
 import { ROLES, holdsRole } from "$lib/roles";
-import { INSTRUMENT_GROUPS, type User } from "$lib/types";
+import {
+  INSTRUMENT_GROUPS,
+  type InstrumentGroup,
+  type Part,
+  type User,
+} from "$lib/types";
 import {
   isSameSort,
   listHrefWithQuery,
@@ -37,14 +42,14 @@ export const NO_PARTS_FILTER = "none";
 
 /**
  * The columns the list sorts on — one per column the table shows, and the guard
- * `readSortParams` checks a URL against. `role` and `parts` order the two
- * multi-value columns by the only thing that can be ordered: how wide the
- * user's access reaches, and how many stemmer they are assigned.
+ * `readSortParams` checks a URL against. `role` and `group` order the two
+ * multi-value columns by what can be ordered at all: how wide the user's access
+ * reaches, and which section they sit in.
  */
 export const USER_SORTABLE_FIELDS = [
   "name",
   "role",
-  "parts",
+  "group",
   "status",
 ] as const;
 
@@ -113,20 +118,43 @@ export function usersListHref(from: string | null): string {
  * then sorts what survives — `filter` hands over a fresh array, so the caller's
  * list is never reordered under it.
  *
- * `groupByPartId` maps a part id to its instrument group. The group has to be
- * looked up rather than read off `user.parts`: the users endpoint has no schema
- * in the OpenAPI document and nothing says which of a part's fields it fills in,
- * so the only field the app can rely on there is the id it already assigns parts
- * by. The caller reads the groups from the parts catalogue instead.
+ * `partsById` is the parts catalogue keyed by id. Both the instrument group and
+ * the catalogue rank have to be looked up there rather than read off
+ * `user.parts`: the users endpoint has no schema in the OpenAPI document and
+ * nothing says which of a part's fields it fills in, so the only field the app
+ * can rely on there is the id it already assigns parts by.
  */
+/**
+ * The sections a user sits in: the instrument groups of the stemmer they are
+ * assigned, without repeats and in the catalogue's own section order.
+ *
+ * This is what the Brukere list shows in place of the individual stemmer, what
+ * it sorts that column by, and what the group filter matches — so all three
+ * agree by construction. Read from the catalogue for the reason
+ * `applyUsersListView` gives.
+ */
+export function userInstrumentGroups(
+  user: User,
+  partsById: ReadonlyMap<string, Part>,
+): string[] {
+  const groups = new Set<InstrumentGroup>(
+    (user.parts ?? [])
+      .map((part) =>
+        part.id ? partsById.get(part.id)?.instrumentGroup : undefined,
+      )
+      .filter((group): group is InstrumentGroup => !!group),
+  );
+  return INSTRUMENT_GROUPS.filter((group) => groups.has(group));
+}
+
 export function applyUsersListView(
   users: User[],
   view: UsersListView,
-  groupByPartId: ReadonlyMap<string, string>,
+  partsById: ReadonlyMap<string, Part>,
 ): User[] {
   return users
-    .filter((user) => matchesFilters(user, view, groupByPartId))
-    .sort((a, b) => compareUsers(a, b, view.sort));
+    .filter((user) => matchesFilters(user, view, partsById))
+    .sort((a, b) => compareUsers(a, b, view.sort, partsById));
 }
 
 /**
@@ -161,7 +189,7 @@ function readGroupFilter(value: string | null): string {
 function matchesFilters(
   user: User,
   view: UsersListView,
-  groupByPartId: ReadonlyMap<string, string>,
+  partsById: ReadonlyMap<string, Part>,
 ): boolean {
   if (view.selectedStatus === "active" && user.inactive) return false;
   if (view.selectedStatus === "inactive" && !user.inactive) return false;
@@ -171,9 +199,7 @@ function matchesFilters(
     if (parts.length) return false;
   } else if (
     view.selectedGroup &&
-    !parts.some(
-      (part) => !!part.id && groupByPartId.get(part.id) === view.selectedGroup,
-    )
+    !userInstrumentGroups(user, partsById).includes(view.selectedGroup)
   ) {
     return false;
   }
@@ -193,25 +219,79 @@ function matchesFilters(
   );
 }
 
-function compareUsers(a: User, b: User, sort: SortState): number {
-  const primary = compareBySortField(a, b, sort.field);
+function compareUsers(
+  a: User,
+  b: User,
+  sort: SortState,
+  partsById: ReadonlyMap<string, Part>,
+): number {
+  const primary = compareBySortField(a, b, sort.field, partsById);
   if (primary !== 0) return sort.direction === "asc" ? primary : -primary;
   // The tie-break stays ascending whichever way the column is sorted: the
   // reader asked to reverse the column, not the names inside a tie.
   return compareText(a.name, b.name) || compareText(a.email, b.email);
 }
 
-function compareBySortField(a: User, b: User, field: string): number {
+function compareBySortField(
+  a: User,
+  b: User,
+  field: string,
+  partsById: ReadonlyMap<string, Part>,
+): number {
   switch (field) {
     case "role":
       return widestRoleRank(a) - widestRoleRank(b);
-    case "parts":
-      return (a.parts?.length ?? 0) - (b.parts?.length ?? 0);
+    case "group":
+      // The section places a user, and their first stemme places them inside it:
+      // ordering by rank alone would read as unsorted if the catalogue's own
+      // ranks ever stopped running section by section, and ordering by section
+      // alone would leave a whole cornet row in name order rather than by seat.
+      return (
+        compareRank(sectionRank(a, partsById), sectionRank(b, partsById)) ||
+        compareRank(firstPartRank(a, partsById), firstPartRank(b, partsById))
+      );
     case "status":
       return Number(a.inactive) - Number(b.inactive);
     default:
       return compareText(a.name, b.name);
   }
+}
+
+/**
+ * Which section a user sits in, as an index into `INSTRUMENT_GROUPS` — that list
+ * is in the standard brass band section order, so the index is the order the
+ * sections belong in. A user in more than one sits with the first of them.
+ */
+function sectionRank(user: User, partsById: ReadonlyMap<string, Part>): number {
+  const [first] = userInstrumentGroups(user, partsById);
+  const index = INSTRUMENT_GROUPS.findIndex((group) => group === first);
+  return index === -1 ? Infinity : index;
+}
+
+/**
+ * Where a user's stemmer place them inside their section: the catalogue rank of
+ * the first of them in catalogue order. Ranking rather than comparing names is
+ * what makes a section read as it is seated — `Kornett 2` before `Kornett 10` —
+ * since the catalogue's `sortOrder` is what that order is kept in (see
+ * `byCatalogOrder`).
+ *
+ * A user with no stemme, or with one the catalogue has no rank for, has no rank
+ * at all and sorts after everyone who does while ascending.
+ */
+function firstPartRank(
+  user: User,
+  partsById: ReadonlyMap<string, Part>,
+): number {
+  const ranks = (user.parts ?? [])
+    .map((part) => (part.id ? partsById.get(part.id)?.sortOrder : undefined))
+    .filter((sortOrder): sortOrder is number => sortOrder !== undefined);
+  return ranks.length ? Math.min(...ranks) : Infinity;
+}
+
+/** Compared rather than subtracted, since two unranked users would give `NaN`. */
+function compareRank(a: number, b: number): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
 }
 
 const compareText = (a: string | null, b: string | null): number =>
