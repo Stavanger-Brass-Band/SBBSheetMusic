@@ -5,7 +5,7 @@
   import { Modal } from "flowbite-svelte";
   import { Plus, SearchX, ListMusic, Pencil, Check, Tag } from "@lucide/svelte";
   import { parts as partsApi } from "$lib/api/parts";
-  import { replaceListUrl } from "$lib/utils/listQuery";
+  import { replaceListUrl } from "$lib/utils/listNavigation";
   import {
     NO_GROUP_FILTER,
     partsListQueryParams,

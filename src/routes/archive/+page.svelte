@@ -18,12 +18,12 @@
   import { categories as categoriesApi } from "$lib/api/categories";
   import { downloadSetZip } from "$lib/utils/download";
   import { setRouteFor } from "$lib/utils/setRoute";
+  import { replaceListUrl } from "$lib/utils/listNavigation";
   import {
     PAGE_SIZE,
     isSameSort,
     parsePagesParam,
     readSortParams,
-    replaceListUrl,
     toOrderByClause,
     toggleSort,
     type SortState,

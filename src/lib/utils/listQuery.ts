@@ -9,8 +9,6 @@
  * a control for choosing one.
  */
 
-import { goto } from "$app/navigation";
-
 /** Rows fetched per request, for the first page and every "load more" after. */
 export const PAGE_SIZE = 100;
 
@@ -68,26 +66,18 @@ export function readSortParams(
   if (!field || !sortableFields.includes(field)) return defaultSort;
   return { field, direction: params.get("dir") === "desc" ? "desc" : "asc" };
 }
-
 /**
- * Writes a view back into the URL, replacing the current history entry so
- * searching, sorting and paging never fill the back stack. `params` is the
- * already-encoded `key=value` pairs the view consists of; an empty list falls
- * back to `pathname`, leaving the bare list URL.
+ * Where a list's editor page sends the reader back to: the list as they left it,
+ * rebuilt from the query string the editor was handed in `from`.
  *
- * This has to be a real navigation and **not** `replaceState`: shallow routing
- * parks the pre-call URL in the history entry (`sveltekit:pageurl`) and
- * restores that one on a back navigation, so coming back from a set would show
- * the params in the address bar while the page rebuilt itself from an empty
- * query. `replaceState` doesn't update `page.url` either, so the params would be
- * invisible to the page that just wrote them. `noScroll` and `keepFocus` keep
- * this in-place update from jumping to the top of the list or dropping focus
- * while the reader is still typing in the search field.
+ * The value only ever becomes the query part of `pathname`, never the path, so a
+ * link carrying something unexpected can land nowhere else. A leading `?` is
+ * tolerated since that is easy to pass by mistake.
  */
-export function replaceListUrl(params: string[], pathname: string): void {
-  void goto(params.length ? `?${params.join("&")}` : pathname, {
-    replaceState: true,
-    noScroll: true,
-    keepFocus: true,
-  });
+export function listHrefWithQuery(
+  pathname: string,
+  from: string | null,
+): string {
+  const query = (from ?? "").replace(/^\?/, "");
+  return query ? `${pathname}?${query}` : pathname;
 }

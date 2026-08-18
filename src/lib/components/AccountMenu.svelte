@@ -2,14 +2,13 @@
   import { tick } from "svelte";
   import { ChevronDown, User, LogOut } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
-  import { initialsFrom } from "$lib/utils/initials";
+  import { InitialsAvatar } from "$lib/components/ui";
   import { primaryRoleLabel } from "$lib/roles";
 
   let open = $state(false);
   let triggerEl = $state<HTMLButtonElement>();
   let menuEl = $state<HTMLDivElement>();
 
-  let initials = $derived(initialsFrom(auth.name));
   let displayName = $derived(auth.name ?? "Bruker");
   // The widest-access role held, e.g. "Noteansvarlig" or "Administrator" — it
   // explains why the admin-gated controls elsewhere on the page are there or
@@ -99,7 +98,7 @@
     aria-expanded={open}
     onclick={toggleFromTrigger}
   >
-    <span class="avatar">{initials}</span>
+    <InitialsAvatar name={auth.name} />
     <span class="acct__id">
       <span class="acct__name">{displayName}</span>
       {#if groupLabel}
@@ -118,7 +117,7 @@
       onclick={(event) => event.stopPropagation()}
     >
       <div class="acctmenu__head">
-        <span class="avatar avatar--lg">{initials}</span>
+        <InitialsAvatar name={auth.name} size={38} />
         <span class="acctmenu__txt">
           <b>{displayName}</b>
           <span>{auth.email ?? ""}</span>
@@ -174,25 +173,6 @@
   .acct__btn[aria-expanded="true"] {
     background: rgba(255, 255, 255, 0.08);
     border-color: var(--border-inverse);
-  }
-  .avatar {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    border-radius: var(--radius-full);
-    background: var(--brass-500);
-    color: var(--white);
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 12.5px;
-    /* Matches the font-size so the line box hugs the glyphs — the browser's
-       default line-height leaves asymmetric leading above/below the text,
-       which grid's own centering can't correct since it centers the line box,
-       not the glyph ink. */
-    line-height: 1;
-    letter-spacing: 0.04em;
   }
   .acct__id {
     display: flex;
@@ -254,11 +234,6 @@
     padding: 10px 10px 12px;
     border-bottom: 1px solid var(--border-subtle);
     margin-bottom: 6px;
-  }
-  .acctmenu__head .avatar--lg {
-    width: 38px;
-    height: 38px;
-    font-size: 14px;
   }
   .acctmenu__txt {
     min-width: 0;

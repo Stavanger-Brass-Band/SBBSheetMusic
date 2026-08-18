@@ -22,6 +22,7 @@
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import { ROLES, holdsRole, type Role } from "$lib/roles";
   import { byCatalogOrder } from "$lib/utils/partOrder";
+  import { usersListHref } from "$lib/utils/usersListQuery";
   import type {
     Part,
     SaveState,
@@ -55,6 +56,13 @@
   let id = $derived(page.params.id!);
 
   let user = $state<User | null>(null);
+  /**
+   * Where every way out of this page goes. The list hands its search, filters
+   * and sort along in `from`, so the reader comes back to the view they left
+   * rather than to the unfiltered list of users.
+   */
+  let listHref = $derived(usersListHref(page.url.searchParams.get("from")));
+
   let loading = $state(true);
   let notFound = $state(false);
 
@@ -364,14 +372,14 @@
     deleteError = "";
     const response = await usersApi.remove(user.id, hardDelete);
     isDeleting = false;
-    if (response.ok) goto("/users");
+    if (response.ok) goto(listHref);
     else deleteError = "Kunne ikke slette brukeren. Prøv igjen.";
   }
 </script>
 
 <Breadcrumb
   class="mb-4"
-  items={[{ label: "Brukere", href: "/users" }, { label: user?.name ?? "-" }]}
+  items={[{ label: "Brukere", href: listHref }, { label: user?.name ?? "-" }]}
 />
 
 {#if loading}
@@ -380,7 +388,7 @@
   <div class="notfound">
     <h1 class="sbb-h1">Fant ikke brukeren</h1>
     <p>Brukeren finnes ikke, eller er allerede slettet.</p>
-    <Button onclick={() => goto("/users")}>Til brukere</Button>
+    <Button onclick={() => goto(listHref)}>Til brukere</Button>
   </div>
 {:else}
   <div class="head">
