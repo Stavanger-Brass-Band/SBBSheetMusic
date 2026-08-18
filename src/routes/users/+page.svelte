@@ -1,38 +1,190 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { Modal } from "flowbite-svelte";
-  import { Plus, SearchX, Check } from "@lucide/svelte";
+  import { page } from "$app/state";
+  import { Modal, Select } from "flowbite-svelte";
+  import {
+    Plus,
+    SearchX,
+    Check,
+    UsersRound,
+    AlertTriangle,
+  } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
+  import { parts as partsApi } from "$lib/api/parts";
   import {
     isPasswordAcceptable,
     readPasswordRejection,
     type PasswordRuleKey,
   } from "$lib/password";
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
-  import type { User, UserForm } from "$lib/types";
-  import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
+  import { ROLES } from "$lib/roles";
+  import { replaceListUrl } from "$lib/utils/listNavigation";
+  import { toggleSort, type SortState } from "$lib/utils/listQuery";
+  import {
+    DEFAULT_USER_SORT,
+    NO_PARTS_FILTER,
+    NO_ROLE_FILTER,
+    applyUsersListView,
+    readUsersListQuery,
+    toUserStatusFilter,
+    usersListQueryParams,
+    type UserStatusFilter,
+    type UsersListView,
+  } from "$lib/utils/usersListQuery";
+  import { INSTRUMENT_GROUPS, type User, type UserForm } from "$lib/types";
+  import {
+    Badge,
+    Button,
+    EmptyState,
+    InitialsAvatar,
+    SearchInput,
+    SortableTableHeader,
+  } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
+  // The three filters as dropdown options. Each one's first entry is the "no
+  // filter" choice rather than a separate reset: not narrowing is one of the
+  // choices, and it keeps every filter to a single control.
+  const roleItems = [
+    { value: "", name: "Alle roller" },
+    ...ROLES.map((role) => ({ value: role, name: role })),
+    { value: NO_ROLE_FILTER, name: "Uten rolle" },
+  ];
+  const groupItems = [
+    { value: "", name: "Alle grupper" },
+    ...INSTRUMENT_GROUPS.map((group) => ({ value: group, name: group })),
+    { value: NO_PARTS_FILTER, name: "Uten stemmer" },
+  ];
+  const statusItems = [
+    { value: "", name: "Alle statuser" },
+    { value: "active", name: "Aktive" },
+    { value: "inactive", name: "Inaktive" },
+  ];
+
   let users = $state<User[]>([]);
   let loading = $state(true);
+  // Kept apart from an empty list: a list that came back empty and one that
+  // never came back read the same on screen otherwise, and only one of them
+  // means there are no users.
+  let loadFailed = $state(false);
 
-  // Client-side search over the already-loaded list (the endpoint returns
-  // every user in one call), matching on name or e-mail.
+  // The search, all three filters and the sort run client-side — the endpoint
+  // returns every user in one call and takes no query options — but each lives
+  // in the URL, so opening a user and coming back lands on the same view (see
+  // `usersListQuery`).
   let searchTerm = $state("");
-  let filteredUsers = $derived.by(() => {
-    const sorted = [...users].sort((a, b) =>
-      (a.name ?? "").localeCompare(b.name ?? "", "nb-NO"),
-    );
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return sorted;
-    return sorted.filter(
-      (user) =>
-        (user.name ?? "").toLowerCase().includes(query) ||
-        (user.email ?? "").toLowerCase().includes(query),
-    );
+  let selectedRole = $state("");
+  let selectedGroup = $state("");
+  let selectedStatus = $state<UserStatusFilter>("");
+  /**
+   * Which instrument group each part belongs to, read from the parts catalogue —
+   * see `applyUsersListView` for why the group can't be taken off the user's own
+   * parts. An empty map means the catalogue didn't load (or holds no parts), and
+   * the group filter is left out of the page entirely rather than silently
+   * matching nobody.
+   */
+  let groupByPartId = $state<ReadonlyMap<string, string>>(new Map());
+  let sort = $state<SortState>(DEFAULT_USER_SORT);
+
+  let view = $derived<UsersListView>({
+    searchTerm,
+    selectedRole,
+    selectedGroup,
+    selectedStatus,
+    sort,
   });
+  let filteredUsers = $derived(applyUsersListView(users, view, groupByPartId));
+  let isFiltered = $derived(
+    !!searchTerm.trim() ||
+      !!selectedRole ||
+      !!selectedGroup ||
+      !!selectedStatus,
+  );
+  let hasGroupFilter = $derived(groupByPartId.size > 0);
+
+  /**
+   * Why the list is empty, naming every filter that is on — a reader who has
+   * narrowed by role, section and status at once needs to know all of them are
+   * in play before concluding a member has no account.
+   */
+  let emptyResultDescription = $derived.by(() => {
+    const narrowings: string[] = [];
+    const query = searchTerm.trim();
+    if (query) narrowings.push(`som matcher «${query}»`);
+    if (selectedRole)
+      narrowings.push(
+        selectedRole === NO_ROLE_FILTER
+          ? "uten noen rolle"
+          : `med rollen ${selectedRole}`,
+      );
+    if (selectedGroup)
+      narrowings.push(
+        selectedGroup === NO_PARTS_FILTER
+          ? "uten stemmer"
+          : `i gruppen ${selectedGroup}`,
+      );
+    if (selectedStatus)
+      narrowings.push(
+        selectedStatus === "active" ? "som er aktive" : "som er inaktive",
+      );
+    return `Fant ingen brukere ${joinNorwegian(narrowings)}. Prøv å justere søket eller filtrene.`;
+  });
+
+  /** `a`, `b` og `c` — the phrases read out as Norwegian prose. */
+  function joinNorwegian(phrases: string[]): string {
+    if (phrases.length < 2) return phrases.join("");
+    return `${phrases.slice(0, -1).join(", ")} og ${phrases[phrases.length - 1]}`;
+  }
+
+  /**
+   * The current view as a query string, handed to the editor so its way back
+   * returns here rather than to the unfiltered list.
+   */
+  let listQuery = $derived(usersListQueryParams(view).join("&"));
+
+  /** Mirror the view into the URL, replacing the entry rather than stacking one. */
+  function syncUrl() {
+    replaceListUrl(usersListQueryParams(view), "/users");
+  }
+
+  function openUser(userId: string) {
+    const query = listQuery;
+    goto(
+      `/user/edit/${userId}${query ? `?from=${encodeURIComponent(query)}` : ""}`,
+    );
+  }
+
+  function selectRole(role: string) {
+    selectedRole = role;
+    syncUrl();
+  }
+
+  function selectGroup(group: string) {
+    selectedGroup = group;
+    syncUrl();
+  }
+
+  // The `select` hands over a plain string, so the status is narrowed back to
+  // the three values the filter has — the same check the URL goes through.
+  function selectStatus(status: string) {
+    selectedStatus = toUserStatusFilter(status);
+    syncUrl();
+  }
+
+  function clearFilters() {
+    searchTerm = "";
+    selectedRole = "";
+    selectedGroup = "";
+    selectedStatus = "";
+    syncUrl();
+  }
+
+  function changeSort(field: string) {
+    sort = toggleSort(sort, field);
+    syncUrl();
+  }
 
   // Create-only modal. Editing (profile, status, roles, delete) lives on the
   // dedicated /user/edit/[id] page, reached by clicking a row.
@@ -62,9 +214,45 @@
       .filter((name) => name !== "");
   }
 
-  onMount(async () => {
-    users = (await usersApi.list()) ?? [];
+  async function loadUsers() {
+    loading = true;
+    const loaded = await usersApi.list();
+    loadFailed = loaded === null;
+    users = loaded ?? [];
     loading = false;
+  }
+
+  /**
+   * The parts catalogue, as the map the group filter needs. A failure just
+   * leaves the page without that filter rather than breaking the list, so it is
+   * fetched on its own and never awaited alongside the users.
+   */
+  async function loadPartGroups() {
+    const catalogue = await partsApi.list().catch(() => null);
+    groupByPartId = new Map(
+      (catalogue ?? [])
+        .filter((part) => !!part.id && !!part.instrumentGroup)
+        .map((part) => [part.id!, part.instrumentGroup!]),
+    );
+    // A group the URL asked for is unusable without the catalogue behind it, so
+    // drop it and say so in the URL rather than showing an empty list.
+    if (!groupByPartId.size && selectedGroup) {
+      selectedGroup = "";
+      syncUrl();
+    }
+  }
+
+  onMount(async () => {
+    // The URL is read before the fetch, so the list paints already filtered
+    // rather than showing every user for a frame first.
+    const restored = readUsersListQuery(page.url.searchParams);
+    searchTerm = restored.searchTerm;
+    selectedRole = restored.selectedRole;
+    selectedGroup = restored.selectedGroup;
+    selectedStatus = restored.selectedStatus;
+    sort = restored.sort;
+    void loadPartGroups();
+    await loadUsers();
   });
 
   function openCreate() {
@@ -88,16 +276,14 @@
     isSaving = false;
     if (response.ok) {
       isOpen = false;
-      loading = true;
-      users = (await usersApi.list()) ?? [];
-      loading = false;
+      await loadUsers();
 
       // The endpoint returns no body, so the new user's id isn't known until
       // we find it in the refreshed list — matched by the email we just sent.
       const created = users.find(
         (user) => (user.email ?? "").toLowerCase() === email.toLowerCase(),
       );
-      if (created) goto(`/user/edit/${created.id}`);
+      if (created) openUser(created.id);
       return;
     }
 
@@ -146,36 +332,121 @@
   </Button>
 </div>
 
-<SearchInput placeholder="Søk i brukere…" bind:value={searchTerm} />
+<!--
+  Each filter is a single dropdown with no visible label: its "no filter" option
+  names what it narrows ("Alle roller"), and every other option is a role, a
+  section or a status that reads for itself. The name still reaches a screen
+  reader through `aria-label`, which has nothing to read off otherwise.
+-->
+{#snippet filterField(
+  label: string,
+  options: { value: string; name: string }[],
+  selected: string,
+  onselect: (value: string) => void,
+)}
+  <!-- One-way `value` with an explicit handler rather than `bind:value`: the
+       spread that carries `onchange` onto the `select` is applied before
+       Flowbite's own binding, so a bound value would still be the previous one
+       by the time the handler runs. -->
+  <Select
+    class="filter-select"
+    aria-label={label}
+    placeholder=""
+    items={options}
+    value={selected}
+    onchange={(event) =>
+      onselect((event.currentTarget as HTMLSelectElement).value)}
+  />
+{/snippet}
+
+<div class="list-controls">
+  <div class="search-cell">
+    <SearchInput
+      placeholder="Søk i brukere…"
+      bind:value={searchTerm}
+      oninput={syncUrl}
+    />
+  </div>
+  <div class="filter-bar">
+    {@render filterField("Rolle", roleItems, selectedRole, selectRole)}
+    {#if hasGroupFilter}
+      {@render filterField("Gruppe", groupItems, selectedGroup, selectGroup)}
+    {/if}
+    {@render filterField("Status", statusItems, selectedStatus, selectStatus)}
+    {#if isFiltered}
+      <Button variant="ghost" size="sm" onclick={clearFilters}>Nullstill</Button
+      >
+    {/if}
+  </div>
+</div>
 
 {#if loading}
   <LoadingSpinner />
-{:else if filteredUsers.length === 0 && searchTerm.trim()}
+{:else if loadFailed}
   <EmptyState
-    title="Ingen treff"
-    description={`Fant ingen brukere som matcher «${searchTerm.trim()}». Prøv et annet søk.`}
+    title="Kunne ikke laste brukere"
+    description="Noe gikk galt da listen skulle hentes. Last siden på nytt og prøv igjen."
   >
-    {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
+    {#snippet icon()}<AlertTriangle size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
+{:else if filteredUsers.length === 0}
+  {#if isFiltered}
+    <EmptyState title="Ingen treff" description={emptyResultDescription}>
+      {#snippet icon()}<SearchX size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
+  {:else}
+    <EmptyState
+      title="Ingen brukere ennå"
+      description="Legg til den første brukeren for å gi noen tilgang til notearkivet."
+    >
+      {#snippet icon()}<UsersRound size={28} strokeWidth={1.6} />{/snippet}
+    </EmptyState>
+  {/if}
 {:else}
   <div class="sbb-table-wrap table-view">
     <table class="sbb-table">
       <thead>
         <tr>
-          <th class="c-user">Bruker</th>
-          <th class="c-roles">Roller</th>
-          <th class="c-parts">Stemmer</th>
-          <th class="c-status">Status</th>
+          <SortableTableHeader
+            field="name"
+            label="Bruker"
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
+            field="role"
+            label="Roller"
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
+            field="parts"
+            label="Stemmer"
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
+            field="status"
+            label="Status"
+            {sort}
+            onsort={changeSort}
+          />
         </tr>
       </thead>
       <tbody>
         {#each filteredUsers as user (user.id)}
-          <tr class="clickable" onclick={() => goto(`/user/edit/${user.id}`)}>
-            <!-- Name over email in one cell: two chip columns need the width
-                 more than the e-mail needs its own. -->
+          <tr class="clickable" onclick={() => openUser(user.id)}>
+            <!-- Name over email in one cell, behind the same avatar the header
+                 carries: two chip columns need the width more than the e-mail
+                 needs its own. -->
             <td class="c-user">
-              <div class="user-name">{user.name}</div>
-              <div class="user-email">{user.email}</div>
+              <div class="user-cell">
+                <InitialsAvatar name={user.name} />
+                <div class="user-text">
+                  <div class="user-name">{user.name}</div>
+                  <div class="user-email">{user.email}</div>
+                </div>
+              </div>
             </td>
             <td class="c-roles">{@render chipList(user.roles)}</td>
             <td class="c-parts">{@render chipList(partNames(user))}</td>
@@ -189,13 +460,18 @@
   <!-- Mobile: the table reflows into a card list. -->
   <div class="sbb-card-list">
     {#each filteredUsers as user (user.id)}
-      <div
-        class="sbb-card clickable"
-        onclick={() => goto(`/user/edit/${user.id}`)}
-      >
+      <div class="sbb-card clickable" onclick={() => openUser(user.id)}>
         <div class="body">
-          <div class="t">{user.name}</div>
-          <div class="meta">{user.email}</div>
+          <!-- The avatar sits with the name and e-mail rather than beside the
+               whole card: centred against four lines it would drift away from
+               the person it belongs to. -->
+          <div class="card-identity">
+            <InitialsAvatar name={user.name} />
+            <div class="user-text">
+              <div class="t">{user.name}</div>
+              <div class="meta">{user.email}</div>
+            </div>
+          </div>
           <!-- Roles and parts read as labelled text here rather than chips: the
                card has no column headers, so chips both wrap badly at this width
                and leave the two lists indistinguishable. -->
@@ -222,8 +498,53 @@
 </Modal>
 
 <style>
+  /* Search and the three filters share one row on a wide screen and stack on a
+     narrow one. The search field keeps the space left over, so the filters stay
+     the width their longest option needs. */
+  .list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .search-cell {
+    flex: 1 1 260px;
+  }
+  /* `SearchInput` carries its own bottom margin for the pages that stack it. */
+  .search-cell :global(.search) {
+    margin-bottom: 0;
+  }
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  /* Flowbite wraps each `select` in a full-width div, which would put every
+     filter on a line of its own. Sized to its longest option instead, with a
+     floor so the narrowest one still reads as a control. */
+  .filter-bar :global(.filter-select) {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .filter-bar :global(.filter-select select) {
+    min-width: 9.5rem;
+  }
+
   .c-user {
     width: 32%;
+  }
+  /* The avatar and the name/e-mail pair, in the table row and in the card. */
+  .user-cell,
+  .card-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Lets a long e-mail wrap rather than widen the column it sits in. */
+  .user-text {
+    min-width: 0;
   }
   .user-name {
     font-weight: 500;

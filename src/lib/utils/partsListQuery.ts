@@ -9,6 +9,8 @@
  * way back with, which is why reading and writing it live together here.
  */
 
+import { listHrefWithQuery } from "./listQuery";
+
 /**
  * The filter value standing for "parts with no instrument group at all". A real
  * group name can't collide with it: the backend's `InstrumentGroup` values are
@@ -49,12 +51,7 @@ export function readPartsListQuery(
 /**
  * Where the part editor's way back goes: the list as the reader left it, from
  * the query string it passed along in `from`.
- *
- * The value only ever becomes the query part of `/parts`, never the path, so a
- * link carrying something unexpected can land nowhere else. A leading `?` is
- * tolerated since that is easy to pass by mistake.
  */
 export function partsListHref(from: string | null): string {
-  const query = (from ?? "").replace(/^\?/, "");
-  return query ? `/parts?${query}` : "/parts";
+  return listHrefWithQuery("/parts", from);
 }

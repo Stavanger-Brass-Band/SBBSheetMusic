@@ -7,12 +7,12 @@
   import { projects as projectsApi } from "$lib/api/projects";
   import { formatDmy, projectStatus, toApiDate } from "$lib/utils/date";
   import type { ProjectStatus } from "$lib/utils/date";
+  import { replaceListUrl } from "$lib/utils/listNavigation";
   import {
     PAGE_SIZE,
     isSameSort,
     parsePagesParam,
     readSortParams,
-    replaceListUrl,
     toOrderByClause,
     toggleSort,
     type SortState,
