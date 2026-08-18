@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.6.0...v2.7.0) (2026-08-18)
+
+
+### Features
+
+* **users:** show and sort the user list by instrument group ([#58](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/58)) ([869de7b](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/869de7b214e8af40734eb2aad782becb46c26653))
+
 ## [2.6.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.5.0...v2.6.0) (2026-08-18)
 
 
