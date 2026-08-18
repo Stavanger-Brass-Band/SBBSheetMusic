@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.5.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.4.1...v2.5.0) (2026-08-14)
+
+
+### Features
+
+* **parts:** filter the catalogue by instrument group and keep it in the URL ([#50](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/50)) ([5414338](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/5414338c2975c2ea639c37a77ac2e4bfd927d6dd))
+* **sets:** import a set and its parts from a combined PDF ([#49](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/49)) ([1f8e906](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/1f8e9067c1345320db723a35f39c7d783f2b061a))
+* **sets:** show which projects a set has been used in ([#51](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/51)) ([4a08732](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/4a0873202cc7bc370afff20d3bcde06461acc8e0))
+* **users:** connect parts to users ([#47](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/47)) ([f6bc435](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/f6bc435d89624e2ded8f81cd167121f8df8856ad))
+
 ## [2.4.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.4.0...v2.4.1) (2026-08-10)
 
 
