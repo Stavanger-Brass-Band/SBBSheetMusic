@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.8.0...v2.8.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **header:** put profile and sign-out in the mobile menu ([#67](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/67)) ([33ddec8](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/33ddec85432d0ec9b9dc770f4ae1e78e2c4878dd))
+
 ## [2.8.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.7.0...v2.8.0) (2026-08-19)
 
 
