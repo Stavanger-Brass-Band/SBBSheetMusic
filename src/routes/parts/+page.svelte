@@ -3,9 +3,13 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { Modal } from "flowbite-svelte";
-  import { Plus, SearchX, ListMusic, Pencil, Check, Tag } from "@lucide/svelte";
+  import { Plus, SearchX, ListMusic, Check, Tag } from "@lucide/svelte";
   import { parts as partsApi } from "$lib/api/parts";
+  import { users as usersApi } from "$lib/api/users";
+  import { byCatalogOrder } from "$lib/utils/partOrder";
+  import { auth } from "$lib/stores/auth.svelte";
   import { replaceListUrl } from "$lib/utils/listNavigation";
+  import { musiciansByPartId } from "$lib/utils/partMusicians";
   import {
     NO_GROUP_FILTER,
     partsListQueryParams,
@@ -16,8 +20,10 @@
     type Part,
     type PartForm,
     type PartRequest,
+    type User,
   } from "$lib/types";
   import {
+    AvatarStack,
     Badge,
     Button,
     EmptyState,
@@ -27,10 +33,27 @@
   import PartModalBody from "$lib/components/PartModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
-  const MAX_CHIPS = 3;
+  /**
+   * How many aliases a row shows before the rest become a count. Two rather than
+   * three because a third wraps the cell onto a second line at this width, which
+   * costs every row height for an alias nobody reads in passing — they are matched
+   * against filenames, not looked up here. The full list is on the part's page.
+   */
+  const MAX_CHIPS = 2;
 
   let allParts = $state<Part[]>([]);
   let loading = $state(true);
+
+  /**
+   * Who plays each stemme, keyed by part id. Built from the user list, which only
+   * an Admin may read (`GET /users` is admin-only), so the column is left out
+   * entirely for a Noteansvarlig rather than shown empty — an empty seat and a
+   * seat we aren't allowed to see read the same otherwise, and only one of them
+   * means nobody plays the stemme.
+   */
+  let musiciansByPart = $state<ReadonlyMap<string, User[]>>(new Map());
+  let musiciansLoaded = $state(false);
+  let showMusicians = $derived(auth.isAdmin && musiciansLoaded);
 
   // Search and the group filter are client-side — the endpoint returns every
   // part in one call — but both live in the URL all the same, so opening a part
@@ -39,9 +62,10 @@
   let selectedGroup = $state("");
 
   let filtered = $derived.by(() => {
-    const sorted = [...allParts].sort(
-      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
-    );
+    // The catalogue's own ordering, tie-broken by name — a whole section shares
+    // one rank (five stemmer at 4, in the cornets alone), and without the
+    // tie-break those rows land wherever the server happened to return them.
+    const sorted = [...allParts].sort(byCatalogOrder);
     const query = searchTerm.trim().toLowerCase();
     return sorted.filter((part) => {
       if (selectedGroup === NO_GROUP_FILTER) {
@@ -128,9 +152,27 @@
     );
     searchTerm = restored.searchTerm;
     selectedGroup = restored.selectedGroup;
+    void loadMusicians();
     allParts = (await partsApi.list()) ?? [];
     loading = false;
   });
+
+  /**
+   * The musicians behind the Musikanter column. Fetched on its own and never
+   * awaited alongside the catalogue: it is one column of one page, so a failure
+   * — or a reader without the role for it — costs that column and nothing else.
+   */
+  async function loadMusicians() {
+    if (!auth.isAdmin) return;
+    const users = await usersApi.list().catch(() => null);
+    if (!users) return;
+    musiciansByPart = musiciansByPartId(users);
+    musiciansLoaded = true;
+  }
+
+  function musiciansFor(part: Part): User[] {
+    return (part.id && musiciansByPart.get(part.id)) || [];
+  }
 
   // New parts get the next free slot, leaving gaps to reorder between.
   function nextOrder(): number {
@@ -190,6 +232,15 @@
   {/if}
 {/snippet}
 
+{#snippet musicians(part: Part)}
+  {@const playing = musiciansFor(part)}
+  {#if playing.length === 0}
+    <span class="chip none">Ingen</span>
+  {:else}
+    <AvatarStack users={playing} />
+  {/if}
+{/snippet}
+
 {#snippet groupBadge(part: Part)}
   {#if part.instrumentGroup}
     <Badge variant="outline">{part.instrumentGroup}</Badge>
@@ -198,9 +249,16 @@
   {/if}
 {/snippet}
 
+<!--
+  "Synlig" / "Skjult" rather than "Indekseres" / "Skjult": the pair was already
+  half-committed to the visible/hidden reading by the negative label, and
+  completing it makes the two symmetrical and fits the pill in half the width. It
+  means visible *to the indexing*, which the header names — the part's own form
+  spells the whole of it out ("Brukes i register / auto-matching").
+-->
 {#snippet indexBadge(part: Part)}
   {#if part.indexable}
-    <Badge variant="success" dot>Indekseres</Badge>
+    <Badge variant="success" dot>Synlig</Badge>
   {:else}
     <Badge variant="neutral" dot>Skjult</Badge>
   {/if}
@@ -266,12 +324,16 @@
     <table class="sbb-table">
       <thead>
         <tr>
-          <th class="c-order">Rekkefølge</th>
+          <th class="c-order">Nr.</th>
           <th>Navn</th>
           <th>Aliaser</th>
+          {#if showMusicians}
+            <th class="c-musicians">Musikanter</th>
+          {/if}
           <th class="c-group">Gruppe</th>
-          <th class="c-index">Indeksering</th>
-          <th class="c-edit"></th>
+          <!-- "Indeks" rather than "Indeksering": the pills below say what
+               happens, so the header only has to name what it is about. -->
+          <th class="c-index">Indeks</th>
         </tr>
       </thead>
       <tbody>
@@ -280,11 +342,11 @@
             <td class="c-order">{part.sortOrder}</td>
             <td class="c-name">{part.name}</td>
             <td class="c-aliases">{@render aliasChips(part.aliases ?? [])}</td>
+            {#if showMusicians}
+              <td class="c-musicians">{@render musicians(part)}</td>
+            {/if}
             <td class="c-group">{@render groupBadge(part)}</td>
             <td class="c-index">{@render indexBadge(part)}</td>
-            <td class="c-edit">
-              <span class="editlink" title="Rediger"><Pencil size={15} /></span>
-            </td>
           </tr>
         {/each}
       </tbody>
@@ -303,6 +365,12 @@
             <div class="card-group">{part.instrumentGroup}</div>
           {/if}
           <div class="card-chips">{@render aliasChips(part.aliases ?? [])}</div>
+          {#if showMusicians && musiciansFor(part).length > 0}
+            <div class="card-musicians">
+              <span class="card-musicians__label">Musikanter</span>
+              <AvatarStack users={musiciansFor(part)} size={26} />
+            </div>
+          {/if}
         </div>
         <!-- Indexing reads as metadata on the card, so it sits in the top-right
              corner rather than below the aliases. -->
@@ -339,11 +407,19 @@
     color: var(--text-secondary);
   }
 
+  /* Width belongs to the column, so it stays on both cells — but the mono
+     treatment is for the number itself. Left on the shared class it also hit the
+     header, where Svelte's scoping outranks the global `.sbb-table thead th` and
+     so replaced its font and size while keeping the uppercasing and tracking. */
+  /* Sized for the number rather than for the word "Rekkefølge", which was three
+     times as wide as anything under it. The part's own page spells it out. */
   .c-order {
+    width: 64px;
+  }
+  td.c-order {
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--text-secondary);
-    width: 110px;
   }
   .c-name {
     font-weight: 600;
@@ -351,36 +427,25 @@
     white-space: nowrap;
   }
   .c-aliases {
-    width: 36%;
+    width: 28%;
+  }
+  /* Four faces at 28px with a 30% overlap, plus the count chip and its ring. */
+  .c-musicians {
+    width: 130px;
+  }
+  /* The stack's separator ring is painted in the row's own colour, so it has to
+     follow the row when hover changes it. */
+  tr:hover .c-musicians {
+    --avatar-stack-ring: var(--surface-hover);
   }
   .c-group {
     width: 180px;
   }
+  /* Both pills are now six characters, so the column is down to what one of them
+     plus the cell's own padding needs. */
   .c-index {
-    width: 150px;
+    width: 120px;
   }
-  .c-edit {
-    width: 56px;
-    text-align: right;
-  }
-  .editlink {
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    transition:
-      color var(--dur-fast),
-      border-color var(--dur-fast);
-  }
-  tr:hover .editlink {
-    color: var(--text-primary);
-    border-color: var(--border-subtle);
-  }
-
   /* Alias chips (shared between table cells and mobile cards). */
   .chips {
     display: flex;
@@ -421,6 +486,16 @@
   }
   .card-chips {
     margin-top: 10px;
+  }
+  .card-musicians {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .card-musicians__label {
+    font-size: 12.5px;
+    color: var(--text-muted);
   }
   /* Mobile card: the sort order rides along in the name line, keeping the mono
      treatment it has in the table's own column. */

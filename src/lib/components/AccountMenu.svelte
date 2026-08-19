@@ -2,7 +2,7 @@
   import { tick } from "svelte";
   import { ChevronDown, User, LogOut } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
-  import { InitialsAvatar } from "$lib/components/ui";
+  import { UserAvatar } from "$lib/components/ui";
   import { primaryRoleLabel } from "$lib/roles";
 
   let open = $state(false);
@@ -98,7 +98,11 @@
     aria-expanded={open}
     onclick={toggleFromTrigger}
   >
-    <InitialsAvatar name={auth.name} />
+    <UserAvatar
+      name={auth.name}
+      userId={auth.userId}
+      pictureVersion={auth.profilePictureVersion}
+    />
     <span class="acct__id">
       <span class="acct__name">{displayName}</span>
       {#if groupLabel}
@@ -117,7 +121,12 @@
       onclick={(event) => event.stopPropagation()}
     >
       <div class="acctmenu__head">
-        <InitialsAvatar name={auth.name} size={38} />
+        <UserAvatar
+          name={auth.name}
+          userId={auth.userId}
+          pictureVersion={auth.profilePictureVersion}
+          size={38}
+        />
         <span class="acctmenu__txt">
           <b>{displayName}</b>
           <span>{auth.email ?? ""}</span>

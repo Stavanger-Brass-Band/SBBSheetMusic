@@ -145,6 +145,18 @@ Global state is **rune-class singletons** in `src/lib/stores/*.svelte.ts`:
   drive search, sorting and paging entirely server-side through these, keeping
   the state in the URL — shared helpers in `src/lib/utils/listQuery.ts`, sortable
   columns via the `SortableTableHeader` UI primitive.
+- **Profile pictures need the token, so they can't be an `<img src>`.**
+  `GET /users/{id}/profile-picture` (v2) is bearer-authenticated like every other
+  endpoint — there is no download-token query param as there is for a set ZIP —
+  so the bytes have to be fetched and wrapped in a `blob:` URL. The
+  `profilePictures` store (`src/lib/stores/profilePictures.svelte.ts`) owns that
+  and the revoking that goes with it; `ui/UserAvatar` is the only component that
+  reads it, and nothing else should call `users.picture`. A picture is only
+  fetched for a user whose `profilePicture` version says they have one, and the
+  version doubles as a cache key and as a `?v=` cache-buster. `PUT` takes the
+  file plus an `X`/`Y`/`Size` square in the source image's own pixels — the API
+  crops and re-encodes to WebP, so nothing client-side resizes an image (crop
+  geometry: `src/lib/utils/profilePicture.ts`).
 - **`$expand` is not optional for related collections** — they're omitted from
   collection responses unless asked for. `GET /parts` needs `$expand=aliases`
   or every part comes back with its aliases missing. Check the Scalar docs for

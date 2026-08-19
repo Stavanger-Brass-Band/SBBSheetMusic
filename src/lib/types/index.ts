@@ -123,6 +123,15 @@ export type ForgotPasswordRequest = V2["schemas"]["ForgotPasswordRequest"];
 export type ResetPasswordRequest = V2["schemas"]["ResetPasswordRequest"];
 
 /**
+ * A user's profile picture, which is only ever its version — the bytes come
+ * from `GET /users/{id}/profile-picture` and never travel with the user. The
+ * version changes on every upload, which is what lets a client tell the picture
+ * it holds from the one now stored; `profilePictureVersion` in
+ * `$lib/utils/profilePicture` is the one place that reads it.
+ */
+export type ProfilePicture = V2["schemas"]["ApiProfilePicture"];
+
+/**
  * The password complexity policy the API enforces, served so a client can show
  * the rules up front instead of hardcoding them. `minimumLength` and
  * `requiredUniqueChars` are pinned back to `number` for the same int32-widening
@@ -148,6 +157,14 @@ export type PasswordRequirements = Omit<
  * them even though the rest of this shape is v2 — the v2 document leaves these
  * responses undefined, so it declares no part schema of its own to alias.
  *
+ * `profilePicture` is the version of the picture the user has, or `null` for a
+ * user with none — the collection carries it, so a list knows whose picture to
+ * fetch without asking after every row. It is typed as the nested
+ * `ApiProfilePicture` the upload endpoint answers with, the only shape the
+ * document describes; every observed value so far has been `null`, so if it
+ * turns out to be a bare version string this is the line to change (and
+ * `profilePictureVersion` the only reader to follow).
+ *
  * `lastLoginAt` is an ISO instant, `null` for a user who has never signed in. It
  * is the server's own record of the account and read-only here — never sent back
  * as part of an update.
@@ -159,6 +176,7 @@ export interface User {
   inactive: boolean;
   roles?: string[] | null;
   parts?: Part[] | null;
+  profilePicture?: ProfilePicture | null;
   lastLoginAt?: string | null;
 }
 

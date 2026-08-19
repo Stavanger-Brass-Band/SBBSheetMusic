@@ -1,5 +1,6 @@
 import { PUBLIC_API_BASE_URL } from "$env/static/public";
 import type { AccessTokens, InstrumentGroup, User } from "$lib/types";
+import { profilePictureVersion } from "$lib/utils/profilePicture";
 import type { ApiVersion } from "./client";
 
 /**
@@ -89,6 +90,13 @@ export async function refreshTokens(
 export type MeResult =
   | {
       status: "ok";
+      /**
+       * The user's own id, which nothing else tells the app: `/users/me` answers
+       * to a token, not to an id, so this is where the signed-in user learns
+       * their own — needed by anything addressing them by it, the profile-picture
+       * endpoints included.
+       */
+      id: string | null;
       roles: string[];
       /** Ids of the parts the user plays — see `auth.assignedPartIds`. */
       partIds: string[];
@@ -96,15 +104,17 @@ export type MeResult =
       instrumentGroups: string[];
       name: string | null;
       email: string | null;
+      /** The version of their profile picture, or `null` for none. */
+      profilePictureVersion: string | null;
     }
   | { status: "unauthorized" }
   | { status: "failed" };
 
 /**
  * The signed-in user's roles, identity and assigned parts — roles drive what UI
- * to show (admin vs music/project management), name/email are display-only (the
- * account menu), and the part ids let a set mark which of its parts are this
- * user's. `/users/me` answers for any authenticated user — it is reading *other*
+ * to show (admin vs music/project management), name, email and picture version are
+ * display-only (the account menu), and the part ids let a set mark which of its
+ * parts are this user's. `/users/me` answers for any authenticated user — it is reading *other*
  * users that needs admin — so the body, not the status code, is what matters.
  *
  * Bare fetch like the grants above, so the retry the shared client would have
@@ -127,6 +137,7 @@ export async function fetchMe(token: string): Promise<MeResult> {
     const user = (await res.json()) as User;
     return {
       status: "ok",
+      id: user.id ?? null,
       roles: user.roles ?? [],
       partIds: (user.parts ?? [])
         .map((part) => part.id)
@@ -143,6 +154,7 @@ export async function fetchMe(token: string): Promise<MeResult> {
       ],
       name: user.name ?? null,
       email: user.email ?? null,
+      profilePictureVersion: profilePictureVersion(user),
     };
   } catch {
     // The response body is undefined in the OpenAPI document, so an empty or

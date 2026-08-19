@@ -21,6 +21,7 @@
   import { ROLES } from "$lib/roles";
   import { formatDateTime } from "$lib/utils/date";
   import { replaceListUrl } from "$lib/utils/listNavigation";
+  import { profilePictureVersion } from "$lib/utils/profilePicture";
   import { toggleSort, type SortState } from "$lib/utils/listQuery";
   import {
     DEFAULT_USER_SORT,
@@ -44,9 +45,9 @@
     Badge,
     Button,
     EmptyState,
-    InitialsAvatar,
     SearchInput,
     SortableTableHeader,
+    UserAvatar,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
@@ -471,7 +472,11 @@
                  needs its own. -->
             <td class="c-user">
               <div class="user-cell">
-                <InitialsAvatar name={user.name} />
+                <UserAvatar
+                  name={user.name}
+                  userId={user.id}
+                  pictureVersion={profilePictureVersion(user)}
+                />
                 <div class="user-text">
                   <div class="user-name">{user.name}</div>
                   <div class="user-email">{user.email}</div>
@@ -497,7 +502,11 @@
                whole card: centred against four lines it would drift away from
                the person it belongs to. -->
           <div class="card-identity">
-            <InitialsAvatar name={user.name} />
+            <UserAvatar
+              name={user.name}
+              userId={user.id}
+              pictureVersion={profilePictureVersion(user)}
+            />
             <div class="user-text">
               <div class="t">{user.name}</div>
               <div class="meta">{user.email}</div>
