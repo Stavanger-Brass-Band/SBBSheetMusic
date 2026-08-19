@@ -9,6 +9,7 @@
     variant = "primary",
     size = "md",
     block = false,
+    iconOnly = false,
     disabled = false,
     loading = false,
     type = "button",
@@ -21,6 +22,12 @@
     variant?: Variant;
     size?: Size;
     block?: boolean;
+    /**
+     * Square, for a button whose whole label is its icon. Such a button has no
+     * text to name it, so give it an `aria-label` and a `title` — one for a
+     * screen reader, the other for a pointer that has to hover to find out.
+     */
+    iconOnly?: boolean;
     disabled?: boolean;
     loading?: boolean;
     type?: "button" | "submit" | "reset";
@@ -41,6 +48,7 @@
   {type}
   class="btn {variant} {size} {className}"
   class:block
+  class:icon-only={iconOnly}
   disabled={disabled || loading}
   {onclick}
   {...rest}
@@ -72,6 +80,12 @@
   .btn.block {
     display: flex;
     width: 100%;
+  }
+  /* The size classes below set the height; the ratio makes the width follow it,
+     so one rule squares off all three. */
+  .btn.icon-only {
+    padding: 0;
+    aspect-ratio: 1;
   }
 
   /* sizes */

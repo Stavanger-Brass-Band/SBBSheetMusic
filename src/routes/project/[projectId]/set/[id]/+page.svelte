@@ -1,10 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { Headphones, FileX, Lock } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
+  import { Headphones, FileX, Lock, Pencil } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
+  import { auth } from "$lib/stores/auth.svelte";
   import type { MusicSet, Project } from "$lib/types";
   import { Badge, Breadcrumb, Button, EmptyState } from "$lib/components/ui";
   import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
@@ -23,6 +25,13 @@
   // that has left the active projects. Said apart from a failed load, and
   // without naming the set.
   let forbidden = $state(false);
+
+  /**
+   * The way from a set as a member sees it to the same set as its editor. Gated on
+   * the very flag `requireManageMusic` guards that page with, so the shortcut is
+   * offered exactly when it will be let through.
+   */
+  let canEditSet = $derived(auth.canManageMusic);
 
   onMount(async () => {
     const loaded = await sheetMusic.getSetWithParts(setId);
@@ -74,13 +83,31 @@
         </div>
       {/if}
     </div>
-    {#if set.recordingUrl}
-      <Button
-        variant="secondary"
-        onclick={() => window.open(set.recordingUrl ?? "", "_blank")}
-      >
-        <Headphones size={16} /> Åpne lytteeksempel
-      </Button>
+    <!-- Only rendered when it holds something: an empty flex item would still
+         take the head's own gap. The listening example leads, since it is what
+         the page is for — editing is the shortcut. -->
+    {#if set.recordingUrl || canEditSet}
+      <div class="actions">
+        {#if set.recordingUrl}
+          <Button
+            variant="secondary"
+            onclick={() => window.open(set.recordingUrl ?? "", "_blank")}
+          >
+            <Headphones size={16} /> Åpne lytteeksempel
+          </Button>
+        {/if}
+        {#if canEditSet}
+          <Button
+            variant="secondary"
+            iconOnly
+            aria-label="Rediger notesett"
+            title="Rediger notesett"
+            onclick={() => goto(`/set/edit/${setId}`)}
+          >
+            <Pencil size={17} />
+          </Button>
+        {/if}
+      </div>
     {/if}
   </div>
 
@@ -111,5 +138,11 @@
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 12px;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 </style>
