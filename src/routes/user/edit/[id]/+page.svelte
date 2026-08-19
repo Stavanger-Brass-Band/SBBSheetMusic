@@ -23,6 +23,7 @@
   import { ROLES, holdsRole, type Role } from "$lib/roles";
   import { formatDateTime } from "$lib/utils/date";
   import { byCatalogOrder } from "$lib/utils/partOrder";
+  import { profilePictureVersion } from "$lib/utils/profilePicture";
   import { usersListHref } from "$lib/utils/usersListQuery";
   import type {
     Part,
@@ -34,12 +35,13 @@
   import {
     Badge,
     Breadcrumb,
-    InitialsAvatar,
     Button,
     SaveIndicator,
+    UserAvatar,
     SAVED_VISIBLE_MS,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
+  import ProfilePicturePanel from "$lib/components/ProfilePicturePanel.svelte";
   import PartPickerModalBody from "$lib/components/PartPickerModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
@@ -125,6 +127,7 @@
   );
 
   let assignedParts = $derived(user?.parts ?? []);
+  let pictureVersion = $derived(profilePictureVersion(user));
 
   /**
    * What the picker offers: the catalogue minus what the user already plays, and
@@ -398,7 +401,12 @@
          enough to read as a portrait: this is where the page says who is being
          edited, and every panel below it is a detail of that person. -->
     <div class="identity">
-      <InitialsAvatar name={user.name} size={72} />
+      <UserAvatar
+        name={user.name}
+        userId={user.id}
+        {pictureVersion}
+        size={72}
+      />
       <div class="title-cell">
         <h1 class="sbb-h1 title">{user.name}</h1>
         <p class="email">{user.email}</p>
@@ -471,6 +479,22 @@
     </div>
 
     <div class="column">
+      <!-- Profilbilde. It rides with the short panels rather than under Profil,
+           which is already the tallest thing on the page — the split here is by
+           weight, not by kind. -->
+      <ProfilePicturePanel
+        userId={user.id}
+        name={user.name}
+        {pictureVersion}
+        onchange={(version) => {
+          if (user)
+            user = {
+              ...user,
+              profilePicture: version ? { version } : null,
+            };
+        }}
+      />
+
       <!-- Stemmer -->
       <section class="panel">
         <div class="panel-head parts-head">
@@ -544,9 +568,8 @@
           </div>
         </div>
         <!-- Sits with the status because it answers the question the status
-             raises: whether the account is in use at all is what decides whether
-             deactivating it costs anyone anything. Read-only — it is the server's
-             record, never part of the update body. -->
+             raises: whether the account is in use at all is what decides
+             whether deactivating it costs anyone anything. -->
         <p class="last-login">
           Sist innlogget: <span class="last-login__value">
             {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "aldri"}

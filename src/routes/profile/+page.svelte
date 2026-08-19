@@ -11,6 +11,7 @@
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import type { UpdateUserRequest, UserForm } from "$lib/types";
   import { formatDateTime } from "$lib/utils/date";
+  import { profilePictureVersion } from "$lib/utils/profilePicture";
   import {
     Breadcrumb,
     Button,
@@ -18,16 +19,20 @@
     SAVED_VISIBLE_MS,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
+  import ProfilePicturePanel from "$lib/components/ProfilePicturePanel.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   // Set once the profile has loaded — every save targets this id, since the
-  // update endpoint (unlike the read) takes a real guid, not "me".
-  let userId = "";
-
+  // update endpoint (unlike the read) takes a real guid, not "me". The picture
+  // endpoints are the same way round, which is why the panel below waits for it.
+  let userId = $state("");
+  /** The version of the picture now stored, or null while there is none. */
+  let pictureVersion = $state<string | null>(null);
   /**
    * When this account last signed in, as the API reports it — read from
    * `/users/me` rather than worked out from the token, which only says when the
-   * current session started.
+   * current session started. Null for an account that never has, which cannot
+   * happen while reading your own profile but is what the field allows.
    */
   let lastLoginAt = $state<string | null>(null);
 
@@ -59,6 +64,7 @@
     const me = await usersApi.get("me").catch(() => null);
     if (me?.id) {
       userId = me.id;
+      pictureVersion = profilePictureVersion(me);
       lastLoginAt = me.lastLoginAt ?? null;
       form = {
         name: me.name ?? "",
@@ -122,25 +128,36 @@
 {:else}
   <h1 class="sbb-h1 title">Min profil</h1>
 
-  <section class="panel">
-    <UserModalBody {form} isEditing {rejectedPasswordRules} />
-    {#if error}<p class="err">{error}</p>{/if}
-    <!-- Read-only, and never part of the update body: it is the server's record
-         of the account rather than a field of the profile. -->
-    <p class="last-login">
-      Sist innlogget: <span class="last-login__value">
-        {lastLoginAt ? formatDateTime(lastLoginAt) : "aldri"}
-      </span>
-    </p>
-    <div class="panel-foot">
-      {#if saved}
-        <span class="saved"><Check size={15} /> Lagret</span>
-      {/if}
-      <Button loading={saving} disabled={!canSave} onclick={save}>
-        Lagre endringer
-      </Button>
-    </div>
-  </section>
+  <!-- The picture comes first: it is the part of a profile you recognise, and
+       the fields below it are the ones you only ever change deliberately. -->
+  <div class="panels">
+    <ProfilePicturePanel
+      {userId}
+      name={form.name}
+      {pictureVersion}
+      onchange={(version) => (pictureVersion = version)}
+    />
+
+    <section class="panel">
+      <UserModalBody {form} isEditing {rejectedPasswordRules} />
+      {#if error}<p class="err">{error}</p>{/if}
+      <!-- Read-only, and never part of the update body: it is the server's
+           record of the account, not a field of the profile. -->
+      <p class="last-login">
+        Sist innlogget: <span class="last-login__value">
+          {lastLoginAt ? formatDateTime(lastLoginAt) : "aldri"}
+        </span>
+      </p>
+      <div class="panel-foot">
+        {#if saved}
+          <span class="saved"><Check size={15} /> Lagret</span>
+        {/if}
+        <Button loading={saving} disabled={!canSave} onclick={save}>
+          Lagre endringer
+        </Button>
+      </div>
+    </section>
+  </div>
 {/if}
 
 <style>
@@ -148,12 +165,18 @@
     margin: 0 0 28px;
     font-size: 40px;
   }
+  /* Both panels share one column, so neither carries its own width. */
+  .panels {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 640px;
+  }
   .panel {
     padding: 24px;
     background: var(--surface-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    max-width: 640px;
   }
   .last-login {
     margin: 20px 0 0;

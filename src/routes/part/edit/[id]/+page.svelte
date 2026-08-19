@@ -5,9 +5,19 @@
   import { Modal } from "flowbite-svelte";
   import { Plus, X, Trash2, Check, AlertTriangle } from "@lucide/svelte";
   import { parts as partsApi } from "$lib/api/parts";
+  import { users as usersApi } from "$lib/api/users";
+  import { auth } from "$lib/stores/auth.svelte";
   import { partsListHref } from "$lib/utils/partsListQuery";
-  import type { Part, PartForm, PartRequest } from "$lib/types";
-  import { Badge, Breadcrumb, Button } from "$lib/components/ui";
+  import { musiciansByPartId } from "$lib/utils/partMusicians";
+  import { profilePictureVersion } from "$lib/utils/profilePicture";
+  import type { Part, PartForm, PartRequest, User } from "$lib/types";
+  import {
+    Badge,
+    Breadcrumb,
+    Button,
+    Spinner,
+    UserAvatar,
+  } from "$lib/components/ui";
   import PartModalBody from "$lib/components/PartModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
@@ -40,6 +50,17 @@
   let savingAlias = $state(false);
   let aliasError = $state("");
 
+  /**
+   * Musikanter — who is set up with this stemme. Read out of the user list, since
+   * the assignment only exists on the user's side and nothing on a part points
+   * back. `GET /users` is admin-only while this page also admits a Noteansvarlig,
+   * so the panel is left out for them rather than claiming nobody plays it.
+   */
+  let musicians = $state<User[]>([]);
+  let loadingMusicians = $state(false);
+  let musiciansFailed = $state(false);
+  let showMusicians = $derived(auth.isAdmin);
+
   // Delete confirmation.
   let confirmOpen = $state(false);
   let isDeleting = $state(false);
@@ -47,7 +68,10 @@
 
   let canSaveDetails = $derived(!!detailsForm.name.trim());
 
-  onMount(load);
+  onMount(() => {
+    void load();
+    void loadMusicians();
+  });
   onDestroy(() => clearTimeout(detailsSavedTimer));
 
   async function load() {
@@ -70,6 +94,19 @@
       };
     }
     loading = false;
+  }
+
+  async function loadMusicians() {
+    if (!showMusicians) return;
+    loadingMusicians = true;
+    musiciansFailed = false;
+    const users = await usersApi.list().catch(() => null);
+    loadingMusicians = false;
+    if (!users) {
+      musiciansFailed = true;
+      return;
+    }
+    musicians = musiciansByPartId(users).get(id) ?? [];
   }
 
   async function saveDetails() {
@@ -205,7 +242,7 @@
         <Badge variant="outline">{part.instrumentGroup}</Badge>
       {/if}
       {#if part.indexable}
-        <Badge variant="success" dot>Indekseres</Badge>
+        <Badge variant="success" dot>Synlig</Badge>
       {:else}
         <Badge variant="neutral" dot>Skjult</Badge>
       {/if}
@@ -276,6 +313,53 @@
       </div>
     {/if}
   </section>
+
+  <!-- Musikanter -->
+  {#if showMusicians}
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="sbb-h3">Musikanter</h2>
+        {#if musicians.length}
+          <Badge variant="neutral">{musicians.length}</Badge>
+        {/if}
+      </div>
+      <p class="hint">
+        Hvem som er satt opp med denne stemmen. Koblingen endres på den enkelte
+        brukeren, og en stemme som er i bruk kan ikke slettes.
+      </p>
+      {#if loadingMusicians}
+        <p class="hint empty">
+          <Spinner size={14} inline /> Laster musikanter…
+        </p>
+      {:else if musiciansFailed}
+        <p class="err">Kunne ikke laste musikantene. Last siden på nytt.</p>
+      {:else if musicians.length === 0}
+        <p class="hint empty">Ingen musikanter spiller denne stemmen ennå.</p>
+      {:else}
+        <ul class="musician-list">
+          {#each musicians as musician (musician.id)}
+            <li>
+              <a class="musician" href={`/user/edit/${musician.id}`}>
+                <UserAvatar
+                  name={musician.name}
+                  userId={musician.id}
+                  pictureVersion={profilePictureVersion(musician)}
+                  size={36}
+                />
+                <span class="musician__text">
+                  <span class="musician__name">{musician.name}</span>
+                  <span class="musician__email">{musician.email}</span>
+                </span>
+                {#if musician.inactive}
+                  <Badge variant="neutral" dot>Inaktiv</Badge>
+                {/if}
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {/if}
 
   <!-- Faresone -->
   <section class="panel danger">
@@ -355,6 +439,16 @@
   .panel.danger {
     border-color: color-mix(in srgb, var(--danger) 40%, var(--border-subtle));
   }
+  /* The count sits on the heading's own line, so the panel says how many before
+     the reader starts counting faces. */
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .panel-head h2 {
+    margin: 0 0 4px;
+  }
   .panel-foot {
     display: flex;
     align-items: center;
@@ -384,6 +478,53 @@
     margin: 14px 0 0;
     font-size: 13px;
     color: var(--danger);
+  }
+
+  /* Musikanter — one row each, the whole row a link to that user's page, which
+     is where the assignment is actually changed. */
+  .musician-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .musician {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: border-color var(--dur-fast);
+  }
+  .musician:hover {
+    border-color: var(--accent);
+  }
+  .musician__text {
+    flex: 1;
+    min-width: 0;
+  }
+  .musician__name,
+  .musician__email {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .musician__name {
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .musician__email {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
   }
 
   /* Alias editor. */

@@ -16,8 +16,10 @@ const CAN_MANAGE_MUSIC_KEY = "canManageMusic";
 const CAN_MANAGE_PROJECTS_KEY = "canManageProjects";
 const CAN_READ_LIBRARY_KEY = "canReadLibrary";
 const CAN_ACCESS_CATALOG_KEY = "canAccessCatalog";
+const USER_ID_KEY = "userId";
 const NAME_KEY = "name";
 const EMAIL_KEY = "email";
+const PROFILE_PICTURE_VERSION_KEY = "profilePictureVersion";
 const ASSIGNED_PART_IDS_KEY = "assignedPartIds";
 const INSTRUMENT_GROUPS_KEY = "instrumentGroups";
 const LAST_USER_NAME_KEY = "lastUserName";
@@ -75,11 +77,20 @@ class AuthState {
   // active projects. Without it the API serves no sets, projects or download
   // tokens, so the UI offers none either.
   #canAccessCatalog = $state(false);
+  // The signed-in user's own id, which only `/users/me` can tell us — the token
+  // carries no id the app can read. Held for the things that address this user
+  // by id rather than by token: their profile picture, and telling their own
+  // avatar apart from anyone else's.
+  #userId = $state<string | null>(null);
   // Display-only identity for the account menu — never used for access
   // decisions, so unlike the flags above a stale or missing value only means a
   // blank line in the menu, not a wrongly shown control.
   #name = $state<string | null>(null);
   #email = $state<string | null>(null);
+  // The version of their profile picture, or null for none. Cached with the name
+  // so the header can draw the picture on the first paint of a returning session
+  // rather than after `loadRoles` lands.
+  #profilePictureVersion = $state<string | null>(null);
   // The parts this user plays. Display-only in the same sense as the name above:
   // it decides which of a set's parts get marked as theirs and offered as a
   // batch, never whether a download is allowed — the API authorises every one of
@@ -111,8 +122,12 @@ class AuthState {
       // generously costs nothing — the API is what actually refuses.
       this.#canAccessCatalog =
         localStorage.getItem(CAN_ACCESS_CATALOG_KEY) !== "false";
+      this.#userId = localStorage.getItem(USER_ID_KEY);
       this.#name = localStorage.getItem(NAME_KEY);
       this.#email = localStorage.getItem(EMAIL_KEY);
+      this.#profilePictureVersion = localStorage.getItem(
+        PROFILE_PICTURE_VERSION_KEY,
+      );
       this.#assignedPartIds = storedStringList(ASSIGNED_PART_IDS_KEY);
       this.#instrumentGroups = storedStringList(INSTRUMENT_GROUPS_KEY);
     }
@@ -142,6 +157,15 @@ class AuthState {
     return this.#canAccessCatalog;
   }
 
+  /**
+   * The signed-in user's own id, or `null` before `loadRoles` has ever landed.
+   * Used to address them on the endpoints that take an id — their profile
+   * picture — and to recognise their own row among other users'.
+   */
+  get userId(): string | null {
+    return this.#userId;
+  }
+
   /** The signed-in user's display name, for the account menu. */
   get name(): string | null {
     return this.#name;
@@ -150,6 +174,14 @@ class AuthState {
   /** The signed-in user's email, for the account menu. */
   get email(): string | null {
     return this.#email;
+  }
+
+  /**
+   * The version of the signed-in user's profile picture, or `null` when they have
+   * none — what the header's avatar asks for its picture with.
+   */
+  get profilePictureVersion(): string | null {
+    return this.#profilePictureVersion;
   }
 
   /**
@@ -299,11 +331,13 @@ class AuthState {
   }
 
   #applyMe(me: {
+    id: string | null;
     roles: string[];
     partIds: string[];
     instrumentGroups: string[];
     name: string | null;
     email: string | null;
+    profilePictureVersion: string | null;
   }): void {
     const capabilities = capabilitiesFrom(me.roles);
     this.#isAdmin = capabilities.isAdmin;
@@ -311,8 +345,10 @@ class AuthState {
     this.#canManageProjects = capabilities.canManageProjects;
     this.#canReadLibrary = capabilities.canReadLibrary;
     this.#canAccessCatalog = capabilities.canAccessCatalog;
+    this.#userId = me.id;
     this.#name = me.name;
     this.#email = me.email;
+    this.#profilePictureVersion = me.profilePictureVersion;
     this.#assignedPartIds = me.partIds;
     this.#instrumentGroups = me.instrumentGroups;
 
@@ -328,6 +364,8 @@ class AuthState {
         CAN_ACCESS_CATALOG_KEY,
         String(this.#canAccessCatalog),
       );
+      this.#persist(USER_ID_KEY, this.#userId);
+      this.#persist(PROFILE_PICTURE_VERSION_KEY, this.#profilePictureVersion);
       if (this.#name !== null) localStorage.setItem(NAME_KEY, this.#name);
       else localStorage.removeItem(NAME_KEY);
       if (this.#email !== null) localStorage.setItem(EMAIL_KEY, this.#email);
@@ -341,6 +379,12 @@ class AuthState {
         JSON.stringify(this.#instrumentGroups),
       );
     }
+  }
+
+  /** Stores a nullable value, or clears the key when there is nothing to store. */
+  #persist(key: string, value: string | null): void {
+    if (value !== null) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
   }
 
   /**
@@ -382,8 +426,10 @@ class AuthState {
     localStorage.removeItem(CAN_MANAGE_PROJECTS_KEY);
     localStorage.removeItem(CAN_READ_LIBRARY_KEY);
     localStorage.removeItem(CAN_ACCESS_CATALOG_KEY);
+    localStorage.removeItem(USER_ID_KEY);
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(PROFILE_PICTURE_VERSION_KEY);
     localStorage.removeItem(ASSIGNED_PART_IDS_KEY);
     localStorage.removeItem(INSTRUMENT_GROUPS_KEY);
   }
@@ -396,8 +442,10 @@ class AuthState {
     this.#canManageProjects = false;
     this.#canReadLibrary = false;
     this.#canAccessCatalog = false;
+    this.#userId = null;
     this.#name = null;
     this.#email = null;
+    this.#profilePictureVersion = null;
     this.#assignedPartIds = [];
     this.#instrumentGroups = [];
   }

@@ -13,6 +13,7 @@
     loading = false,
     type = "button",
     onclick,
+    element = $bindable(),
     class: className = "",
     children,
     ...rest
@@ -24,6 +25,11 @@
     loading?: boolean;
     type?: "button" | "submit" | "reset";
     onclick?: (e: MouseEvent) => void;
+    /**
+     * The rendered button, for a caller that has to move focus to it — `bind:this`
+     * on a component hands back the component, not the element.
+     */
+    element?: HTMLButtonElement;
     class?: string;
     children?: Snippet;
     [key: string]: unknown;
@@ -31,6 +37,7 @@
 </script>
 
 <button
+  bind:this={element}
   {type}
   class="btn {variant} {size} {className}"
   class:block

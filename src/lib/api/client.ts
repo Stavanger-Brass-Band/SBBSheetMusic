@@ -232,6 +232,31 @@ async function postFile(
 }
 
 /**
+ * PUT a multipart body, handing back the raw Response.
+ *
+ * Separate from `postFile` above, which is fixed to POST, to a field named
+ * `file`, and to that endpoint's 409 contract — the caller assembles the form
+ * here instead, since the profile-picture upload sends crop coordinates
+ * alongside the file. No `Content-Type` is set on purpose: only the browser can
+ * write the multipart boundary, and naming the type without one produces a body
+ * the server cannot parse.
+ *
+ * The Response rather than a parsed body, because the status is half the answer
+ * — an image the server refuses as too large or unreadable needs saying apart
+ * from a write that simply failed.
+ */
+async function putForm(
+  path: string,
+  version: ApiVersion,
+  formData: FormData,
+): Promise<Response> {
+  return authedFetch(buildUrl(path, version), {
+    method: "PUT",
+    body: formData,
+  });
+}
+
+/**
  * POST/PUT to an endpoint that returns 200/204 with no body (e.g. user
  * register/update). Mirrors `del`: returns the raw Response so callers can
  * check `res.ok` — it never parses JSON, so an empty body can't throw.
@@ -329,6 +354,10 @@ export function createClient(version: ApiVersion) {
       writeJson(path, version, "PUT", body),
 
     postFile: (path: string, file: File) => postFile(path, version, file),
+
+    /** PUT a multipart body (file plus fields) — see `putForm`. */
+    putForm: (path: string, formData: FormData) =>
+      putForm(path, version, formData),
 
     /** POST a combined score PDF to an import that answers with a body. */
     postPdf: <T>(path: string, file: File) =>

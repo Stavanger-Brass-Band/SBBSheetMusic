@@ -174,6 +174,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{identifier}/profile-picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve a user's profile picture. Any authenticated user may retrieve a current profile picture. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user whose profile picture will be returned. */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The processed WebP profile picture. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /** Upload or replace a user's profile picture. Users may update their own picture; Administrators may update any user's picture. */
+        put: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user whose profile picture will be changed. */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            /** @description The cancellation token for the upload operation. */
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        File?: components["schemas"]["IFormFile"];
+                        /** Format: int32 */
+                        X?: number | string;
+                        /** Format: int32 */
+                        Y?: number | string;
+                        /** Format: int32 */
+                        Size?: number | string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The new profile-picture version. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiProfilePicture"];
+                        "application/json": components["schemas"]["ApiProfilePicture"];
+                        "text/json": components["schemas"]["ApiProfilePicture"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove a user's profile picture. Users may remove their own picture; Administrators may remove any user's picture. */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path: {
+                    /** @description The guid of the user whose profile picture will be removed. */
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/password-requirements": {
         parameters: {
             query?: never;
@@ -1482,6 +1587,10 @@ export interface components {
             requireNonAlphanumeric?: boolean;
             /** Format: int32 */
             requiredUniqueChars?: number | string;
+        };
+        ApiProfilePicture: {
+            /** Format: uuid */
+            version: string;
         };
         /** @description A project summary included in an expanded sheet music set. */
         ApiProjectSummary: {
