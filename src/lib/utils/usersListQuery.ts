@@ -44,13 +44,16 @@ export const NO_PARTS_FILTER = "none";
  * The columns the list sorts on — one per column the table shows, and the guard
  * `readSortParams` checks a URL against. `role` and `group` order the two
  * multi-value columns by what can be ordered at all: how wide the user's access
- * reaches, and which section they sit in.
+ * reaches, and which section they sit in. `lastLogin` is the one column an admin
+ * reads for something other than who somebody is — who is actually using their
+ * account — which is why it is sortable rather than just shown.
  */
 export const USER_SORTABLE_FIELDS = [
   "name",
   "role",
   "group",
   "status",
+  "lastLogin",
 ] as const;
 
 /** The order the list opens in — by name, as it always has. */
@@ -252,6 +255,8 @@ function compareBySortField(
       );
     case "status":
       return Number(a.inactive) - Number(b.inactive);
+    case "lastLogin":
+      return compareRank(lastLoginRank(a), lastLoginRank(b));
     default:
       return compareText(a.name, b.name);
   }
@@ -286,6 +291,17 @@ function firstPartRank(
     .map((part) => (part.id ? partsById.get(part.id)?.sortOrder : undefined))
     .filter((sortOrder): sortOrder is number => sortOrder !== undefined);
   return ranks.length ? Math.min(...ranks) : Infinity;
+}
+
+/**
+ * When a user last signed in, as an instant to order by. Never having signed in
+ * counts as older than every real timestamp, so those accounts lead the ascending
+ * order and trail the descending one — the reading the column was asked for, and
+ * the useful one for an admin hunting accounts nobody has ever used. Note that it
+ * is the opposite of `firstPartRank`, where having no stemme sorts last.
+ */
+function lastLoginRank(user: User): number {
+  return user.lastLoginAt ? new Date(user.lastLoginAt).getTime() : -Infinity;
 }
 
 /** Compared rather than subtracted, since two unranked users would give `NaN`. */

@@ -19,6 +19,11 @@ const dmyShortFmt = new Intl.DateTimeFormat(LOCALE, {
   year: "2-digit",
 });
 
+const timeFmt = new Intl.DateTimeFormat(LOCALE, {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 type DateInput = string | number | Date;
 /** The API leaves every date optional, so the formatters take nothing too. */
 type OptionalDateInput = DateInput | null | undefined;
@@ -62,6 +67,18 @@ export function formatDmy(date: OptionalDateInput): string {
 export function formatDmyShort(date: OptionalDateInput): string {
   if (date === null || date === undefined) return NO_DATE;
   return dmyShortFmt.format(new Date(date));
+}
+
+/**
+ * `DD.MM.YYYY kl. HH:MM` (e.g. `19.08.2026 kl. 08:15`) — for an instant where the
+ * time of day is part of the answer, as it is for a sign-in. The API sends these
+ * in UTC; `Intl` renders them in the reader's own timezone, which is the only one
+ * they can compare against their memory of when they were last here.
+ */
+export function formatDateTime(date: OptionalDateInput): string {
+  if (date === null || date === undefined) return NO_DATE;
+  const d = new Date(date);
+  return `${dmyFmt.format(d)} kl. ${timeFmt.format(d)}`;
 }
 
 /**

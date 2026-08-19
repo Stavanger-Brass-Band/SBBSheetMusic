@@ -21,6 +21,7 @@
   } from "$lib/password";
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import { ROLES, holdsRole, type Role } from "$lib/roles";
+  import { formatDateTime } from "$lib/utils/date";
   import { byCatalogOrder } from "$lib/utils/partOrder";
   import { usersListHref } from "$lib/utils/usersListQuery";
   import type {
@@ -542,6 +543,15 @@
             </p>
           </div>
         </div>
+        <!-- Sits with the status because it answers the question the status
+             raises: whether the account is in use at all is what decides whether
+             deactivating it costs anyone anything. Read-only — it is the server's
+             record, never part of the update body. -->
+        <p class="last-login">
+          Sist innlogget: <span class="last-login__value">
+            {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "aldri"}
+          </span>
+        </p>
         {#if statusError}<p class="err">{statusError}</p>{/if}
         <div class="status-row">
           <Button
@@ -719,6 +729,14 @@
     align-items: center;
     gap: 14px;
     flex-wrap: wrap;
+  }
+  .last-login {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .last-login__value {
+    color: var(--text-secondary);
   }
   .hint {
     font-size: 13px;
