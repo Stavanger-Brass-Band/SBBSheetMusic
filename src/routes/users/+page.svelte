@@ -19,6 +19,7 @@
   } from "$lib/password";
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import { ROLES } from "$lib/roles";
+  import { formatDateTime } from "$lib/utils/date";
   import { replaceListUrl } from "$lib/utils/listNavigation";
   import { toggleSort, type SortState } from "$lib/utils/listQuery";
   import {
@@ -319,6 +320,17 @@
   {/if}
 {/snippet}
 
+<!-- A sign-in that never happened is worth saying in words: the dash the date
+     helpers fall back to reads as missing data rather than as an account nobody
+     has used yet, which is the thing an admin is looking for here. -->
+{#snippet lastLogin(user: User)}
+  {#if user.lastLoginAt}
+    <span class="sbb-mono last-login">{formatDateTime(user.lastLoginAt)}</span>
+  {:else}
+    <span class="last-login none">Aldri</span>
+  {/if}
+{/snippet}
+
 {#snippet metaLine(label: string, values: string[])}
   {#if values.length}
     <div class="meta card-meta">{label}: {values.join(" · ")}</div>
@@ -438,6 +450,12 @@
             onsort={changeSort}
           />
           <SortableTableHeader
+            field="lastLogin"
+            label="Sist innlogget"
+            {sort}
+            onsort={changeSort}
+          />
+          <SortableTableHeader
             field="status"
             label="Status"
             {sort}
@@ -462,6 +480,7 @@
             </td>
             <td class="c-roles">{@render chipList(user.roles)}</td>
             <td class="c-group">{@render chipList(groupNames(user))}</td>
+            <td class="c-last-login">{@render lastLogin(user)}</td>
             <td class="c-status">{@render statusBadge(user)}</td>
           </tr>
         {/each}
@@ -489,6 +508,10 @@
                width and leave the two lists indistinguishable. -->
           {@render metaLine("Roller", user.roles ?? [])}
           {@render metaLine("Gruppe", groupNames(user))}
+          {@render metaLine(
+            "Sist innlogget",
+            user.lastLoginAt ? [formatDateTime(user.lastLoginAt)] : [],
+          )}
         </div>
         <div class="acts">{@render statusBadge(user)}</div>
       </div>
@@ -545,7 +568,7 @@
   }
 
   .c-user {
-    width: 32%;
+    width: 28%;
   }
   /* The avatar and the name/e-mail pair, in the table row and in the card. */
   .user-cell,
@@ -567,10 +590,21 @@
     color: var(--text-secondary);
   }
   .c-roles {
-    width: 26%;
+    width: 22%;
   }
   .c-group {
-    width: 22%;
+    width: 18%;
+  }
+  .c-last-login {
+    width: 170px;
+  }
+  .last-login {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .last-login.none {
+    color: var(--text-muted);
   }
   .c-status {
     width: 130px;

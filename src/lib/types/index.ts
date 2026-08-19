@@ -147,6 +147,10 @@ export type PasswordRequirements = Omit<
  * very same view model as the parts catalogue, so the v1 `Part` alias above types
  * them even though the rest of this shape is v2 — the v2 document leaves these
  * responses undefined, so it declares no part schema of its own to alias.
+ *
+ * `lastLoginAt` is an ISO instant, `null` for a user who has never signed in. It
+ * is the server's own record of the account and read-only here — never sent back
+ * as part of an update.
  */
 export interface User {
   id: string;
@@ -155,6 +159,7 @@ export interface User {
   inactive: boolean;
   roles?: string[] | null;
   parts?: Part[] | null;
+  lastLoginAt?: string | null;
 }
 
 /**

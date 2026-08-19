@@ -10,6 +10,7 @@
   } from "$lib/password";
   import { passwordPolicy } from "$lib/stores/passwordPolicy.svelte";
   import type { UpdateUserRequest, UserForm } from "$lib/types";
+  import { formatDateTime } from "$lib/utils/date";
   import {
     Breadcrumb,
     Button,
@@ -22,6 +23,13 @@
   // Set once the profile has loaded — every save targets this id, since the
   // update endpoint (unlike the read) takes a real guid, not "me".
   let userId = "";
+
+  /**
+   * When this account last signed in, as the API reports it — read from
+   * `/users/me` rather than worked out from the token, which only says when the
+   * current session started.
+   */
+  let lastLoginAt = $state<string | null>(null);
 
   let loading = $state(true);
   let loadFailed = $state(false);
@@ -51,6 +59,7 @@
     const me = await usersApi.get("me").catch(() => null);
     if (me?.id) {
       userId = me.id;
+      lastLoginAt = me.lastLoginAt ?? null;
       form = {
         name: me.name ?? "",
         email: me.email ?? "",
@@ -116,6 +125,13 @@
   <section class="panel">
     <UserModalBody {form} isEditing {rejectedPasswordRules} />
     {#if error}<p class="err">{error}</p>{/if}
+    <!-- Read-only, and never part of the update body: it is the server's record
+         of the account rather than a field of the profile. -->
+    <p class="last-login">
+      Sist innlogget: <span class="last-login__value">
+        {lastLoginAt ? formatDateTime(lastLoginAt) : "aldri"}
+      </span>
+    </p>
     <div class="panel-foot">
       {#if saved}
         <span class="saved"><Check size={15} /> Lagret</span>
@@ -138,6 +154,14 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     max-width: 640px;
+  }
+  .last-login {
+    margin: 20px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .last-login__value {
+    color: var(--text-secondary);
   }
   .panel-foot {
     display: flex;
