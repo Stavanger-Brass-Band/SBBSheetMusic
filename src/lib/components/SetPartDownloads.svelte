@@ -1,17 +1,17 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Download, ScanLine } from "@lucide/svelte";
+  import { ScanLine } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { downloadSetPart } from "$lib/utils/download";
   import { getPartImageUrl } from "$lib/utils/partImage";
   import type { MusicSetPart } from "$lib/types";
-  import { Button, PartTile, EmptyState } from "$lib/components/ui";
+  import { PartTile, EmptyState } from "$lib/components/ui";
 
   /**
-   * The download stage of a set view: one tile per part, the parts the signed-in
-   * user plays marked and offered as a batch. Shared by the two set views — the
-   * one reached from Arkivliste and the one under a project — which differ in
-   * their surroundings but not in this.
+   * The download stage of a set view: one tile per part, with the parts the
+   * signed-in user plays marked. Shared by the two set views — the one reached
+   * from Arkivliste and the one under a project — which differ in their
+   * surroundings but not in this.
    */
   let {
     setId,
@@ -32,8 +32,6 @@
   let completedTimer: ReturnType<typeof setTimeout> | undefined;
   // Why the last download didn't happen, if it didn't.
   let downloadError = $state("");
-  // Progress through the batch of the user's own parts, e.g. "2 av 3".
-  let batchProgress = $state("");
 
   onDestroy(() => clearTimeout(completedTimer));
 
@@ -42,21 +40,6 @@
       !!part.musicPartId && auth.assignedPartIds.includes(part.musicPartId)
     );
   }
-
-  /**
-   * The user's own parts in this set, at most one per name. A set can hold several
-   * entries sharing a `musicPartId` (which is why these lists are unkeyed), and
-   * the PDF endpoint addresses a part by name, so two entries with the same name
-   * would fetch the same file twice.
-   */
-  let myParts = $derived.by(() => {
-    const mine = (parts ?? []).filter(isMine);
-    // Keyed by name, so duplicates collapse while the catalogue order the set
-    // came back in survives.
-    return [...new Map(mine.map((part) => [part.name ?? "", part])).values()];
-  });
-
-  let isDownloadingBatch = $derived(batchProgress !== "");
 
   function messageFor(outcome: "forbidden" | "failed"): string {
     return outcome === "forbidden"
@@ -71,7 +54,7 @@
   }
 
   async function downloadPart(part: MusicSetPart) {
-    if (downloadingPart === part || isDownloadingBatch) return;
+    if (downloadingPart === part) return;
     downloadingPart = part;
     downloadError = "";
     try {
@@ -90,47 +73,6 @@
     }
   }
 
-  /**
-   * Download every part of this set the user plays. Each download needs its own
-   * one-time token, so they go one at a time — there is no endpoint for a subset
-   * of a set — and the tile being fetched shows its own spinner as the run moves
-   * through them. A failure stops the run rather than firing the rest at a
-   * service that has just refused, and says how far it got so the user knows what
-   * landed in their downloads folder.
-   */
-  async function downloadMyParts() {
-    if (isDownloadingBatch || myParts.length === 0) return;
-    downloadError = "";
-    const queue = myParts;
-
-    try {
-      for (const [index, part] of queue.entries()) {
-        batchProgress = `${index + 1} av ${queue.length}`;
-        downloadingPart = part;
-        const outcome = await downloadSetPart(
-          setId,
-          part.name ?? "",
-          setTitle ?? "",
-        );
-        if (outcome !== "done") {
-          const reason =
-            outcome === "forbidden"
-              ? "Du har ikke tilgang til alle stemmene dine i dette settet."
-              : "Nedlastingen feilet.";
-          downloadError =
-            index > 0
-              ? `${reason} ${index} av ${queue.length} stemmer ble lastet ned.`
-              : `${reason} Prøv igjen.`;
-          return;
-        }
-        flashCompleted(part);
-      }
-    } finally {
-      downloadingPart = null;
-      batchProgress = "";
-    }
-  }
-
   function partStatus(part: MusicSetPart): "idle" | "loading" | "done" {
     if (downloadingPart === part) return "loading";
     if (completedPart === part) return "done";
@@ -141,23 +83,7 @@
 <div class="stage">
   <div class="stage-head">
     <h3 class="sbb-h3 stage-title">Last ned noter</h3>
-    <div class="stage-actions">
-      <span class="sbb-mono count">{parts?.length ?? 0} stemmer</span>
-      {#if myParts.length > 0}
-        <Button
-          size="sm"
-          loading={isDownloadingBatch}
-          disabled={downloadingPart !== null}
-          onclick={downloadMyParts}
-        >
-          {#if isDownloadingBatch}
-            Laster ned {batchProgress}…
-          {:else}
-            <Download size={15} /> Last ned mine stemmer ({myParts.length})
-          {/if}
-        </Button>
-      {/if}
-    </div>
+    <span class="sbb-mono count">{parts?.length ?? 0} stemmer</span>
   </div>
 
   {#if downloadError}
@@ -202,11 +128,6 @@
     margin: 0;
     color: var(--white);
     font-size: 22px;
-  }
-  .stage-actions {
-    display: flex;
-    align-items: center;
-    gap: 16px;
   }
   .count {
     font-size: 12px;
