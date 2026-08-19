@@ -1,7 +1,6 @@
 import { browser } from "$app/environment";
 import { redirect } from "@sveltejs/kit";
 import { auth } from "$lib/stores/auth.svelte";
-import { primaryRoleLabel } from "$lib/roles";
 
 /**
  * Client-side admin guard for use in a page `load`. Admin state is seeded
@@ -56,21 +55,6 @@ export function requireCatalogAccess(): void {
  */
 export function requireReadLibrary(): void {
   if (browser && !auth.canReadLibrary) {
-    redirect(302, "/");
-  }
-}
-
-/**
- * Guard for the self-service profile page (`/profile`). Temporarily closed to
- * a pure Musikant: that role is currently issued as one shared login used by
- * many real people, so letting any of them change its name, email or password
- * would affect everyone else signed in as it. Lift this once every member has
- * their own account — the API itself has no such restriction, this is purely
- * a rollout gate. Mirrors `AccountMenu`'s `showProfileLink`, which hides the
- * entry point the same way.
- */
-export function requireIndividualAccount(): void {
-  if (browser && primaryRoleLabel(auth) === "Musikant") {
     redirect(302, "/");
   }
 }

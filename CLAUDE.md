@@ -214,11 +214,11 @@ accent (`#EA5B0C`).
   policy or endpoint. A successful save calls `auth.loadRoles()` so the account
   menu's cached name/email (read once at login) picks up the change
   immediately.
-  **Temporarily hidden for a pure Musikant** (`requireIndividualAccount` in
-  `guards.ts`, mirrored by `AccountMenu`'s `showProfileLink`) — that role is
-  currently one shared login used by many real people, so self-service would
-  let any of them change it for everyone. Remove both once every member has
-  their own account; nothing on the API side needs to change.
+  The page is open to every authenticated user and carries no guard of its own —
+  it has no `+page.ts`, since the root layout's auth gate is the only condition
+  there is. It was once closed to a pure Musikant, while that role was one shared
+  login many people used and self-service would have let any of them change it
+  for everyone; that gate came out when every member got their own account.
 - **Roles are additive grants, not tiers** (`src/lib/roles.ts` — keep it in step
   with the backend's `Roles.All` by hand). `capabilitiesFrom()` is the single
   place that turns role names into what the UI may offer; the `auth` store only
