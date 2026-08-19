@@ -2,12 +2,15 @@
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { page } from "$app/state";
-  import { Music, FolderX, Lock } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
+  import { Music, FolderX, Lock, Pencil } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
+  import { auth } from "$lib/stores/auth.svelte";
   import type { Project } from "$lib/types";
   import {
     Breadcrumb,
+    Button,
     SetCard,
     DateRangeBoxes,
     EmptyState,
@@ -23,6 +26,12 @@
   // to load, and neither state may name the project it couldn't show.
   let forbidden = $state(false);
   let setCount = $derived(project?.sets?.length ?? 0);
+  /**
+   * The way from a project as a member sees it to the same project as its editor.
+   * Gated on the very flag `requireManageProjects` guards that page with, so the
+   * shortcut is offered exactly when it will be let through.
+   */
+  let canEditProject = $derived(auth.canManageProjects);
 
   onMount(async () => {
     const [info, sets] = await Promise.all([
@@ -70,6 +79,17 @@
     </div>
     <div class="meta">
       <DateRangeBoxes start={project.startDate} end={project.endDate} />
+      {#if canEditProject}
+        <Button
+          variant="secondary"
+          iconOnly
+          aria-label="Rediger prosjekt"
+          title="Rediger prosjekt"
+          onclick={() => goto(`/project/edit/${project?.id}`)}
+        >
+          <Pencil size={17} />
+        </Button>
+      {/if}
     </div>
   </div>
 
