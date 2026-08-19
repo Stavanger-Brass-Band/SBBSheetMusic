@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Menu } from "@lucide/svelte";
+  import { Menu, X } from "@lucide/svelte";
   import { browser } from "$app/environment";
   import { page } from "$app/state";
   import { auth } from "$lib/stores/auth.svelte";
   import AccountMenu from "$lib/components/AccountMenu.svelte";
+  import AccountIdentity from "$lib/components/AccountIdentity.svelte";
+  import AccountActions from "$lib/components/AccountActions.svelte";
 
   /**
    * When the header gives up on a horizontal nav and falls back to the hamburger.
@@ -88,23 +90,32 @@
   $effect(() => {
     if (!navCollapsed) menuOpen = false;
   });
+
+  function closeMenu() {
+    menuOpen = false;
+  }
 </script>
 
 <svelte:window bind:innerWidth={viewportWidth} />
 
 <header class="topbar" class:collapsed={navCollapsed}>
   <div class="inner">
-    <a class="brand" href="/" onclick={() => (menuOpen = false)}>
+    <a class="brand" href="/" onclick={closeMenu}>
       <img src="/img/logo.jpg" alt="SBB" width="38" height="38" />
       <span class="wordmark">Notearkiv</span>
     </a>
 
     <button
       class="hamburger"
-      aria-label="Meny"
+      aria-label={menuOpen ? "Lukk meny" : "Meny"}
+      aria-expanded={menuOpen}
       onclick={() => (menuOpen = !menuOpen)}
     >
-      <Menu size={20} />
+      {#if menuOpen}
+        <X size={20} />
+      {:else}
+        <Menu size={20} />
+      {/if}
     </button>
 
     <nav class="nav" class:open={menuOpen}>
@@ -113,14 +124,30 @@
           href={item.href}
           class="nav-link"
           class:active={activeSection === item.id}
-          onclick={() => (menuOpen = false)}
+          onclick={closeMenu}
         >
           {item.label}
         </a>
       {/each}
-      <div class="account">
-        <AccountMenu />
-      </div>
+      <!--
+        The account is a dropdown while the nav is a row and a flat block once it
+        stacks. Stacking the dropdown itself is what buried "Min profil" and
+        "Logg ut" behind a second, unlabelled tap, on a panel that escaped the
+        fixed header and floated over the page — so below the breakpoint the
+        trigger goes away and its contents become rows of the menu.
+      -->
+      {#if navCollapsed}
+        <div class="account-stack">
+          <div class="account-stack__identity">
+            <AccountIdentity size={40} />
+          </div>
+          <AccountActions surface="stacked" onSelect={closeMenu} />
+        </div>
+      {:else}
+        <div class="account">
+          <AccountMenu />
+        </div>
+      {/if}
     </nav>
   </div>
 </header>
@@ -248,11 +275,42 @@
   .topbar.collapsed .nav.open {
     display: flex;
   }
+  /* Rows rather than the row's inline links: sized for a thumb, and matching the
+     account rows below them so the whole stack reads as one list. */
+  .topbar.collapsed .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 15px;
+    color: var(--gray-300);
+    border-radius: var(--radius-sm);
+  }
+  .topbar.collapsed .nav-link:hover {
+    background: var(--surface-hover);
+  }
+  /* The underline can't mark a row in a stack, so the active link takes a bar
+     down its leading edge instead. An element of its own rather than an inset
+     shadow, which would follow the row's rounding and round the bar's ends with
+     it — the accent is a rule, not a pill. */
   .topbar.collapsed .nav-link.active::after {
     display: none;
   }
-  .topbar.collapsed .account {
-    margin-left: 0;
-    margin-top: 8px;
+  .topbar.collapsed .nav-link.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--brass-500);
+  }
+  .account-stack {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-inverse);
+  }
+  .account-stack__identity {
+    padding: 2px 12px 10px;
   }
 </style>
