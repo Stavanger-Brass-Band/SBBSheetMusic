@@ -1,31 +1,34 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import { ChevronDown, User, LogOut } from "@lucide/svelte";
+  import { ChevronDown } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { UserAvatar } from "$lib/components/ui";
-  import { primaryRoleLabel } from "$lib/roles";
+  import AccountIdentity from "$lib/components/AccountIdentity.svelte";
+  import AccountActions from "$lib/components/AccountActions.svelte";
 
+  /**
+   * The account as a pointer control: a compact trigger in the header bar opening
+   * a menu positioned against it. It is rendered only while the header keeps its
+   * horizontal nav — below that breakpoint the account lives flat in
+   * `MobileMenuSheet` instead, where it needs no trigger and no second tap.
+   */
   let open = $state(false);
   let triggerEl = $state<HTMLButtonElement>();
   let menuEl = $state<HTMLDivElement>();
 
   let displayName = $derived(auth.name ?? "Bruker");
-  // The widest-access role held, e.g. "Noteansvarlig" or "Administrator" — it
-  // explains why the admin-gated controls elsewhere on the page are there or
-  // aren't. `auth` already exposes each capability `primaryRoleLabel` reads.
-  // It sits inside the open menu rather than on the trigger: the section below is
-  // the more useful thing to carry at a glance, and a role is reference material
-  // you look up rather than something to keep in view.
-  let roleLabel = $derived(primaryRoleLabel(auth));
   /**
    * The user's section, from the instrument groups of the parts they play. This is
    * what will decide which notes a Musikant is shown, so naming it does for the
    * member side what the role does for the admin side — explains the catalogue
    * they get. Blank until someone has been assigned parts, in which case the
    * trigger is just the name.
+   *
+   * The role sits inside the open menu rather than on the trigger: the section is
+   * the more useful thing to carry at a glance, and a role is reference material
+   * you look up rather than something to keep in view.
    */
   let groupLabel = $derived(auth.instrumentGroups.join(" · "));
-  let hasElevatedRole = $derived(roleLabel !== "Medlem");
 
   async function openMenu() {
     open = true;
@@ -49,31 +52,6 @@
   function closeAndRefocusTrigger() {
     closeMenu();
     triggerEl?.focus();
-  }
-
-  function focusAdjacentItem(current: HTMLElement, direction: 1 | -1) {
-    const items = Array.from(
-      current.parentElement?.querySelectorAll<HTMLElement>(
-        "[role='menuitem']",
-      ) ?? [],
-    );
-    const index = items.indexOf(current);
-    items[(index + direction + items.length) % items.length]?.focus();
-  }
-
-  function onItemKeydown(event: KeyboardEvent) {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      focusAdjacentItem(event.currentTarget as HTMLElement, 1);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      focusAdjacentItem(event.currentTarget as HTMLElement, -1);
-    }
-  }
-
-  function logOut() {
-    closeMenu();
-    auth.logout();
   }
 </script>
 
@@ -115,37 +93,9 @@
       onclick={(event) => event.stopPropagation()}
     >
       <div class="acctmenu__head">
-        <UserAvatar
-          name={auth.name}
-          userId={auth.userId}
-          pictureVersion={auth.profilePictureVersion}
-          size={38}
-        />
-        <span class="acctmenu__txt">
-          <b>{displayName}</b>
-          <span>{auth.email ?? ""}</span>
-          <span class="acctmenu__role" class:elevated={hasElevatedRole}>
-            {roleLabel}
-          </span>
-        </span>
+        <AccountIdentity />
       </div>
-      <a
-        href="/profile"
-        class="acctmenu__item"
-        role="menuitem"
-        onclick={closeMenu}
-        onkeydown={onItemKeydown}
-      >
-        <span class="item-icon"><User size={16} /></span> Min profil
-      </a>
-      <button
-        class="acctmenu__item"
-        role="menuitem"
-        onclick={logOut}
-        onkeydown={onItemKeydown}
-      >
-        <span class="item-icon"><LogOut size={16} /></span> Logg ut
-      </button>
+      <AccountActions onSelect={closeMenu} />
     </div>
   {/if}
 </div>
@@ -229,61 +179,8 @@
     z-index: 60;
   }
   .acctmenu__head {
-    display: flex;
-    gap: 11px;
-    align-items: center;
     padding: 10px 10px 12px;
     border-bottom: 1px solid var(--border-subtle);
     margin-bottom: 6px;
-  }
-  .acctmenu__txt {
-    min-width: 0;
-  }
-  .acctmenu__txt b {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .acctmenu__txt span {
-    display: block;
-    font-size: 12px;
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .acctmenu__role {
-    margin-top: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-  }
-  .acctmenu__role.elevated {
-    color: var(--brass-500);
-  }
-  .acctmenu__item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 9px 10px;
-    font-family: var(--font-text);
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--text-primary);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    text-align: left;
-    cursor: pointer;
-  }
-  .acctmenu__item:hover {
-    background: var(--surface-subtle);
-  }
-  .item-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: var(--text-muted);
   }
 </style>
