@@ -26,12 +26,6 @@
    */
   let groupLabel = $derived(auth.instrumentGroups.join(" · "));
   let hasElevatedRole = $derived(roleLabel !== "Medlem");
-  // Musikant is currently one shared login used by many real people, so
-  // letting any of them change its name, email or password would affect
-  // everyone else signed in as it. Hide the entry point until everyone has
-  // their own account — see `requireIndividualAccount` in `$lib/guards`, which
-  // closes the route itself the same way.
-  let showProfileLink = $derived(roleLabel !== "Musikant");
 
   async function openMenu() {
     open = true;
@@ -135,17 +129,15 @@
           </span>
         </span>
       </div>
-      {#if showProfileLink}
-        <a
-          href="/profile"
-          class="acctmenu__item"
-          role="menuitem"
-          onclick={closeMenu}
-          onkeydown={onItemKeydown}
-        >
-          <span class="item-icon"><User size={16} /></span> Min profil
-        </a>
-      {/if}
+      <a
+        href="/profile"
+        class="acctmenu__item"
+        role="menuitem"
+        onclick={closeMenu}
+        onkeydown={onItemKeydown}
+      >
+        <span class="item-icon"><User size={16} /></span> Min profil
+      </a>
       <button
         class="acctmenu__item"
         role="menuitem"
