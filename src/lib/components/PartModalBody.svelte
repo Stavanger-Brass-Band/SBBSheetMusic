@@ -59,6 +59,23 @@
     </div>
     <Toggle id="partIndexable" bind:checked={form.indexable} />
   </div>
+
+  <!--
+    Not the same visibility as the toggle above: that one decides whether the
+    stemme takes part in filename matching, this one whether a musikant gets to
+    see it at all. A musikant is served only the stemmer they are set up with,
+    so this is what makes a stemme reach every one of them.
+  -->
+  <div class="toggle-field">
+    <div class="tx">
+      <Label for="partAlwaysDisplay">Alltid synlig for musikanter</Label>
+      <p class="hint">
+        Når på, vises stemmen til alle musikanter i notesettene — også de som
+        ikke er satt opp med den. Ellers ser en musikant bare sine egne stemmer.
+      </p>
+    </div>
+    <Toggle id="partAlwaysDisplay" bind:checked={form.alwaysDisplay} />
+  </div>
 </form>
 
 <style>

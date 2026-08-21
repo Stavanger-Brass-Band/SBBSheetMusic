@@ -1626,6 +1626,7 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number | string;
             indexable?: boolean;
+            alwaysDisplay?: boolean;
             instrumentGroup?: null | components["schemas"]["InstrumentGroup"];
             aliases?: string[];
         };
@@ -1753,6 +1754,7 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number | string;
             indexable?: null | boolean;
+            alwaysDisplay?: null | boolean;
             instrumentGroup?: null | components["schemas"]["InstrumentGroup"];
         };
         SetAgentQuestionRequest: {

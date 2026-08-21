@@ -80,6 +80,7 @@ export interface PartForm {
   name: string;
   sortOrder: number;
   indexable: boolean;
+  alwaysDisplay: boolean;
   instrumentGroup: InstrumentGroup | "";
 }
 
