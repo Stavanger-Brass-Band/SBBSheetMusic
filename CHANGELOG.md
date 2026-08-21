@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.8.1...v2.9.0) (2026-08-21)
+
+
+### Features
+
+* **parts:** control which parts every musikant sees ([#69](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/69)) ([2f3b5c1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/2f3b5c1abeef74a55c557f0562a674deebd76d56))
+
 ## [2.8.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.8.0...v2.8.1) (2026-08-19)
 
 
