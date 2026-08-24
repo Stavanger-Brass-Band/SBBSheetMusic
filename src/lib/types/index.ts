@@ -182,6 +182,36 @@ export interface User {
 }
 
 /**
+ * A member as the roster serves them — `GET /musicians`, the one user-shaped
+ * endpoint every authenticated member may read.
+ *
+ * It is deliberately narrower than `User`: the API leaves out `email`,
+ * `lastLoginAt` and the account state, so a member-facing page can show who
+ * plays what without handing out administrative data. `roles` is required rather
+ * than optional here, unlike on `User` — the endpoint always serialises it, as an
+ * empty array for a member holding none.
+ *
+ * `parts` carries the musician's stemmer fully filled in, `instrumentGroup` and
+ * `sortOrder` included, which is what lets the roster group and order them
+ * without reading the parts catalogue — an ordinary Musikant has no access to
+ * that. They are typed as the v1 `Part` alias for the same reason `User.parts`
+ * is: both endpoints serve the catalogue's own view model, and the alias is
+ * where the widened `sortOrder` is pinned back to a number.
+ */
+export type Musician = Omit<
+  V2["schemas"]["ApiMusician"],
+  "parts" | "profilePicture"
+> & {
+  parts?: Part[] | null;
+  /**
+   * Widened to include `null`, which the document doesn't declare and the API
+   * nonetheless sends for a member with no picture — the same value `User`
+   * already types for the same field.
+   */
+  profilePicture?: ProfilePicture | null;
+};
+
+/**
  * UI-only working model for the user create/edit form. `active` maps onto the
  * activate/deactivate endpoints and `roles` onto the role endpoints — both
  * applied by diffing on save, not sent in the update body.

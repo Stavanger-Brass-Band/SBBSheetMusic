@@ -26,10 +26,18 @@ export const sheetMusic = {
       orderBy?: string;
       top?: number;
       skip?: number;
+      /**
+       * Expand each set's projects — the ones the caller may see, which for a
+       * Musikant is the running ones (see `listSetProjects`). Asked for only by a
+       * caller that needs a project to route a set through, since it is the sole
+       * way such a reader can open one at all.
+       */
+      expandProjects?: boolean;
     } = {},
   ) => {
     const params = new URLSearchParams();
     if (opts.search) params.set("$search", opts.search);
+    if (opts.expandProjects) params.set("$expand", "projects");
     // `category` is a plain filter alongside the OData options, and matches on
     // the category name.
     if (opts.category) params.set("category", opts.category);
