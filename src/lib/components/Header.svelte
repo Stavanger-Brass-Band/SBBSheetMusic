@@ -10,21 +10,28 @@
    *
    * Narrower than `PHONE_WIDTH` there is never room, whatever roles the user
    * holds. From there up to `TABLET_WIDTH` it depends on how many links those
-   * roles produce: an admin's full six, beside the brand and the account menu,
-   * measure about 975px of content, so on an iPad in portrait they overflowed and
-   * pushed the account menu off screen — the links don't shrink, so the account is
-   * what leaves. Past `MAX_TABLET_NAV_LINKS` links the row collapses rather than
-   * breaking, while a shorter nav — a Musikant's two, a Prosjektleder's three —
-   * keeps its links down to `PHONE_WIDTH`.
+   * roles produce: past `MAX_TABLET_NAV_LINKS` of them the row collapses rather
+   * than breaking, while a shorter nav — a Musikant's three — keeps its links
+   * down to `PHONE_WIDTH`. Without that the links, which don't shrink, push the
+   * account menu off the right edge; the account is what leaves.
    *
-   * That 975px assumes the account menu's two text lines are capped
+   * `TABLET_WIDTH` is set by the longest nav there is, an admin's seven links:
+   * they measure about 1050px beside the brand and the account menu, and the
+   * inner row's own 24px of padding either side puts the row's floor at roughly
+   * 1100px of viewport. It was 980 while the nav topped out at six links, and
+   * Korpset is what took it past that. A four- or five-link nav would in truth
+   * fit from about 800px, but one threshold has to serve the whole band, and it
+   * has to be the one the widest nav needs.
+   *
+   * That 1050px assumes the account menu's two text lines are capped
    * (`.acct__name` and `.acct__group` in `AccountMenu`); they render the signed-in
    * user's own name and section, so without a bound the width the row needs would
    * grow with whoever is logged in. Counting links rather than hardcoding roles
-   * keeps this honest as nav items come and go.
+   * keeps this honest as nav items come and go — but the measurement above does
+   * have to be redone when one is added.
    */
   const PHONE_WIDTH = 768;
-  const TABLET_WIDTH = 980;
+  const TABLET_WIDTH = 1110;
   const MAX_TABLET_NAV_LINKS = 3;
 
   let menuOpen = $state(false);
@@ -51,6 +58,10 @@
           { id: "categories", label: "Kategorier", href: "/categories" },
         ]
       : []),
+    // The roster. No role gates it: `GET /musicians` answers any session, and
+    // who plays which stemme is the one thing in the app that belongs to every
+    // member equally.
+    { id: "roster", label: "Korpset", href: "/roster" },
     // User administration — Admin only.
     ...(auth.isAdmin
       ? [{ id: "users", label: "Brukere", href: "/users" }]
@@ -73,6 +84,7 @@
     if (pathname.startsWith("/parts") || pathname.startsWith("/part/edit"))
       return "parts";
     if (pathname.startsWith("/categories")) return "categories";
+    if (pathname.startsWith("/roster")) return "roster";
     return "home"; // "/", "/project/[id]", "/project/[projectId]/set/[id]"
   }
 

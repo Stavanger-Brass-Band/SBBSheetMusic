@@ -1,0 +1,167 @@
+/**
+ * The band's roster turned from the flat list the API serves into the sections
+ * the Korpset page shows: one per instrument group, in the standard brass band
+ * order, each holding the members who play a stemme in it.
+ *
+ * All of it reads off the musician's own parts. The Brukere list has to look an
+ * instrument group up in the parts catalogue (see `userInstrumentGroups`) because
+ * `GET /users` says nothing about which of a part's fields it fills in — but
+ * `GET /musicians` documents a full `ApiPart` per stemme, `instrumentGroup` and
+ * `sortOrder` included, and it has to: the page is open to every member, and an
+ * ordinary Musikant cannot read the catalogue to look anything up in.
+ */
+
+import { capabilitiesFrom, primaryRoleLabel } from "$lib/roles";
+import {
+  INSTRUMENT_GROUPS,
+  type InstrumentGroup,
+  type Musician,
+  type Part,
+} from "$lib/types";
+
+/** One member's place in one section, and the stemme that puts them there. */
+export interface RosterSeat {
+  musician: Musician;
+  /**
+   * The stemme this section seats them by: the first of theirs belonging to it in
+   * catalogue order. A member playing both Solo kornett and Ess-kornett reads as
+   * the solo player, which is the seat they hold.
+   */
+  part: Part;
+}
+
+export interface RosterSection {
+  group: InstrumentGroup;
+  /** The anchor the jump chips scroll to — see `sectionIdFor`. */
+  id: string;
+  seats: RosterSeat[];
+}
+
+/**
+ * The sections a roster falls into, in `INSTRUMENT_GROUPS` order, leaving out the
+ * ones nobody sits in — an empty band heading says nothing a reader needs, and a
+ * jump chip leading to one would be a dead end.
+ *
+ * A member with stemmer in more than one section appears in each of them, seated
+ * by the stemme that belongs there. One whose every stemme has no instrument
+ * group at all lands in no section and so is not shown; `rosterMemberCount`
+ * counts what the page actually holds rather than what the API sent, so the tally
+ * can't disagree with the faces under it.
+ */
+export function rosterSections(musicians: Musician[]): RosterSection[] {
+  return INSTRUMENT_GROUPS.map((group) => ({
+    group,
+    id: sectionIdFor(group),
+    seats: seatsIn(group, musicians),
+  })).filter((section) => section.seats.length > 0);
+}
+
+/**
+ * How many people the roster shows. Counted by identity rather than by adding the
+ * sections up, so somebody seated in two of them is still one member.
+ */
+export function rosterMemberCount(sections: RosterSection[]): number {
+  return new Set(
+    sections.flatMap((section) => section.seats.map((seat) => seat.musician)),
+  ).size;
+}
+
+/**
+ * The role worth printing on a member's card, or `null` for the great majority
+ * who hold none of them.
+ *
+ * Only the roles that come with responsibility for something — the archive, the
+ * projects, the accounts — are named. `Musikant` and `Arkivleser` are grants for
+ * reading notes, held by nearly everyone, and a badge on every single card would
+ * say nothing while drowning out the three that do. The widest of the ones that
+ * qualify is the label, in the same spelling the account menu uses.
+ */
+export function managingRoleLabel(roles: string[]): string | null {
+  const capabilities = capabilitiesFrom(roles);
+  const hasResponsibility =
+    capabilities.isAdmin ||
+    capabilities.canManageMusic ||
+    capabilities.canManageProjects;
+  return hasResponsibility ? primaryRoleLabel(capabilities) : null;
+}
+
+/** Norwegian letters an anchor cannot carry, spelled the way they are read. */
+const ASCII_FOLDING: Record<string, string> = { æ: "ae", ø: "o", å: "a" };
+
+/**
+ * A section's anchor id, from the group's own name — `Horn og flygelhorn` becomes
+ * `horn-og-flygelhorn`, so a link to a section is readable and keeps working as
+ * long as the group is named the same.
+ */
+export function sectionIdFor(group: string): string {
+  return group
+    .toLowerCase()
+    .replace(/[æøå]/g, (letter) => ASCII_FOLDING[letter])
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * Everyone playing in one section, seated in the order a band sits: by the
+ * stemme that seats them, then by their own name.
+ *
+ * Comparing the stemmer by the same rule the seat was chosen with is what keeps
+ * the two from disagreeing — everyone seated under one stemme stands together,
+ * rather than the whole section running alphabetically the moment the catalogue
+ * ranks two stemmer alike.
+ */
+function seatsIn(group: InstrumentGroup, musicians: Musician[]): RosterSeat[] {
+  return musicians
+    .map((musician) => seatFor(musician, group))
+    .filter((seat): seat is RosterSeat => seat !== null)
+    .sort(
+      (a, b) =>
+        comparePartsForSeating(a.part, b.part) ||
+        (a.musician.name ?? "").localeCompare(b.musician.name ?? "", "nb-NO"),
+    );
+}
+
+/** A musician's seat in this section, or `null` when they play nothing in it. */
+function seatFor(
+  musician: Musician,
+  group: InstrumentGroup,
+): RosterSeat | null {
+  const parts = (musician.parts ?? []).filter(
+    (part) => part.instrumentGroup === group,
+  );
+  if (!parts.length) return null;
+
+  // The API orders a musician's stemmer by rank already, but the seat is too
+  // important to the reading of a section to depend on that holding.
+  const [part] = [...parts].sort(comparePartsForSeating);
+  return { musician, part };
+}
+
+/**
+ * Two stemmer in seating order: by the catalogue's rank, and by name where the
+ * catalogue ranks them alike. A stemme the API sent no rank for sorts after the
+ * ranked ones rather than jumping the queue.
+ *
+ * The name is not a decoration on the rank — it is what makes the seat the same
+ * answer for everyone. The catalogue gives `Solokornett` and `Solokornett 1-2`
+ * one and the same rank, so rank alone left the winner to whichever order the
+ * API happened to list a member's assignments in: two players holding that very
+ * same pair were seated under different names, and a section read as though they
+ * played apart. Comparing the names settles it once, and settles it the same way
+ * every time — the plain `Solokornett` leading its numbered variants, being
+ * their prefix.
+ */
+function comparePartsForSeating(a: Part, b: Part): number {
+  return (
+    compareRank(a.sortOrder, b.sortOrder) ||
+    (a.name ?? "").localeCompare(b.name ?? "", "nb-NO")
+  );
+}
+
+/** Compared rather than subtracted, so two unranked stemmer don't give `NaN`. */
+function compareRank(a: number | undefined, b: number | undefined): number {
+  const first = a ?? Infinity;
+  const second = b ?? Infinity;
+  if (first === second) return 0;
+  return first < second ? -1 : 1;
+}

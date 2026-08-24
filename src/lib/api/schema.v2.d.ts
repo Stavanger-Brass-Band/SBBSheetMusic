@@ -46,9 +46,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ApiAccessTokens"];
                         "application/json": components["schemas"]["ApiAccessTokens"];
-                        "text/json": components["schemas"]["ApiAccessTokens"];
                     };
                 };
             };
@@ -93,7 +91,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -131,7 +131,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -163,7 +165,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -202,7 +206,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -241,9 +247,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ApiProfilePicture"];
                         "application/json": components["schemas"]["ApiProfilePicture"];
-                        "text/json": components["schemas"]["ApiProfilePicture"];
                     };
                 };
             };
@@ -270,7 +274,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -309,9 +315,46 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ApiPasswordRequirements"];
                         "application/json": components["schemas"]["ApiPasswordRequirements"];
-                        "text/json": components["schemas"]["ApiPasswordRequirements"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/musicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the active musician roster with assigned roles, available to authenticated members. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The requested API version */
+                    "api-version": "2.0";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A privacy-reduced list of active musicians with assigned parts and roles */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiMusician"][];
                     };
                 };
             };
@@ -349,7 +392,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -397,7 +442,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -437,7 +484,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -477,7 +526,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -524,7 +575,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -568,7 +621,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -610,7 +665,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -656,7 +713,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -700,7 +759,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -1571,6 +1632,33 @@ export interface components {
             name?: null | string;
             inactive?: boolean;
         };
+        /** @description The privacy-reduced musician information available to authenticated members. */
+        ApiMusician: {
+            /**
+             * Format: uuid
+             * @description The musician's identifier.
+             */
+            id?: string;
+            /** @description The musician's display name. */
+            name?: null | string;
+            /** @description The current profile-picture version, when a picture exists. */
+            profilePicture?: components["schemas"]["ApiProfilePicture"];
+            /** @description The instrument parts assigned to the musician. */
+            parts?: null | components["schemas"]["ApiPart"][];
+            /** @description The roles assigned to the musician's user account. */
+            roles: string[];
+        };
+        ApiPart: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: int32 */
+            sortOrder?: number | string;
+            indexable?: boolean;
+            alwaysDisplay?: boolean;
+            instrumentGroup?: null | components["schemas"]["InstrumentGroup"];
+            aliases?: string[];
+        };
         /**
          * @description The password complexity policy enforced by ASP.NET Core Identity, so API consumers can render a
          *     requirements checklist up front and interpret PasswordRequirementsNotMetError
@@ -1682,6 +1770,8 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        /** @enum {unknown} */
+        InstrumentGroup: "Kornett" | "Horn og flygelhorn" | "Euphonium og baryton" | "Tromboner" | "Tuba" | "Slagverk" | null;
         ODataExpression: {
             type?: components["schemas"]["ExpressionType"];
         };
