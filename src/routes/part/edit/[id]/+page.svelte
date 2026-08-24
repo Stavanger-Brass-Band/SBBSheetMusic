@@ -33,11 +33,13 @@
   let loading = $state(true);
   let notFound = $state(false);
 
-  // Detaljer section (name/sortOrder/indexable/instrumentGroup, saved together via PUT).
+  // Detaljer section (name/sortOrder/indexable/alwaysDisplay/instrumentGroup),
+  // saved together via PUT.
   let detailsForm = $state<PartForm>({
     name: "",
     sortOrder: 0,
     indexable: true,
+    alwaysDisplay: false,
     instrumentGroup: "",
   });
   let savingDetails = $state(false);
@@ -90,6 +92,7 @@
         name: found.name ?? "",
         sortOrder: found.sortOrder ?? 0,
         indexable: found.indexable ?? false,
+        alwaysDisplay: found.alwaysDisplay ?? false,
         instrumentGroup: found.instrumentGroup ?? "",
       };
     }
@@ -118,6 +121,7 @@
       name: detailsForm.name.trim(),
       sortOrder: detailsForm.sortOrder,
       indexable: detailsForm.indexable,
+      alwaysDisplay: detailsForm.alwaysDisplay,
       instrumentGroup: detailsForm.instrumentGroup || null,
     };
     try {
@@ -128,6 +132,7 @@
         name: detailsForm.name.trim(),
         sortOrder: detailsForm.sortOrder,
         indexable: detailsForm.indexable,
+        alwaysDisplay: detailsForm.alwaysDisplay,
         instrumentGroup: detailsForm.instrumentGroup || null,
       };
       detailsSaved = true;
@@ -240,6 +245,13 @@
     <div class="badges">
       {#if part.instrumentGroup}
         <Badge variant="outline">{part.instrumentGroup}</Badge>
+      {/if}
+      <!-- Deliberately not worded with "synlig": the pill beside it already
+           spends that word on the indexing, and the two mean different things.
+           Only shown when on — stemmene a musikant has to be set up with are
+           the ordinary case, and don't need saying. -->
+      {#if part.alwaysDisplay}
+        <Badge variant="outline">Vises for alle</Badge>
       {/if}
       {#if part.indexable}
         <Badge variant="success" dot>Synlig</Badge>

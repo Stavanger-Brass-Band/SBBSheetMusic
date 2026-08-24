@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { ChevronDown, Menu } from "@lucide/svelte";
+  import { ChevronDown, Menu, X } from "@lucide/svelte";
   import { browser } from "$app/environment";
   import { page } from "$app/state";
   import { Dropdown, DropdownItem } from "flowbite-svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { navigationFor, sectionFor } from "$lib/navigation";
   import AccountMenu from "$lib/components/AccountMenu.svelte";
+  import AccountIdentity from "$lib/components/AccountIdentity.svelte";
+  import AccountActions from "$lib/components/AccountActions.svelte";
   import QuickJump from "$lib/components/QuickJump.svelte";
   import QuickJumpTrigger from "$lib/components/QuickJumpTrigger.svelte";
 
@@ -85,13 +87,17 @@
   $effect(() => {
     if (!navCollapsed) menuOpen = false;
   });
+
+  function closeMenu() {
+    menuOpen = false;
+  }
 </script>
 
 <svelte:window bind:innerWidth={viewportWidth} />
 
 <header class="topbar" class:collapsed={navCollapsed}>
   <div class="inner">
-    <a class="brand" href="/" onclick={() => (menuOpen = false)}>
+    <a class="brand" href="/" onclick={closeMenu}>
       <img src="/img/logo.jpg" alt="SBB" width="38" height="38" />
       <span class="wordmark">Notearkiv</span>
     </a>
@@ -105,11 +111,15 @@
 
     <button
       class="hamburger"
-      aria-label="Meny"
+      aria-label={menuOpen ? "Lukk meny" : "Meny"}
       aria-expanded={menuOpen}
       onclick={() => (menuOpen = !menuOpen)}
     >
-      <Menu size={20} />
+      {#if menuOpen}
+        <X size={20} />
+      {:else}
+        <Menu size={20} />
+      {/if}
     </button>
 
     <nav class="nav" class:open={menuOpen}>
@@ -118,12 +128,11 @@
           href={item.href}
           class="nav-link"
           class:active={activeSection === item.id}
-          onclick={() => (menuOpen = false)}
+          onclick={closeMenu}
         >
           {item.label}
         </a>
       {/each}
-
       {#if navigation.admin.length}
         {#if navCollapsed}
           <!-- Stacked, the overflow has nothing to hide behind and nothing to
@@ -135,7 +144,7 @@
               href={item.href}
               class="nav-link"
               class:active={activeSection === item.id}
-              onclick={() => (menuOpen = false)}
+              onclick={closeMenu}
             >
               {item.label}
             </a>
@@ -176,12 +185,31 @@
         {/if}
       {/if}
 
-      <div class="nav-end">
-        {#if !navCollapsed}
+      <!--
+        The account is a dropdown while the nav is a row and a flat block once it
+        stacks. Stacking the dropdown itself is what buried "Min profil" and
+        "Logg ut" behind a second, unlabelled tap, on a panel that escaped the
+        fixed header and floated over the page — so below the breakpoint the
+        trigger goes away and its contents become rows of the menu.
+
+        Quick jump's button belongs to the expanded row only, next to the
+        trigger it sits beside there. Collapsed it has already been rendered up
+        in the top row, beside the hamburger, where it is reachable without
+        opening anything.
+      -->
+      {#if navCollapsed}
+        <div class="account-stack">
+          <div class="account-stack__identity">
+            <AccountIdentity size={40} />
+          </div>
+          <AccountActions surface="stacked" onSelect={closeMenu} />
+        </div>
+      {:else}
+        <div class="nav-end">
           <QuickJumpTrigger onclick={() => (quickJumpOpen = true)} />
-        {/if}
-        <AccountMenu />
-      </div>
+          <AccountMenu />
+        </div>
+      {/if}
     </nav>
   </div>
 </header>
@@ -337,8 +365,11 @@
   .topbar.collapsed .brand {
     flex: 1;
   }
+  /* The gap is the search button's: it sits to the hamburger's left in this row,
+     and `.inner`'s own gap is zero once collapsed. */
   .topbar.collapsed .hamburger {
     display: inline-flex;
+    margin-left: 8px;
   }
   .topbar.collapsed .nav {
     display: none;
@@ -351,16 +382,42 @@
   .topbar.collapsed .nav.open {
     display: flex;
   }
+  /* Rows rather than the row's inline links: sized for a thumb, and matching the
+     account rows below them so the whole stack reads as one list. */
+  .topbar.collapsed .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 15px;
+    color: var(--gray-300);
+    border-radius: var(--radius-sm);
+  }
+  .topbar.collapsed .nav-link:hover {
+    background: var(--surface-hover);
+  }
+  /* The underline can't mark a row in a stack, so the active link takes a bar
+     down its leading edge instead. An element of its own rather than an inset
+     shadow, which would follow the row's rounding and round the bar's ends with
+     it — the accent is a rule, not a pill. */
   .topbar.collapsed .nav-link.active::after {
     display: none;
   }
-  .topbar.collapsed .nav-end {
-    margin-left: 0;
-    margin-top: 8px;
+  .topbar.collapsed .nav-link.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--brass-500);
   }
-  /* The search has its own place in the collapsed top row, so the hamburger no
-     longer takes the free space to its left — the two sit together. */
-  .topbar.collapsed .hamburger {
-    margin-left: 8px;
+  .account-stack {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-inverse);
+  }
+  .account-stack__identity {
+    padding: 2px 12px 10px;
   }
 </style>

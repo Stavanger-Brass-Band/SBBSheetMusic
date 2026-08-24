@@ -137,6 +137,7 @@
     name: "",
     sortOrder: 0,
     indexable: true,
+    alwaysDisplay: false,
     instrumentGroup: "",
   });
   let errorMessage = $state("");
@@ -186,6 +187,7 @@
       name: "",
       sortOrder: nextOrder(),
       indexable: true,
+      alwaysDisplay: false,
       instrumentGroup: "",
     };
     errorMessage = "";
@@ -202,6 +204,7 @@
       name: form.name.trim(),
       sortOrder: form.sortOrder,
       indexable: form.indexable,
+      alwaysDisplay: form.alwaysDisplay,
       instrumentGroup: form.instrumentGroup || null,
     };
     try {

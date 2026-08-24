@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.9.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.8.1...v2.9.0) (2026-08-21)
+
+
+### Features
+
+* **parts:** control which parts every musikant sees ([#69](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/69)) ([2f3b5c1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/2f3b5c1abeef74a55c557f0562a674deebd76d56))
+
+## [2.8.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.8.0...v2.8.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **header:** put profile and sign-out in the mobile menu ([#67](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/67)) ([33ddec8](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/33ddec85432d0ec9b9dc770f4ae1e78e2c4878dd))
+
+## [2.8.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.7.0...v2.8.0) (2026-08-19)
+
+
+### Features
+
+* **profile:** open self-service profile to every member ([#64](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/64)) ([eb12c2f](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/eb12c2fc7df3a11d315a355bbe8eee42d810aa49))
+* **projects:** shortcut to the editors from the member views ([#62](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/62)) ([aea04b0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/aea04b00a3a493f98755c6d8b26d17b80281d8a2))
+* **users:** add profile pictures ([#61](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/61)) ([94a07b7](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/94a07b788b60ae9fc89d840a40c690bd84c50d77)), closes [#56](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/56)
+* **users:** show when a user last logged in ([#60](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/60)) ([7599d37](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/7599d37ee618240bfca0443aad8f48c0cfd6f1c9))
+
 ## [2.7.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.6.0...v2.7.0) (2026-08-18)
 
 
