@@ -1,10 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { Headphones, FileX, Lock } from "@lucide/svelte";
+  import { Headphones, Lock } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import type { MusicSet } from "$lib/types";
-  import { Badge, Breadcrumb, Button, EmptyState } from "$lib/components/ui";
+  import {
+    Badge,
+    Breadcrumb,
+    Button,
+    EmptyState,
+    LoadFailed,
+  } from "$lib/components/ui";
   import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
   import SetProjectHistory from "$lib/components/SetProjectHistory.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
@@ -21,13 +27,17 @@
   // load, and without naming the set.
   let forbidden = $state(false);
 
-  onMount(async () => {
+  async function loadSet() {
+    loading = true;
+    loadFailed = false;
     const loaded = await sheetMusic.getSetWithParts(setId);
     if (loaded.status === "ok") set = loaded.data;
     else if (loaded.status === "forbidden") forbidden = true;
     else loadFailed = true;
     loading = false;
-  });
+  }
+
+  onMount(loadSet);
 </script>
 
 <Breadcrumb
@@ -48,12 +58,11 @@
     {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Fant ikke notesettet"
-    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til arkivet og prøv igjen."
-  >
-    {#snippet icon()}<FileX size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Notesettet kunne ikke lastes. Det kan også ha blitt slettet fra arkivet."
+    onretry={loadSet}
+  />
 {:else}
   <div class="head">
     <div>
@@ -79,7 +88,12 @@
     {/if}
   </div>
 
-  <SetPartDownloads {setId} setTitle={set.title ?? ""} parts={set.parts} />
+  <SetPartDownloads
+    {setId}
+    setTitle={set.title ?? ""}
+    parts={set.parts}
+    missingParts={set.missingParts}
+  />
 
   <div class="history">
     <SetProjectHistory setId={set.id} archiveNumber={set.archiveNumber} />

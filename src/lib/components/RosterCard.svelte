@@ -176,6 +176,14 @@
   .tag {
     pointer-events: none;
   }
+  /*
+   * Neutral, not brass — the same pill the dialog gives a stemme, which is what
+   * settles the page's use of the accent: brass marks a *role*, the reader's own
+   * card and their own gruppe, all of which are one-offs. A stemme is plain
+   * information and sits on every single card, so in brass it was the loudest
+   * thing on the page while saying the least. The dark backdrop stays: the pill
+   * lies over a photograph and needs its own ground whatever colour the text is.
+   */
   .part {
     position: relative;
     z-index: 2;
@@ -184,14 +192,14 @@
     align-items: center;
     height: 24px;
     padding: 0 11px;
-    border: 1px solid var(--brass-700);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-full);
     background: color-mix(in srgb, var(--black) 82%, transparent);
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    color: var(--brass-300);
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -26,7 +26,6 @@
     CircleAlert,
     Plus,
     X,
-    FileX,
     Replace,
     Sparkles,
   } from "@lucide/svelte";
@@ -53,10 +52,10 @@
     Badge,
     Breadcrumb,
     Button,
-    EmptyState,
     SaveIndicator,
     SAVED_VISIBLE_MS,
     Spinner,
+    LoadFailed,
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
@@ -188,7 +187,9 @@
     ),
   );
 
-  onMount(async () => {
+  async function loadSet() {
+    loading = true;
+    loadFailed = false;
     const loaded = catalogData(await sheetMusic.getSetWithParts(id));
     if (loaded) set = loaded;
     else loadFailed = true;
@@ -198,7 +199,9 @@
     loading = false;
     // Nothing to assign categories to when the set itself never arrived.
     if (!loadFailed) loadCategories();
-  });
+  }
+
+  onMount(loadSet);
 
   function flash(names: string[]) {
     justAdded = new Set(names);
@@ -648,12 +651,11 @@
 {#if loading}
   <LoadingSpinner label="Laster notesett…" />
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Fant ikke notesettet"
-    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til arkivlisten og prøv igjen."
-  >
-    {#snippet icon()}<FileX size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Notesettet kunne ikke lastes. Det kan også ha blitt slettet fra arkivet."
+    onretry={loadSet}
+  />
 {:else}
   <div class="head">
     <div class="head__main">

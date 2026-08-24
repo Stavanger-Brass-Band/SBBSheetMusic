@@ -21,7 +21,6 @@
     GripVertical,
     ArrowUpDown,
     CircleCheck,
-    FolderX,
   } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { sheetMusic } from "$lib/api/sheetMusic";
@@ -35,7 +34,7 @@
     Button,
     SetCard,
     DateRangeBoxes,
-    EmptyState,
+    LoadFailed,
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import ProjectModalBody, {
@@ -102,7 +101,9 @@
   let canReorder = $derived(sets.length > 1);
   let reordering = $derived(reorderOpen && canReorder);
 
-  onMount(async () => {
+  async function loadProject() {
+    loading = true;
+    loadFailed = false;
     const [info, projectSets] = await Promise.all([
       projectsApi.get(id),
       projectsApi.getSets(id),
@@ -112,7 +113,9 @@
     else loadFailed = true;
     sets = catalogData(projectSets) ?? [];
     loading = false;
-  });
+  }
+
+  onMount(loadProject);
   onDestroy(() => {
     clearTimeout(searchTimer);
     clearTimeout(flashTimer);
@@ -344,12 +347,11 @@
 {#if loading}
   <LoadingSpinner label="Laster prosjekt…" />
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Fant ikke prosjektet"
-    description="Prosjektet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til prosjektlisten og prøv igjen."
-  >
-    {#snippet icon()}<FolderX size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Prosjektet kunne ikke lastes. Det kan også ha blitt slettet."
+    onretry={loadProject}
+  />
 {:else}
   <div class="head">
     <h1 class="sbb-h1 title">{project.name}</h1>

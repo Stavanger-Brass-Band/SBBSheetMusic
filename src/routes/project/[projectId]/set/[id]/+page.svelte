@@ -2,13 +2,19 @@
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { Headphones, FileX, Lock, Pencil } from "@lucide/svelte";
+  import { Headphones, Lock, Pencil } from "@lucide/svelte";
   import { sheetMusic } from "$lib/api/sheetMusic";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
   import { auth } from "$lib/stores/auth.svelte";
   import type { MusicSet, Project } from "$lib/types";
-  import { Badge, Breadcrumb, Button, EmptyState } from "$lib/components/ui";
+  import {
+    Badge,
+    Breadcrumb,
+    Button,
+    EmptyState,
+    LoadFailed,
+  } from "$lib/components/ui";
   import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
@@ -33,14 +39,18 @@
    */
   let canEditSet = $derived(auth.canManageMusic);
 
-  onMount(async () => {
+  async function loadSet() {
+    loading = true;
+    loadFailed = false;
     const loaded = await sheetMusic.getSetWithParts(setId);
     if (loaded.status === "ok") set = loaded.data;
     else if (loaded.status === "forbidden") forbidden = true;
     else loadFailed = true;
     project = catalogData(await projectsApi.get(projectId));
     loading = false;
-  });
+  }
+
+  onMount(loadSet);
 </script>
 
 <Breadcrumb
@@ -62,12 +72,11 @@
     {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Fant ikke notesettet"
-    description="Notesettet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til prosjektet og prøv igjen."
-  >
-    {#snippet icon()}<FileX size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Notesettet kunne ikke lastes. Det kan også ha blitt fjernet fra prosjektet."
+    onretry={loadSet}
+  />
 {:else}
   <div class="head">
     <div>
@@ -111,7 +120,12 @@
     {/if}
   </div>
 
-  <SetPartDownloads {setId} setTitle={set.title ?? ""} parts={set.parts} />
+  <SetPartDownloads
+    {setId}
+    setTitle={set.title ?? ""}
+    parts={set.parts}
+    missingParts={set.missingParts}
+  />
 {/if}
 
 <style>
