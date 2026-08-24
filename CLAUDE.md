@@ -202,9 +202,32 @@ accent (`#EA5B0C`).
   library reader (`requireReadLibrary`) who isn't also a Noteansvarlig/Admin.
   Editors are admin: `/set/edit/[id]` (under Arkivliste), `/project/edit/[id]`
   (under Prosjekter), `/user/edit/[id]` (under Brukere), `/part/edit/[id]`
-  (under Stemmekatalog). The Header's `sectionFor()` maps paths to the active
-  nav section accordingly — add new editor routes there or the nav loses its
-  active section.
+  (under Stemmekatalog). `sectionFor()` in **`src/lib/navigation.ts`** maps paths
+  to the active nav section accordingly — add new editor routes there or the nav
+  loses its active section.
+- **The navigation is data, not markup** (`src/lib/navigation.ts`).
+  `navigationFor(capabilities)` returns the `primary` row (Hjem, Arkivliste,
+  Prosjekter, Korpset — capped at four) and the `admin` overflow folded behind
+  "Mer" (Stemmekatalog, Kategorier, Brukere). Every entry is gated on the same
+  flag that guards its page. Two things read it: the `Header`, and `QuickJump`,
+  which offers the same destinations as its standing answer. The header's
+  `TABLET_WIDTH` is measured against the widest row the navigation can produce,
+  so re-read the comment there before adding a link.
+- **Quick jump** (`QuickJump.svelte`, opened with ⌘K / Ctrl+K or the header's
+  `QuickJumpTrigger`) searches sets, projects, members and pages. Sets and
+  projects are server-side (`$search`, capped at `QUICK_JUMP_GROUP_LIMIT`);
+  members come from one `GET /musicians` filtered on the client. When
+  `canOpenSetRoute()` is false — a Musikant, who reaches a set only through a
+  project — the sets search adds `$expand=projects` and `setRouteFor()` routes
+  each hit through the first project the API expanded, since it expands only the
+  ones that reader may see. Sets on none of them are dropped. The result
+  model is pure and tested in `src/lib/utils/quickJump.ts`; the component keeps
+  only the overlay, the keystrokes and the requests. Built on Flowbite's
+  `Dialog`, **not** its `CommandPalette`, which filters a client-side list and
+  has untranslatable chrome.
+- `/roster?member=<id>` opens one member's dialog and then **clears the param**
+  (`replaceListUrl`) — it is an instruction, not state, or closing the dialog
+  would reopen it. Quick jump's Korpset rows are what link there.
 - `/profile` is self-service, reached from the account menu's "Min profil"
   (`src/lib/components/AccountMenu.svelte`) rather than a nav item — any
   authenticated user may edit their own name/email/password there, same

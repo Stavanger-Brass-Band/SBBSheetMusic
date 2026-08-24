@@ -1,15 +1,20 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
+  import { page } from "$app/state";
   import { TriangleAlert, UsersRound } from "@lucide/svelte";
   import { musicians as musiciansApi } from "$lib/api/musicians";
+  import { auth } from "$lib/stores/auth.svelte";
   import type { InstrumentGroup, Musician } from "$lib/types";
   import {
+    ownSectionIds,
     rosterMemberCount,
     rosterSections,
+    seatOf,
     type RosterSection,
   } from "$lib/utils/roster";
   import { cardEnter } from "$lib/utils/motion";
+  import { replaceListUrl } from "$lib/utils/listNavigation";
   import { EmptyState } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import RosterCard from "$lib/components/RosterCard.svelte";
@@ -36,6 +41,18 @@
 
   let sections = $derived(rosterSections(musicians));
   let memberCount = $derived(rosterMemberCount(sections));
+
+  /**
+   * The sections the reader is in, so the page can point them at their own — a
+   * grid of thirty faces is somewhere you start by looking for yourself.
+   *
+   * The canonical order is left alone: `INSTRUMENT_GROUPS` is how a band sits,
+   * and reshuffling it per reader would make the same page a different page for
+   * everyone. A chip that jumps and a marker on the band do the pointing instead.
+   */
+  let ownSections = $derived(ownSectionIds(sections, auth.userId));
+  /** Where the "Din gruppe" chip goes: the first section the reader sits in. */
+  let ownSectionId = $derived(ownSections[0]);
 
   /**
    * Where each section's cards start in the page-wide count, so the entrance
@@ -67,6 +84,25 @@
     musicians = loaded ?? [];
     loading = false;
   });
+
+  /**
+   * Opening one member straight from a link — what Quick jump's Korpset rows lead
+   * to (`/roster?member=<id>`).
+   *
+   * The parameter is an instruction, not state: it is consumed the moment it is
+   * acted on, which is also what keeps this effect from re-firing. Leaving it in
+   * the URL would reopen the dialog every time the reader closed it. A member the
+   * roster can't seat opens nothing — and still clears the parameter, so a stale
+   * link doesn't sit in the address bar pointing at nobody.
+   */
+  $effect(() => {
+    const requested = page.url.searchParams.get("member");
+    if (!requested || !sections.length) return;
+
+    const seat = seatOf(sections, requested);
+    if (seat) openMember(seat.musician, seat.group);
+    replaceListUrl([], page.url.pathname);
+  });
 </script>
 
 {#snippet sectionBand(section: RosterSection)}
@@ -75,6 +111,9 @@
        six pages. -->
   <div class="band">
     <h2>{section.group}</h2>
+    {#if ownSections.includes(section.id)}
+      <span class="band__you">Din gruppe</span>
+    {/if}
     <span class="rule"></span>
     <span class="count">{section.seats.length}</span>
   </div>
@@ -83,7 +122,7 @@
 <div class="intro">
   <div>
     <h1 class="sbb-h1">Korpset</h1>
-    <p>Alle som spiller i Stavanger Brass Band, gruppert etter seksjon.</p>
+    <p>Alle som spiller i Stavanger Brass Band.</p>
   </div>
   {#if sections.length}
     <div class="tally">
@@ -117,6 +156,13 @@
   </EmptyState>
 {:else}
   <nav class="jump" aria-label="Gå til gruppe">
+    <!-- First, and the only chip that isn't a group: the reader's own section is
+         the one they came to find. Which section it is stays unsaid here — the
+         band it jumps to says it, and a group name in the chip would read as a
+         duplicate of the one further along the same row. -->
+    {#if ownSectionId}
+      <a class="chip chip--own" href={`#${ownSectionId}`}>Din gruppe</a>
+    {/if}
     {#each sections as section (section.group)}
       <a class="chip" href={`#${section.id}`}>
         {section.group}
@@ -138,6 +184,7 @@
             <RosterCard
               musician={seat.musician}
               part={seat.part}
+              isYou={!!auth.userId && seat.musician.id === auth.userId}
               onopen={() => openMember(seat.musician, section.group)}
             />
           </div>
@@ -226,6 +273,20 @@
     color: var(--white);
     background: var(--surface-hover);
   }
+  /* Brass, so it reads as the one chip that is about the reader rather than about
+     the band. It carries no count, so it is also the one chip with a single
+     line of text — which is what sets it apart at a glance. */
+  .chip--own {
+    border-color: var(--brass-700);
+    background: var(--accent-soft);
+    color: var(--brass-300);
+    font-weight: 600;
+  }
+  .chip--own:hover {
+    border-color: var(--brass-500);
+    background: var(--accent-soft);
+    color: var(--white);
+  }
   .chip b {
     font-family: var(--font-mono);
     font-size: 11.5px;
@@ -257,6 +318,21 @@
     text-transform: uppercase;
     letter-spacing: 0.18em;
     color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  /* Sits with the heading rather than over the cards: the section is what is the
+     reader's, not any one face in it. */
+  .band__you {
+    flex-shrink: 0;
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    background: var(--accent-soft);
+    color: var(--brass-300);
+    font-family: var(--font-display);
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
     white-space: nowrap;
   }
   .rule {

@@ -3,8 +3,10 @@ import type { InstrumentGroup, Musician, Part } from "$lib/types";
 import { profilePictureVersion } from "./profilePicture";
 import {
   managingRoleLabel,
+  ownSectionIds,
   rosterMemberCount,
   rosterSections,
+  seatOf,
   sectionIdFor,
 } from "./roster";
 
@@ -267,5 +269,69 @@ describe("profilePictureVersion for a musician", () => {
     expect(
       profilePictureVersion(musician({ profilePicture: null })),
     ).toBeNull();
+  });
+});
+
+/**
+ * Finding yourself on the roster, and finding one particular member from a link.
+ * Both read off the sections rather than the flat list, so they can only ever
+ * answer with somebody the page actually shows.
+ */
+describe("ownSectionIds", () => {
+  it("names the section the signed-in member sits in", () => {
+    const me = musician({ id: "me", parts: [SOLO_CORNET] });
+    const sections = rosterSections([me, musician({ parts: [FIRST_HORN] })]);
+
+    expect(ownSectionIds(sections, "me")).toEqual(["kornett"]);
+  });
+
+  it("names both sections for a member who plays across two", () => {
+    const me = musician({ id: "me", parts: [SOLO_CORNET, BASS_TROMBONE] });
+    const sections = rosterSections([me]);
+
+    expect(ownSectionIds(sections, "me")).toEqual(["kornett", "tromboner"]);
+  });
+
+  it("answers with nothing before we know who is signed in", () => {
+    const sections = rosterSections([musician({ parts: [SOLO_CORNET] })]);
+
+    expect(ownSectionIds(sections, null)).toEqual([]);
+  });
+
+  it("answers with nothing for a member the roster can't seat", () => {
+    const sections = rosterSections([musician({ parts: [SOLO_CORNET] })]);
+
+    expect(ownSectionIds(sections, "someone-else")).toEqual([]);
+  });
+});
+
+describe("seatOf", () => {
+  it("finds a member and the section they are seated in", () => {
+    const target = musician({ id: "them", name: "Kari", parts: [FIRST_HORN] });
+    const sections = rosterSections([
+      musician({ parts: [SOLO_CORNET] }),
+      target,
+    ]);
+
+    expect(seatOf(sections, "them")).toEqual({
+      musician: target,
+      group: "Horn og flygelhorn",
+    });
+  });
+
+  /** The section a band sits in first, which is the page's own reading order. */
+  it("opens a member seated twice under the earlier section", () => {
+    const target = musician({
+      id: "them",
+      parts: [BASS_TROMBONE, SOLO_CORNET],
+    });
+
+    expect(seatOf(rosterSections([target]), "them")?.group).toBe("Kornett");
+  });
+
+  it("finds nobody for an id the roster doesn't show", () => {
+    const sections = rosterSections([musician({ parts: [SOLO_CORNET] })]);
+
+    expect(seatOf(sections, "nobody")).toBeNull();
   });
 });

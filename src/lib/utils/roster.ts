@@ -67,6 +67,46 @@ export function rosterMemberCount(sections: RosterSection[]): number {
 }
 
 /**
+ * The sections a member sits in, as anchor ids — usually one, two for someone
+ * who plays across the band, none for a member the roster can't seat.
+ *
+ * Ids rather than groups because that is what the jump chips and the section
+ * markers both address, and `null` is accepted so a page can ask before
+ * `/users/me` has answered with who is signed in.
+ */
+export function ownSectionIds(
+  sections: RosterSection[],
+  userId: string | null,
+): string[] {
+  if (!userId) return [];
+  return sections
+    .filter((section) =>
+      section.seats.some((seat) => seat.musician.id === userId),
+    )
+    .map((section) => section.id);
+}
+
+/**
+ * One member's seat, looked up across every section — what a link to a
+ * particular member (`/roster?member=…`) resolves to.
+ *
+ * The first section they sit in is the answer, which for the great majority who
+ * play in one is the only one. Someone seated twice opens under the section a
+ * band sits in first, which is the same place the page's own reading order puts
+ * them.
+ */
+export function seatOf(
+  sections: RosterSection[],
+  musicianId: string,
+): { musician: Musician; group: InstrumentGroup } | null {
+  for (const section of sections) {
+    const seat = section.seats.find((s) => s.musician.id === musicianId);
+    if (seat) return { musician: seat.musician, group: section.group };
+  }
+  return null;
+}
+
+/**
  * The role worth printing on a member's card, or `null` for the great majority
  * who hold none of them.
  *
@@ -129,12 +169,22 @@ function seatFor(
   const parts = (musician.parts ?? []).filter(
     (part) => part.instrumentGroup === group,
   );
-  if (!parts.length) return null;
+  const part = primarySeatingPart(parts);
+  return part ? { musician, part } : null;
+}
 
-  // The API orders a musician's stemmer by rank already, but the seat is too
-  // important to the reading of a section to depend on that holding.
-  const [part] = [...parts].sort(comparePartsForSeating);
-  return { musician, part };
+/**
+ * The stemme that names a member, out of the ones given: the first in seating
+ * order (see `comparePartsForSeating`).
+ *
+ * Exported because a member's stemme is printed in two places now — the roster
+ * card and Quick jump's Korpset rows — and they have to agree. The API orders a
+ * musician's stemmer by rank already, but taking its first is what put
+ * `Solokornett 1-2` on a player of the plain `Solokornett`: the catalogue ranks
+ * the two alike, so the order the assignments happened to arrive in decided it.
+ */
+export function primarySeatingPart(parts: Part[]): Part | undefined {
+  return [...parts].sort(comparePartsForSeating)[0];
 }
 
 /**

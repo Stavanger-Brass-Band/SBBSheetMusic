@@ -1,8 +1,11 @@
 <script lang="ts">
   import { Modal } from "flowbite-svelte";
+  import { goto } from "$app/navigation";
+  import { Pencil } from "@lucide/svelte";
+  import { auth } from "$lib/stores/auth.svelte";
   import type { InstrumentGroup, Musician } from "$lib/types";
   import { profilePictureVersion } from "$lib/utils/profilePicture";
-  import { UserAvatar } from "$lib/components/ui";
+  import { Button, UserAvatar } from "$lib/components/ui";
 
   /**
    * A member of the Korpset roster read in full: their portrait, every stemme
@@ -24,6 +27,28 @@
     open?: boolean;
     member: { musician: Musician; group: InstrumentGroup } | null;
   } = $props();
+
+  /**
+   * The way from a member as the roster shows them to the same member as their
+   * account. Gated on the very flag `requireAdmin` guards `/user/edit/[id]` with,
+   * so the shortcut is offered exactly when it will be let through — the same
+   * bargain the project and set views make with their own editors.
+   *
+   * It needs an id to lead anywhere, which `ApiMusician` types as optional even
+   * though the endpoint always sends one.
+   */
+  let editHref = $derived(
+    auth.isAdmin && member?.musician.id
+      ? `/user/edit/${member.musician.id}`
+      : null,
+  );
+
+  function editUser(href: string) {
+    // Closed first so the sheet is on its way out as the navigation starts,
+    // rather than sitting over the page it is leaving.
+    open = false;
+    void goto(href);
+  }
 </script>
 
 {#snippet pills(labels: string[], variant: "part" | "role")}
@@ -77,6 +102,20 @@
         </div>
       {/if}
     </div>
+
+    {#if editHref}
+      <!-- Outside `.body` so the rule above it spans the sheet, the way the
+           confirm dialog's action row does. -->
+      <div class="actions">
+        <Button
+          size="sm"
+          variant="secondary"
+          onclick={() => editUser(editHref)}
+        >
+          <Pencil size={15} /> Rediger bruker
+        </Button>
+      </div>
+    {/if}
   </Modal>
 {/if}
 
@@ -169,6 +208,13 @@
     font-weight: 600;
     color: var(--text-secondary);
   }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 24px 18px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
   .pill.role {
     border-color: var(--brass-700);
     background: var(--accent-soft);

@@ -16,11 +16,19 @@
   let {
     musician,
     part,
+    isYou = false,
     onopen,
   }: {
     musician: Musician;
     /** The stemme this section seats them by — see `RosterSeat`. */
     part: Part;
+    /**
+     * Whether this is the signed-in member's own card. A grid of thirty faces is
+     * one of the few places in the app where a reader is looking for themselves,
+     * and the plate says so rather than the portrait: the top-left corner is
+     * already the role badge's, and two markers over one photograph fought.
+     */
+    isYou?: boolean;
     onopen: () => void;
   } = $props();
 
@@ -33,13 +41,23 @@
    * they belong to.
    */
   let label = $derived(
-    [musician.name, part.name, roleLabel]
+    [
+      isYou ? `${musician.name ?? ""} (deg)`.trim() : musician.name,
+      part.name,
+      roleLabel,
+    ]
       .filter((line): line is string => !!line)
       .join(", "),
   );
 </script>
 
-<button type="button" class="member" aria-label={label} onclick={onopen}>
+<button
+  type="button"
+  class="member"
+  class:is-you={isYou}
+  aria-label={label}
+  onclick={onopen}
+>
   <span class="portrait">
     <span class="disc">
       <UserAvatar
@@ -55,7 +73,14 @@
     {/if}
     <span class="part">{part.name}</span>
   </span>
-  <span class="plate"><span class="name">{musician.name}</span></span>
+  <span class="plate">
+    <span class="name">{musician.name}</span>
+    {#if isYou}
+      <!-- Hidden from screen readers: `aria-label` already says "(deg)", and the
+           plate would otherwise read the word twice. -->
+      <span class="you" aria-hidden="true">Deg</span>
+    {/if}
+  </span>
 </button>
 
 <style>
@@ -201,12 +226,34 @@
     background: var(--brass-400);
   }
 
+  /* The one card on the page that carries a brass edge. It is the reader's own,
+     and there is only ever one of them — the comment on `.member:hover` above is
+     about a brass border on every card, which is a different thing. */
+  .member.is-you {
+    border-color: var(--brass-700);
+  }
+
   .plate {
     display: flex;
     align-items: center;
+    gap: 10px;
+    justify-content: space-between;
     min-height: 60px;
     padding: 12px 16px;
     border-top: 1px solid var(--border-subtle);
+  }
+  .you {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    background: var(--accent-soft);
+    color: var(--brass-300);
+    font-family: var(--font-display);
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1.4;
   }
   /* Balanced rather than left to break where it runs out of room: a Norwegian
      name of three or four parts is the common case here, and the ragged split
