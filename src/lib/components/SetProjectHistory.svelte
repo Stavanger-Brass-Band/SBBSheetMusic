@@ -40,6 +40,8 @@
   onMount(loadHistory);
 
   async function loadHistory() {
+    loading = true;
+    loadFailed = false;
     try {
       if (!setId || archiveNumber === undefined) {
         loadFailed = true;
@@ -76,9 +78,13 @@
         <Spinner size={14} inline /> Laster prosjekthistorikk…
       </p>
     {:else if loadFailed}
+      <!-- One panel of the page, not the page — so the retry is a word in the
+           sentence rather than the centred button a dead end gets. -->
       <p class="note note--error">
-        Kunne ikke hente hvilke prosjekter settet har vært brukt i. Last siden
-        på nytt for å prøve igjen.
+        Kunne ikke hente hvilke prosjekter settet har vært brukt i.
+        <button type="button" class="retry" onclick={loadHistory}>
+          Prøv igjen
+        </button>
       </p>
     {:else if usages.length === 0}
       <p class="note">Settet har ikke vært brukt i noe prosjekt enda.</p>
@@ -140,6 +146,21 @@
   }
   .note--error {
     color: var(--danger);
+  }
+  /* Reads as the link it behaves like, and inherits the note's own size so it
+     sits in the sentence rather than beside it. */
+  .retry {
+    padding: 0;
+    font: inherit;
+    color: var(--text-primary);
+    background: transparent;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .retry:hover {
+    color: var(--brass-400);
   }
 
   .usages {

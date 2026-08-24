@@ -1,24 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
-  import {
-    Folder,
-    FolderOpen,
-    ChevronRight,
-    TriangleAlert,
-    Lock,
-  } from "@lucide/svelte";
+  import { Folder, FolderOpen, ChevronRight, Lock } from "@lucide/svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { auth } from "$lib/stores/auth.svelte";
-  import { DateRangeBoxes, EmptyState } from "$lib/components/ui";
+  import { DateRangeBoxes, EmptyState, LoadFailed } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import { cardEnter } from "$lib/utils/motion";
 
   let loading = $state(false);
   let loadFailed = $state(false);
 
-  onMount(async () => {
+  async function loadActiveProjects() {
     // Without a catalog role the API answers with an empty list however hard we
     // ask, so nothing is asked — the page says why instead.
     if (!auth.canAccessCatalog) return;
@@ -26,6 +20,7 @@
     if (catalog.activeProjects.length < 1) {
       loading = true;
     }
+    loadFailed = false;
 
     try {
       // The API does both the narrowing and the ordering, so the page never
@@ -36,7 +31,9 @@
     } finally {
       loading = false;
     }
-  });
+  }
+
+  onMount(loadActiveProjects);
 </script>
 
 <div class="intro">
@@ -60,12 +57,11 @@
   <LoadingSpinner label="Laster prosjekter…" />
 {:else if catalog.activeProjects.length === 0}
   {#if loadFailed}
-    <EmptyState
+    <LoadFailed
       title="Kunne ikke laste prosjekter"
-      description="Noe gikk galt da vi hentet de aktive prosjektene. Last siden på nytt for å prøve igjen."
-    >
-      {#snippet icon()}<TriangleAlert size={28} strokeWidth={1.6} />{/snippet}
-    </EmptyState>
+      description="Noe gikk galt da vi hentet de aktive prosjektene."
+      onretry={loadActiveProjects}
+    />
   {:else}
     <EmptyState
       title="Ingen aktive prosjekter"

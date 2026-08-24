@@ -3,13 +3,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { Modal, Select } from "flowbite-svelte";
-  import {
-    Plus,
-    SearchX,
-    Check,
-    UsersRound,
-    AlertTriangle,
-  } from "@lucide/svelte";
+  import { Plus, SearchX, Check, UsersRound } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
   import { parts as partsApi } from "$lib/api/parts";
   import {
@@ -48,6 +42,7 @@
     SearchInput,
     SortableTableHeader,
     UserAvatar,
+    LoadFailed,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
@@ -408,12 +403,11 @@
 {#if loading}
   <LoadingSpinner />
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Kunne ikke laste brukere"
-    description="Noe gikk galt da listen skulle hentes. Last siden på nytt og prøv igjen."
-  >
-    {#snippet icon()}<AlertTriangle size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Noe gikk galt da listen skulle hentes."
+    onretry={loadUsers}
+  />
 {:else if filteredUsers.length === 0}
   {#if isFiltered}
     <EmptyState title="Ingen treff" description={emptyResultDescription}>

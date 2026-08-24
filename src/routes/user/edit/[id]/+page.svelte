@@ -156,17 +156,27 @@
     clearTimeout(partsSavedTimer);
   });
 
+  /**
+   * Just the parts catalogue, which the picker's own retry needs: only that panel
+   * depends on it, and re-running `load` to recover it would refetch the user and
+   * take any unsaved profile edits down with it.
+   */
+  async function loadPartsCatalog() {
+    const catalog = await partsApi.list().catch(() => undefined);
+    catalogParts = catalog ?? [];
+    catalogFailed = catalog === undefined;
+  }
+
   async function load() {
     loading = true;
     // The user carries their own fields, roles and assigned parts; the parts
     // catalogue is fetched alongside for the picker, and only that panel is
-    // affected if it doesn't arrive.
-    const [response, catalog] = await Promise.all([
+    // affected if it doesn't arrive. Both still go out at once — the catalogue
+    // just runs through the helper above so the retry shares it.
+    const [response] = await Promise.all([
       usersApi.get(id).catch(() => null),
-      partsApi.list().catch(() => undefined),
+      loadPartsCatalog(),
     ]);
-    catalogParts = catalog ?? [];
-    catalogFailed = catalog === undefined;
     // The API reports errors as a problem-details body, which the client parses
     // as happily as a real user, so trust the response only if it looks like one.
     const found = response?.id ? response : null;
@@ -519,7 +529,9 @@
         {#if catalogFailed}
           <p class="err">
             Kunne ikke laste stemmekatalogen, så stemmer kan ikke legges til nå.
-            Last siden på nytt.
+            <button type="button" class="retry" onclick={loadPartsCatalog}>
+              Prøv igjen
+            </button>
           </p>
         {/if}
         {#if partsError}<p class="err">{partsError}</p>{/if}
@@ -997,5 +1009,20 @@
     .title {
       font-size: 30px;
     }
+  }
+  /* Reads as the link it behaves like, and inherits the message's own size so it
+     sits in the sentence rather than beside it. */
+  .retry {
+    padding: 0;
+    font: inherit;
+    color: var(--text-primary);
+    background: transparent;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .retry:hover {
+    color: var(--brass-400);
   }
 </style>

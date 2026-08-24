@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { ScanLine } from "@lucide/svelte";
+  import { ScanLine, TriangleAlert } from "@lucide/svelte";
   import { auth } from "$lib/stores/auth.svelte";
   import { downloadSetPart } from "$lib/utils/download";
   import { getPartImageUrl } from "$lib/utils/partImage";
@@ -17,13 +17,30 @@
     setId,
     setTitle,
     parts,
+    missingParts,
   }: {
     setId: string;
     setTitle: string;
     // Nullable as well as optional: that is how the set response types it, and a
     // set with nothing scanned in yet is the ordinary case behind it.
     parts: MusicSetPart[] | null | undefined;
+    /**
+     * The set's "Manglende noter" note, shown to members as written.
+     *
+     * Free text, not a list: the editor's own hint promises "Vises som notis til
+     * medlemmene på settsiden", and its placeholder is a sentence — «Mangler 2.
+     * trombone og pauker — må scannes». So it is rendered verbatim rather than
+     * split into part names. `splitMissingParts` exists for a different job on
+     * the same field: telling what a PDF import added to it.
+     *
+     * Until now nothing rendered it at all, so a member who couldn't find their
+     * stemme had no way to tell "not in the archive" from "looking in the wrong
+     * place", and went and asked instead.
+     */
+    missingParts?: string | null;
   } = $props();
+
+  let missingNote = $derived(missingParts?.trim() ?? "");
 
   let downloadingPart = $state<MusicSetPart | null>(null);
   // The part whose download just finished — shows a success check that the
@@ -86,6 +103,18 @@
     <span class="sbb-mono count">{parts?.length ?? 0} stemmer</span>
   </div>
 
+  {#if missingNote}
+    <!-- Above the tiles, so it is read before someone starts hunting through
+         them for a stemme that was never there. -->
+    <div class="missing">
+      <span class="missing__icon"><TriangleAlert size={16} /></span>
+      <div class="missing__text">
+        <p class="missing__label">Manglende noter</p>
+        <p class="missing__note">{missingNote}</p>
+      </div>
+    </div>
+  {/if}
+
   {#if downloadError}
     <p class="download-error">{downloadError}</p>
   {/if}
@@ -138,6 +167,44 @@
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
   }
+  /* A notice, not an error: the archivist wrote it on purpose, and it is telling
+     the reader something useful about the archive rather than reporting a fault.
+     Hence the brass edge over the danger red the download failure below takes. */
+  .missing {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 13px 16px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--brass-700);
+    border-radius: var(--radius-md);
+  }
+  .missing__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--brass-400);
+  }
+  .missing__label {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--brass-300);
+  }
+  /* The field is a textarea, so what was typed into it may have line breaks —
+     honouring them is the difference between a note and a run-on sentence. */
+  .missing__note {
+    margin: 4px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gray-300);
+    white-space: pre-line;
+  }
+
   /* The stage sits on the dark surface, so the danger token needs lifting. */
   .download-error {
     margin: 0 0 16px;

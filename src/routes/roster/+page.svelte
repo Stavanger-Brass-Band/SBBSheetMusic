@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { page } from "$app/state";
-  import { TriangleAlert, UsersRound } from "@lucide/svelte";
+  import { UsersRound } from "@lucide/svelte";
   import { musicians as musiciansApi } from "$lib/api/musicians";
   import { auth } from "$lib/stores/auth.svelte";
   import type { InstrumentGroup, Musician } from "$lib/types";
@@ -15,7 +15,7 @@
   } from "$lib/utils/roster";
   import { cardEnter } from "$lib/utils/motion";
   import { replaceListUrl } from "$lib/utils/listNavigation";
-  import { EmptyState } from "$lib/components/ui";
+  import { EmptyState, LoadFailed } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import RosterCard from "$lib/components/RosterCard.svelte";
   import RosterMemberDialog from "$lib/components/RosterMemberDialog.svelte";
@@ -51,8 +51,6 @@
    * everyone. A chip that jumps and a marker on the band do the pointing instead.
    */
   let ownSections = $derived(ownSectionIds(sections, auth.userId));
-  /** Where the "Din gruppe" chip goes: the first section the reader sits in. */
-  let ownSectionId = $derived(ownSections[0]);
 
   /**
    * Where each section's cards start in the page-wide count, so the entrance
@@ -78,12 +76,17 @@
     isDialogOpen = true;
   }
 
-  onMount(async () => {
+  async function loadRoster() {
+    loading = musicians.length === 0;
     const loaded = await musiciansApi.list();
     loadFailed = loaded === undefined;
-    musicians = loaded ?? [];
+    // A failed retry keeps whoever is already on screen rather than blanking the
+    // page — the roster it holds is stale at worst, and never wrong.
+    if (loaded) musicians = loaded;
     loading = false;
-  });
+  }
+
+  onMount(loadRoster);
 
   /**
    * Opening one member straight from a link — what Quick jump's Korpset rows lead
@@ -109,11 +112,8 @@
   <!-- A quiet label line rather than a heading that competes with the faces: the
        cards are what the page is, and six loud section titles would break it into
        six pages. -->
-  <div class="band">
+  <div class="band" class:band--own={ownSections.includes(section.id)}>
     <h2>{section.group}</h2>
-    {#if ownSections.includes(section.id)}
-      <span class="band__you">Din gruppe</span>
-    {/if}
     <span class="rule"></span>
     <span class="count">{section.seats.length}</span>
   </div>
@@ -141,12 +141,11 @@
 {#if loading}
   <LoadingSpinner label="Laster korpset…" />
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Kunne ikke laste korpset"
-    description="Noe gikk galt da besetningen skulle hentes. Last siden på nytt for å prøve igjen."
-  >
-    {#snippet icon()}<TriangleAlert size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Noe gikk galt da besetningen skulle hentes."
+    onretry={loadRoster}
+  />
 {:else if sections.length === 0}
   <EmptyState
     title="Ingen musikanter ennå"
@@ -156,15 +155,18 @@
   </EmptyState>
 {:else}
   <nav class="jump" aria-label="Gå til gruppe">
-    <!-- First, and the only chip that isn't a group: the reader's own section is
-         the one they came to find. Which section it is stays unsaid here — the
-         band it jumps to says it, and a group name in the chip would read as a
-         duplicate of the one further along the same row. -->
-    {#if ownSectionId}
-      <a class="chip chip--own" href={`#${ownSectionId}`}>Din gruppe</a>
-    {/if}
+    <!-- The reader's own gruppe is highlighted, and deliberately not labelled.
+         Which gruppe a member plays in is the one thing on this page they already
+         know for certain, so naming it spent an element saying nothing — it is
+         wayfinding for an eye running along the row, not information. Which is
+         also why it carries no `aria` of its own: there is nothing here for a
+         reader who can't see the edge to be missing out on. -->
     {#each sections as section (section.group)}
-      <a class="chip" href={`#${section.id}`}>
+      <a
+        class="chip"
+        class:chip--own={ownSections.includes(section.id)}
+        href={`#${section.id}`}
+      >
         {section.group}
         <b>{section.seats.length}</b>
       </a>
@@ -273,18 +275,10 @@
     color: var(--white);
     background: var(--surface-hover);
   }
-  /* Brass, so it reads as the one chip that is about the reader rather than about
-     the band. It carries no count, so it is also the one chip with a single
-     line of text — which is what sets it apart at a glance. */
+  /* An edge and a brighter label, no fill and no extra text: enough to find at a
+     glance in a row of six, and not enough to become another block of accent. */
   .chip--own {
-    border-color: var(--brass-700);
-    background: var(--accent-soft);
-    color: var(--brass-300);
-    font-weight: 600;
-  }
-  .chip--own:hover {
-    border-color: var(--brass-500);
-    background: var(--accent-soft);
+    border-color: var(--brass-600);
     color: var(--white);
   }
   .chip b {
@@ -320,20 +314,12 @@
     color: var(--text-secondary);
     white-space: nowrap;
   }
-  /* Sits with the heading rather than over the cards: the section is what is the
-     reader's, not any one face in it. */
-  .band__you {
-    flex-shrink: 0;
-    padding: 3px 9px;
-    border-radius: var(--radius-full);
-    background: var(--accent-soft);
+  /* The reader's own gruppe, picked out the same way its chip is: brass on the
+     name itself rather than a marker beside it. A short uppercase word is a small
+     enough surface to take the accent without the page gaining another block of
+     it. */
+  .band--own h2 {
     color: var(--brass-300);
-    font-family: var(--font-display);
-    font-size: 9.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    white-space: nowrap;
   }
   .rule {
     flex: 1;

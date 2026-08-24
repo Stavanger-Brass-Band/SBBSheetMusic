@@ -3,7 +3,7 @@
   import { fly } from "svelte/transition";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { Music, FolderX, Lock, Pencil } from "@lucide/svelte";
+  import { Music, Lock, Pencil } from "@lucide/svelte";
   import { projects as projectsApi } from "$lib/api/projects";
   import { catalogData } from "$lib/api/client";
   import { auth } from "$lib/stores/auth.svelte";
@@ -14,6 +14,7 @@
     SetCard,
     DateRangeBoxes,
     EmptyState,
+    LoadFailed,
   } from "$lib/components/ui";
   import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import ProjectDescription from "$lib/components/ProjectDescription.svelte";
@@ -33,7 +34,8 @@
    */
   let canEditProject = $derived(auth.canManageProjects);
 
-  onMount(async () => {
+  async function loadProject() {
+    loading = true;
     const [info, sets] = await Promise.all([
       projectsApi.get(id),
       projectsApi.getSets(id),
@@ -47,7 +49,9 @@
       forbidden = info.status === "forbidden";
     }
     loading = false;
-  });
+  }
+
+  onMount(loadProject);
 </script>
 
 <Breadcrumb
@@ -65,12 +69,11 @@
     {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
 {:else if !project}
-  <EmptyState
+  <LoadFailed
     title="Fant ikke prosjektet"
-    description="Prosjektet finnes ikke lenger, eller kunne ikke lastes. Gå tilbake til Hjem og prøv igjen."
-  >
-    {#snippet icon()}<FolderX size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Prosjektet kunne ikke lastes. Det kan også ha blitt slettet."
+    onretry={loadProject}
+  />
 {:else}
   <div class="head">
     <div class="head__text">
@@ -100,10 +103,21 @@
     <div class="grid">
       {#each project.sets as set, index (set.id)}
         <div in:fly|global={cardEnter(index)}>
+          <!-- Numbered, because the order these come back in is a real one: the
+               project editor arranges it (`updateSetOrder`) and the API serves
+               the sets in it, so an unnumbered grid threw that away and read as
+               a folder rather than a programme.
+
+               Deliberately not *labelled* as the concert order. It rarely is one
+               yet — it takes shape over the project and is still being moved
+               about close to the concert — so the numbers say "this is the order
+               as it stands", which is true throughout, while a caption saying
+               "konsertrekkefølge" would promise a decision nobody has made. -->
           <SetCard
             title={set.title}
             composer={set.composer}
             arranger={set.arranger}
+            ordinal={index + 1}
             href={`/project/${project.id}/set/${set.id}`}
           />
         </div>

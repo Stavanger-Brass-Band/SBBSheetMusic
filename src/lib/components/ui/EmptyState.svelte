@@ -8,10 +8,19 @@
     title,
     description = "",
     icon,
+    action,
   }: {
     title: string;
     description?: string;
     icon?: Snippet;
+    /**
+     * The way out, for a dead end that has one. A state a reader can do
+     * something about — a failed load above all — used to describe the remedy in
+     * its own description ("last siden på nytt") without offering it, which
+     * leaves the reader to work out that the words are an instruction. A genuine
+     * zero-state has nothing to offer and passes none.
+     */
+    action?: Snippet;
   } = $props();
 </script>
 
@@ -19,6 +28,7 @@
   {#if icon}<span class="empty-state__icon">{@render icon()}</span>{/if}
   <p class="empty-state__title">{title}</p>
   {#if description}<p class="empty-state__desc">{description}</p>{/if}
+  {#if action}<div class="empty-state__action">{@render action()}</div>{/if}
 </div>
 
 <style>
@@ -55,5 +65,9 @@
     font-size: 14px;
     line-height: 1.55;
     color: var(--text-muted);
+  }
+  /* Its own margin rather than the stack's gap, which is tuned for text lines. */
+  .empty-state__action {
+    margin-top: 8px;
   }
 </style>

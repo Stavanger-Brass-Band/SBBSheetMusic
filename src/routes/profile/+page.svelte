@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { Check, TriangleAlert } from "@lucide/svelte";
+  import { Check } from "@lucide/svelte";
   import { users as usersApi } from "$lib/api/users";
   import { auth } from "$lib/stores/auth.svelte";
   import {
@@ -15,8 +15,8 @@
   import {
     Breadcrumb,
     Button,
-    EmptyState,
     SAVED_VISIBLE_MS,
+    LoadFailed,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import ProfilePicturePanel from "$lib/components/ProfilePicturePanel.svelte";
@@ -59,7 +59,9 @@
         isPasswordAcceptable(form.password, passwordPolicy.requirements)),
   );
 
-  onMount(async () => {
+  async function loadProfile() {
+    loading = true;
+    loadFailed = false;
     passwordPolicy.load();
     const me = await usersApi.get("me").catch(() => null);
     if (me?.id) {
@@ -75,7 +77,9 @@
       loadFailed = true;
     }
     loading = false;
-  });
+  }
+
+  onMount(loadProfile);
 
   onDestroy(() => clearTimeout(savedTimer));
 
@@ -119,12 +123,11 @@
 {#if loading}
   <LoadingSpinner label="Laster profil…" />
 {:else if loadFailed}
-  <EmptyState
+  <LoadFailed
     title="Kunne ikke laste profilen"
-    description="Noe gikk galt da vi hentet profilen din. Last siden på nytt for å prøve igjen."
-  >
-    {#snippet icon()}<TriangleAlert size={28} strokeWidth={1.6} />{/snippet}
-  </EmptyState>
+    description="Noe gikk galt da vi hentet profilen din."
+    onretry={loadProfile}
+  />
 {:else}
   <h1 class="sbb-h1 title">Min profil</h1>
 

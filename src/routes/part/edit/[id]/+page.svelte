@@ -344,7 +344,12 @@
           <Spinner size={14} inline /> Laster musikanter…
         </p>
       {:else if musiciansFailed}
-        <p class="err">Kunne ikke laste musikantene. Last siden på nytt.</p>
+        <p class="err">
+          Kunne ikke laste musikantene.
+          <button type="button" class="retry" onclick={loadMusicians}>
+            Prøv igjen
+          </button>
+        </p>
       {:else if musicians.length === 0}
         <p class="hint empty">Ingen musikanter spiller denne stemmen ennå.</p>
       {:else}
@@ -680,5 +685,20 @@
     color: var(--danger);
     flex-shrink: 0;
     margin-top: 1px;
+  }
+  /* Reads as the link it behaves like, and inherits the message's own size so it
+     sits in the sentence rather than beside it. */
+  .retry {
+    padding: 0;
+    font: inherit;
+    color: var(--text-primary);
+    background: transparent;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .retry:hover {
+    color: var(--brass-400);
   }
 </style>
