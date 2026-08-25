@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.10.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.9.0...v2.10.0) (2026-08-24)
+
+
+### Features
+
+* numbered sets, the missing-parts note, and retry on failed loads ([#73](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/73)) ([baacfb6](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/baacfb69db053c4a4f7582e150b77468f4799b19))
+* **roster:** add the member-facing Korpset page ([#71](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/71)) ([eb73fd5](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/eb73fd57bb3baf584934a6be28be649c9a52c364))
+
 ## [2.9.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.8.1...v2.9.0) (2026-08-21)
 
 
