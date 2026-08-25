@@ -361,8 +361,12 @@
   }
 
   @media (max-width: 640px) {
+    /* One column, so the tally drops below the heading and its description
+       instead of squeezing in beside them. `flex-direction` used to do this and
+       silently stopped when the masthead became a grid — a dead property that
+       left the two-column layout in place all the way down to a phone. */
     .intro {
-      flex-direction: column;
+      grid-template-columns: 1fr;
       align-items: stretch;
       gap: 0;
     }
