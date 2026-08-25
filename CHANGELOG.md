@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.10.0...v2.11.0) (2026-08-25)
+
+
+### Features
+
+* **roster:** print the instrument, order by the chair, and rebuild the card ([#74](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/74)) ([a7430c3](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/a7430c3b7e52e0b801ea14c83f9d9a657523e56d))
+
 ## [2.10.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.9.0...v2.10.0) (2026-08-24)
 
 
