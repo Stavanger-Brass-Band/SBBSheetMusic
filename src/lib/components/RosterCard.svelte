@@ -1,32 +1,42 @@
 <script lang="ts">
-  import type { Musician, Part } from "$lib/types";
+  import type { Musician } from "$lib/types";
   import { managingRoleLabel } from "$lib/utils/roster";
   import { profilePictureVersion } from "$lib/utils/profilePicture";
   import { UserAvatar } from "$lib/components/ui";
 
   /**
-   * One member on the Korpset page: their portrait on a black well, the stemme
-   * that seats them in this section, and their name on the plate below.
+   * One member on the Korpset page: a circular portrait lit in a well, with their
+   * name and stemme on the plate below it.
+   *
+   * Ported from the design system's `Roster` frames. The stemme used to sit as a
+   * pill *over* the portrait and now reads as a line under the name, marked by a
+   * short brass rule that lengthens on hover — which is what let the well become
+   * a fixed 1.3 aspect ratio: nothing inside it varies in height any more, so a
+   * row of cards is a row of matching wells rather than one ragged band.
    *
    * A button rather than a card with a click handler — it opens the member's
    * dialog, so it has to be reachable and operable from the keyboard like any
-   * other control. The avatar is hidden from screen readers, since initials and
-   * a portrait say nothing the name doesn't.
+   * other control. The avatar is hidden from screen readers, since initials and a
+   * portrait say nothing the name doesn't.
    */
   let {
     musician,
-    part,
+    label,
     isYou = false,
     onopen,
   }: {
     musician: Musician;
-    /** The stemme this section seats them by — see `RosterSeat`. */
-    part: Part;
+    /**
+     * What they play in this section, already decided by `RosterSeat.label`: the
+     * instrument rather than the chair, or the section's own name for someone who
+     * covers several of its instruments. The card only prints it.
+     */
+    label: string;
     /**
      * Whether this is the signed-in member's own card. A grid of thirty faces is
      * one of the few places in the app where a reader is looking for themselves,
-     * and the plate says so rather than the portrait: the top-left corner is
-     * already the role badge's, and two markers over one photograph fought.
+     * and the plate says so rather than the portrait: the well's top-left corner
+     * is the role badge's, and two markers over one photograph fought.
      */
     isYou?: boolean;
     onopen: () => void;
@@ -36,14 +46,13 @@
 
   /**
    * The card read out loud. Spelled out rather than left to the text inside,
-   * which the layout puts in the order it looks best — the role badge and the
-   * stemme sit over the portrait, so a reader would hear them before the name
-   * they belong to.
+   * which the layout puts in the order it looks best — the role badge sits over
+   * the portrait, so a reader would hear it before the name it belongs to.
    */
-  let label = $derived(
+  let spokenLabel = $derived(
     [
       isYou ? `${musician.name ?? ""} (deg)`.trim() : musician.name,
-      part.name,
+      label,
       roleLabel,
     ]
       .filter((line): line is string => !!line)
@@ -53,12 +62,12 @@
 
 <button
   type="button"
-  class="member"
+  class="mcard"
   class:is-you={isYou}
-  aria-label={label}
+  aria-label={spokenLabel}
   onclick={onopen}
 >
-  <span class="portrait">
+  <span class="well">
     <span class="disc">
       <UserAvatar
         fill
@@ -69,22 +78,25 @@
       />
     </span>
     {#if roleLabel}
-      <span class="tag"><span class="dot"></span>{roleLabel}</span>
+      <span class="role">{roleLabel}</span>
     {/if}
-    <span class="part">{part.name}</span>
   </span>
+
   <span class="plate">
-    <span class="name">{musician.name}</span>
-    {#if isYou}
-      <!-- Hidden from screen readers: `aria-label` already says "(deg)", and the
-           plate would otherwise read the word twice. -->
-      <span class="you" aria-hidden="true">Deg</span>
-    {/if}
+    <span class="plate__top">
+      <span class="plate__name">{musician.name}</span>
+      {#if isYou}
+        <!-- Hidden from screen readers: `aria-label` already says "(deg)", and
+             the plate would otherwise read the word twice. -->
+        <span class="plate__you" aria-hidden="true">Deg</span>
+      {/if}
+    </span>
+    <span class="plate__part">{label}</span>
   </span>
 </button>
 
 <style>
-  .member {
+  .mcard {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -100,211 +112,206 @@
     box-shadow: var(--shadow-sm);
     transition:
       transform var(--dur-base),
-      box-shadow var(--dur-base);
+      box-shadow var(--dur-base),
+      border-color var(--dur-base);
   }
-  /* Lift and a deeper shadow only — a brass edge here read as a stray outline
-     rather than a lift, so the border is left exactly as it was. */
-  .member:hover {
-    transform: translateY(-4px);
+  .mcard:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-strong);
     box-shadow: var(--shadow-lg);
   }
-  .member:focus-visible {
+  .mcard:active {
+    border-color: var(--brass-600);
+  }
+  .mcard:focus-visible {
     outline: 2px solid var(--brass-500);
     outline-offset: 2px;
   }
+  /* The one card on the page that carries a brass edge at rest. It is the
+     reader's own, and there is only ever one of them — declared after :hover and
+     :active so it doesn't fight them: those are momentary, this is not. */
+  .mcard.is-you {
+    border-color: var(--brass-700);
+  }
 
-  /* The portrait well. Its height is left to the content: a fixed aspect ratio
-     would either crop the stemme pill away or leave a gap under it, depending on
-     how wide the grid happens to have made the card. A flat black well made a
-     grid of them read as a wall of identical tiles; the vignette gives each one
-     a centre for the disc to sit in. */
-  .portrait {
+  /*
+   * The portrait well. A fixed aspect ratio, which the old content-height well
+   * couldn't have: the stemme pill used to sit in here and its height varied with
+   * the name it carried, so a row of cards came out ragged. Nothing inside it
+   * varies now.
+   *
+   * A flat black well made a grid of them read as a wall of identical tiles; the
+   * vignette gives each one a centre for the disc to sit in.
+   */
+  .well {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 28px 16px 16px;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1.3;
     background: radial-gradient(
-      120% 96% at 50% 0%,
-      var(--surface-sunken) 0%,
-      var(--black) 78%
+      120% 100% at 50% 6%,
+      var(--ink-800) 0%,
+      var(--black) 76%
     );
     overflow: hidden;
     /* The well is what the disc and the initials inside it are measured
        against — see `.disc`. */
     container-type: inline-size;
   }
-  .portrait::before {
+  .well::before {
     content: "";
     position: absolute;
     inset: 0;
     background-image: url("/img/music-notes.png");
-    background-size: 360px 178px;
+    background-size: 300px 148px;
     background-position: center;
-    opacity: 0.06;
+    opacity: 0.05;
+  }
+  /* A concentric hairline puts the face in the middle of a ring without adding
+     colour. It grows and warms on hover, which is most of the card's animation —
+     the brass arrives only once, and only on the card being pointed at. */
+  .well::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: 85%;
+    width: auto;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition:
+      height var(--dur-slow) var(--ease-out),
+      border-color var(--dur-base);
+  }
+  .mcard:hover .well::after {
+    height: 94%;
+    border-color: var(--brass-700);
   }
 
-  /* The disc is a share of the card, which the grid sizes, so the initials
-     inside it can't be a fixed number of pixels either — `UserAvatar fill`
-     inherits the size set here. Both are shares of the well: the design's disc
-     is 58% of it, and its 42px initials in the 134px disc that leaves come to
-     18.2% of the well in turn.
-     No ring: a 1px brass edge pixelates on a photo this small, and looked worse
-     than the plain disc it was meant to frame. */
+  /* The disc is a share of the card, which the grid sizes, so the initials inside
+     it can't be a fixed number of pixels either — `UserAvatar fill` inherits the
+     font size set here. The design's 30px initials, in the 125px disc that 60% of
+     a 208px card leaves, come to 15% of the well. */
   .disc {
     position: relative;
-    width: 58%;
+    width: 60%;
     aspect-ratio: 1;
-    font-size: 18.2cqw;
-    border-radius: var(--radius-full);
+    font-size: 15cqw;
+    border-radius: 50%;
     overflow: hidden;
-    transition: transform var(--dur-slow) var(--ease-out);
+    background: var(--surface-sunken);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.09),
+      0 12px 28px rgba(0, 0, 0, 0.55);
+    transition: transform var(--dur-base) var(--ease-out);
   }
-  .member:hover .disc {
+  .mcard:hover .disc {
     transform: scale(1.04);
   }
-  /* Recolours the fallback initials rather than ringing the disc — reaches past
-     `UserAvatar`'s own scoped style, which is what sets `.muted`'s colour. */
-  .member:hover .disc :global(.user-avatar.muted) {
-    color: var(--brass-300);
-  }
 
-  /* Both plates sit over the portrait, so neither may swallow the click meant
-     for the button under them. */
-  .part,
-  .tag {
-    pointer-events: none;
-  }
-  /*
-   * Neutral, not brass — the same pill the dialog gives a stemme, which is what
-   * settles the page's use of the accent: brass marks a *role*, the reader's own
-   * card and their own gruppe, all of which are one-offs. A stemme is plain
-   * information and sits on every single card, so in brass it was the loudest
-   * thing on the page while saying the least. The dark backdrop stays: the pill
-   * lies over a photograph and needs its own ground whatever colour the text is.
-   */
-  .part {
-    position: relative;
-    z-index: 2;
-    max-width: 100%;
-    display: inline-flex;
-    align-items: center;
-    height: 24px;
-    padding: 0 11px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-full);
-    background: color-mix(in srgb, var(--black) 82%, transparent);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  /* A soft chip rather than a solid block: a filled brass tag on every card that
-     has one competed with the disc for the eye that's supposed to land there
-     first. The dot is what still reads as a marker at a glance. */
-  .tag {
+  /* Over the portrait, so it must not swallow the click meant for the button
+     under it. Frosted rather than solid: it sits on a photograph as often as on
+     the empty well, and a solid chip cut a hole in the face behind it. */
+  .role {
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index: 2;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 20px;
-    padding: 0 9px 0 7px;
+    height: 22px;
+    padding: 0 10px;
     border-radius: var(--radius-full);
-    background: var(--accent-soft);
-    color: var(--brass-300);
+    background: rgba(11, 11, 12, 0.55);
+    box-shadow: inset 0 0 0 1px var(--brass-700);
     font-family: var(--font-display);
     font-size: 9.5px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-  }
-  .tag .dot {
-    width: 5px;
-    height: 5px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--brass-400);
-  }
-
-  /* The one card on the page that carries a brass edge. It is the reader's own,
-     and there is only ever one of them — the comment on `.member:hover` above is
-     about a brass border on every card, which is a different thing. */
-  .member.is-you {
-    border-color: var(--brass-700);
+    color: var(--brass-300);
+    backdrop-filter: blur(6px);
+    pointer-events: none;
   }
 
   .plate {
+    flex: 1;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: space-between;
-    min-height: 60px;
-    padding: 12px 16px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 15px 15px;
     border-top: 1px solid var(--border-subtle);
   }
-  .you {
+  .plate__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  /* Balanced rather than left to break where it runs out of room: a Norwegian
+     name of three or four parts is the common case here, and the ragged split
+     reads as a mistake on a plate this narrow. */
+  .plate__name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15.5px;
+    line-height: 1.15;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-primary);
+    text-wrap: balance;
+  }
+  .plate__you {
     flex-shrink: 0;
-    padding: 3px 8px;
+    padding: 2px 7px;
     border-radius: var(--radius-full);
     background: var(--accent-soft);
     color: var(--brass-300);
     font-family: var(--font-display);
-    font-size: 9.5px;
+    font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     line-height: 1.4;
   }
-  /* Balanced rather than left to break where it runs out of room: a Norwegian
-     name of three or four parts is the common case here, and the ragged split
-     reads as a mistake on a plate this narrow. */
-  .name {
-    font-size: 15px;
+  /* The rule before it is the card's accent, and it is one line of it: a dash
+     that lengthens on hover, rather than the bordered pill this used to be. */
+  .plate__part {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
     font-weight: 600;
-    line-height: 1.25;
-    color: var(--text-primary);
-    text-wrap: balance;
+    letter-spacing: 0.04em;
+    color: var(--brass-300);
+  }
+  .plate__part::before {
+    content: "";
+    width: 12px;
+    height: 1px;
+    background: var(--brass-500);
+    flex-shrink: 0;
+    transition: width var(--dur-base) var(--ease-out);
+  }
+  .mcard:hover .plate__part::before {
+    width: 22px;
   }
 
   @media (max-width: 640px) {
-    .portrait {
-      gap: 13px;
-      padding: 20px 11px 13px;
-    }
-    /* A wider disc in a narrower well: 34px initials in the 105px disc 72%
-       leaves is 23.3% of the well. */
-    .disc {
-      width: 72%;
-      font-size: 23.3cqw;
-    }
-    .part {
-      height: 22px;
-      padding: 0 10px;
-      font-size: 10.5px;
-      letter-spacing: 0.03em;
-    }
-    .tag {
-      top: 8px;
-      left: 8px;
-      height: 19px;
-      padding: 0 8px 0 6px;
-      font-size: 9px;
-      letter-spacing: 0.09em;
+    /* A shade squarer, so two cards to a phone row keep the face large. */
+    .well {
+      aspect-ratio: 1.24;
     }
     .plate {
-      min-height: 52px;
-      padding: 10px 12px;
+      padding: 12px 13px 13px;
     }
-    .name {
-      font-size: 14px;
+    .plate__name {
+      font-size: 13.5px;
+    }
+    .plate__part {
+      font-size: 10px;
     }
   }
 </style>

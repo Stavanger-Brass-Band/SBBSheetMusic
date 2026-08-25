@@ -156,20 +156,21 @@ describe("memberResults", () => {
       id: "m-1",
       name: "Kari Nordmann",
       roles: [],
-      // Ranked the way the catalogue ranks them, which is what decides the
-      // stemme printed for a member playing more than one.
+      // The shape production actually serves: the instrument plus the numbered
+      // chair the member sits in. The chair orders them; the instrument is what
+      // gets printed.
       parts: [
         {
           id: "part-1",
           name: "Solokornett",
           instrumentGroup: "Kornett",
-          sortOrder: 10,
+          sortOrder: 4,
         },
         {
           id: "part-2",
-          name: "Ess-kornett",
+          name: "Solokornett 1-2",
           instrumentGroup: "Kornett",
-          sortOrder: 30,
+          sortOrder: 4,
         },
       ],
     },
@@ -215,6 +216,44 @@ describe("memberResults", () => {
 
   it("carries the stemme that seats them as the row's figure", () => {
     expect(memberResults(musicians, "kari")[0].meta).toBe("Solokornett");
+  });
+
+  /**
+   * The palette and the roster read a member the same way because they run the
+   * same code — `rosterSections`. This is the case that would drift if they
+   * didn't: a percussionist covering the kit prints the section, not one of the
+   * eleven stemmer they hold.
+   */
+  it("prints the section for a member who covers several of its instruments", () => {
+    const percussionist: Musician[] = [
+      {
+        id: "m-9",
+        name: "Ulrik Rosenberg",
+        roles: [],
+        parts: [
+          {
+            id: "p-1",
+            name: "Klokkespill",
+            instrumentGroup: "Slagverk",
+            sortOrder: 21,
+          },
+          {
+            id: "p-2",
+            name: "Timpani",
+            instrumentGroup: "Slagverk",
+            sortOrder: 21,
+          },
+          {
+            id: "p-3",
+            name: "Percussion 1",
+            instrumentGroup: "Slagverk",
+            sortOrder: 21,
+          },
+        ],
+      },
+    ];
+
+    expect(memberResults(percussionist, "ulrik")[0].meta).toBe("Slagverk");
   });
 
   /**

@@ -117,9 +117,10 @@ describe("rosterSections", () => {
   /**
    * The catalogue ranks `Solokornett` and `Solokornett 1-2` alike, so the rank
    * cannot pick between them and the order the API listed a member's
-   * assignments in must not either — see `comparePartsForSeating`.
+   * assignments in must not either. Both hold the same pair, so both print the
+   * same thing — the instrument, never the chair.
    */
-  it("seats members holding the same equally-ranked stemmer under the same one", () => {
+  it("prints the same stemme for members holding the same pair", () => {
     const solo = part("Solokornett", "Kornett", 4);
     const soloOneTwo = part("Solokornett 1-2", "Kornett", 4);
     const sections = rosterSections([
@@ -127,40 +128,120 @@ describe("rosterSections", () => {
       musician({ name: "Leif Bjarte Johansson", parts: [solo, soloOneTwo] }),
     ]);
 
-    expect(sections[0].seats.map((seat) => seat.part.name)).toEqual([
+    expect(sections[0].seats.map((seat) => seat.label)).toEqual([
       "Solokornett",
       "Solokornett",
     ]);
   });
 
   /**
-   * The case that sent a real Kornett section out of order: four solo cornets,
-   * two of them holding the tied pair above and two holding the plain stemme
-   * plus a lower-ranked one, all belong on the same seat.
+   * The real Kornett section, and the whole point of ordering by the chair while
+   * printing the instrument: every solo cornet prints `Solokornett`, and the
+   * 1-2 players still stand above the 3-4 players. The names here are chosen to
+   * interleave alphabetically, so the assertion fails if the order falls back to
+   * them.
    */
-  it("keeps a section of equally-ranked stemmer standing together", () => {
+  it("stands the 1-2 chairs above the 3-4 chairs, whatever the names", () => {
     const esskornett = part("Esskornett", "Kornett", 3);
     const solo = part("Solokornett", "Kornett", 4);
     const soloOneTwo = part("Solokornett 1-2", "Kornett", 4);
     const soloThreeFour = part("Solokornett 3-4", "Kornett", 5);
 
     const sections = rosterSections([
-      musician({ name: "Prosjektleder", parts: [solo, soloThreeFour] }),
-      musician({ name: "Musikant", parts: [solo, soloThreeFour] }),
-      musician({ name: "Kornettist", parts: [soloOneTwo, solo] }),
-      musician({ name: "Leif Bjarte Johansson", parts: [soloOneTwo, solo] }),
+      musician({ name: "Anna Aas", parts: [solo, soloThreeFour] }),
+      musician({ name: "Bodil Berg", parts: [soloOneTwo, solo] }),
+      musician({ name: "Cato Dahl", parts: [solo, soloThreeFour] }),
+      musician({ name: "Dagny Eide", parts: [soloOneTwo, solo] }),
       musician({ name: "Øystein Hodne", parts: [esskornett] }),
     ]);
 
     expect(
-      sections[0].seats.map((seat) => [seat.musician.name, seat.part.name]),
+      sections[0].seats.map((seat) => [seat.musician.name, seat.label]),
     ).toEqual([
       ["Øystein Hodne", "Esskornett"],
-      ["Kornettist", "Solokornett"],
-      ["Leif Bjarte Johansson", "Solokornett"],
-      ["Musikant", "Solokornett"],
-      ["Prosjektleder", "Solokornett"],
+      ["Bodil Berg", "Solokornett"],
+      ["Dagny Eide", "Solokornett"],
+      ["Anna Aas", "Solokornett"],
+      ["Cato Dahl", "Solokornett"],
     ]);
+  });
+
+  /**
+   * Production data, Tuba: three Eb players hold the plain `Eb tuba` plus a
+   * numbered chair, and read as Eb tuba players — the same way the Bb players
+   * read, who have no chair to be mistaken for. The chair still orders them, so
+   * 1st stands above 2nd.
+   */
+  it("prints the instrument, not the chair, and orders by the chair", () => {
+    const ebTuba = part("Eb tuba", "Tuba", 19);
+    const firstEb = part("1. Eb tuba", "Tuba", 19);
+    const secondEb = part("2. Eb tuba", "Tuba", 19);
+    const bbTuba = part("Bb tuba", "Tuba", 20);
+
+    const sections = rosterSections([
+      musician({ name: "Tomine Selvik Nygaard", parts: [ebTuba, secondEb] }),
+      musician({ name: "Amund Buer", parts: [ebTuba, firstEb] }),
+      musician({ name: "Tom Christensen", parts: [bbTuba] }),
+    ]);
+
+    expect(
+      sections[0].seats.map((seat) => [seat.musician.name, seat.label]),
+    ).toEqual([
+      ["Amund Buer", "Eb tuba"],
+      ["Tomine Selvik Nygaard", "Eb tuba"],
+      ["Tom Christensen", "Bb tuba"],
+    ]);
+  });
+
+  /**
+   * Production data, Slagverk: percussionists hold seven to eleven stemmer each,
+   * and no one of them is theirs. Naming one misrepresented them — three players
+   * covering the same kit read as a Klokkespill player, a Klokkespill player and
+   * a Percussion 1 player. The section is the truer answer, and it is the same
+   * answer for all of them.
+   */
+  it("prints the section for a member who covers several of its instruments", () => {
+    const percussion = (name: string) => part(name, "Slagverk", 21);
+    const sections = rosterSections([
+      musician({
+        name: "Morten Tønnesen",
+        parts: [
+          percussion("Percussion 3"),
+          percussion("Trommesett"),
+          percussion("Timpani"),
+          percussion("Percussion 1"),
+        ],
+      }),
+      musician({
+        name: "Ulrik Rosenberg",
+        parts: [
+          percussion("Klokkespill"),
+          percussion("Percussion 1"),
+          percussion("Vibrafon"),
+          percussion("Marimba"),
+        ],
+      }),
+    ]);
+
+    expect(sections[0].seats.map((seat) => seat.label)).toEqual([
+      "Slagverk",
+      "Slagverk",
+    ]);
+  });
+
+  /**
+   * A section whose chairs are all the catalogue has — there is no general
+   * `kornett` stemme — so the chair is the whole truth and gets printed.
+   */
+  it("prints the chair when the catalogue offers no instrument above it", () => {
+    const sections = rosterSections([
+      musician({
+        name: "Gunnar Hodne",
+        parts: [part("2. kornett", "Kornett", 7)],
+      }),
+    ]);
+
+    expect(sections[0].seats[0].label).toBe("2. kornett");
   });
 
   /**
