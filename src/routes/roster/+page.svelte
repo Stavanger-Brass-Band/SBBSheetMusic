@@ -185,7 +185,7 @@
           >
             <RosterCard
               musician={seat.musician}
-              part={seat.part}
+              label={seat.label}
               isYou={!!auth.userId && seat.musician.id === auth.userId}
               onopen={() => openMember(seat.musician, section.group)}
             />
@@ -199,87 +199,99 @@
 <RosterMemberDialog bind:open={isDialogOpen} member={selectedMember} />
 
 <style>
+  /* A grid rather than flex: the tally is content-width and the heading takes the
+     rest, which is what keeps the two apart on a narrow desktop instead of the
+     description creeping under the numbers. */
   .intro {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 40px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 48px;
     padding-bottom: 26px;
     border-bottom: 1px solid var(--border-subtle);
   }
   .intro h1 {
     margin: 0;
-    font-size: 46px;
+    font-size: 52px;
+    line-height: 1;
   }
   .intro p {
     margin: 14px 0 0;
-    max-width: 520px;
-    font-size: 16px;
+    max-width: 500px;
+    font-size: 15.5px;
     line-height: 1.6;
     color: var(--text-secondary);
   }
+  /* Right-aligned, so the two figures read as a column set against the heading
+     rather than as a second sentence after it. */
   .tally {
     display: flex;
-    gap: 34px;
+    gap: 36px;
     flex-shrink: 0;
     padding-bottom: 4px;
   }
   .tally div {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
+    text-align: right;
   }
   .tally b {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 34px;
+    font-size: 36px;
     line-height: 1;
     color: var(--white);
   }
   .tally span {
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     color: var(--text-muted);
   }
 
+  /* The space below the chips belongs to the first section's own top margin, so
+     every gruppe sits the same distance from whatever precedes it. */
   .jump {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 26px 0 44px;
+    gap: 7px;
+    margin-top: 22px;
   }
+  /* Unfilled on a desktop: a row of six filled pills read as a toolbar competing
+     with the faces below. The phone fills them back in, where the row scrolls and
+     needs an edge to read against. */
   .chip {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    height: 36px;
-    padding: 0 15px;
+    gap: 8px;
+    height: 32px;
+    padding: 0 13px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-full);
-    background: var(--surface-card);
     color: var(--text-secondary);
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 500;
     text-decoration: none;
     white-space: nowrap;
     transition:
       border-color var(--dur-fast),
-      color var(--dur-fast),
-      background var(--dur-fast);
+      color var(--dur-fast);
   }
   .chip:hover {
-    border-color: var(--brass-500);
+    border-color: var(--brass-600);
     color: var(--white);
-    background: var(--surface-hover);
   }
   /* An edge and a brighter label, no fill and no extra text: enough to find at a
      glance in a row of six, and not enough to become another block of accent. */
   .chip--own {
     border-color: var(--brass-600);
     color: var(--white);
+  }
+  .chip--own b {
+    color: var(--brass-300);
   }
   .chip b {
     font-family: var(--font-mono);
@@ -294,21 +306,23 @@
   /* Clear of the fixed header, so a chip doesn't scroll its section under it. */
   .section {
     scroll-margin-top: calc(var(--header-height) + 18px);
-  }
-  .section + .section {
-    margin-top: 40px;
+    /* On every section, not just the ones after the first: the first then sits
+       the same distance below the jump chips as its neighbours do below each
+       other. The design asks for 40px; this is more, because the sections were
+       reading as one long grid at that. */
+    margin-top: 56px;
   }
   .band {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   .band h2 {
     margin: 0;
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     color: var(--text-secondary);
@@ -336,8 +350,8 @@
 
   .members {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+    gap: 14px;
   }
   /* The card is a component, so its entrance transition needs an element of its
      own to sit on. A grid stretches the card back out to the cell the wrapper
@@ -347,24 +361,33 @@
   }
 
   @media (max-width: 640px) {
+    /* One column, so the tally drops below the heading and its description
+       instead of squeezing in beside them. `flex-direction` used to do this and
+       silently stopped when the masthead became a grid — a dead property that
+       left the two-column layout in place all the way down to a phone. */
     .intro {
-      flex-direction: column;
+      grid-template-columns: 1fr;
       align-items: stretch;
       gap: 0;
     }
     .intro h1 {
-      font-size: 34px;
+      font-size: 36px;
     }
     .intro p {
-      margin-top: 10px;
-      font-size: 15px;
+      margin-top: 11px;
+      font-size: 14.5px;
     }
+    /* Left-aligned once it drops below the heading — the right edge it was set
+       against is no longer there to align to. */
     .tally {
       gap: 26px;
       margin-top: 18px;
       padding-top: 16px;
       padding-bottom: 0;
       border-top: 1px solid var(--border-subtle);
+    }
+    .tally div {
+      text-align: left;
     }
     .tally b {
       font-size: 26px;
@@ -380,6 +403,7 @@
     .jump {
       flex-wrap: nowrap;
       overflow-x: auto;
+      margin-top: 20px;
       margin-inline: -24px;
       padding-inline: 24px;
       padding-bottom: 4px;
@@ -388,21 +412,26 @@
     .jump::-webkit-scrollbar {
       display: none;
     }
+    /* Filled here, unlike the desktop row: a chip scrolling under the page edge
+       needs a body to read as a thing that continues. */
     .chip {
       flex-shrink: 0;
+      height: 36px;
       gap: 8px;
       padding: 0 14px;
+      background: var(--surface-card);
+      font-size: 13.5px;
     }
     .chip b {
       font-size: 11px;
     }
 
-    .section + .section {
-      margin-top: 26px;
+    .section {
+      margin-top: 34px;
     }
     .band {
       gap: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .band h2 {
       font-size: 13px;
@@ -412,7 +441,7 @@
     }
     .members {
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 12px;
     }
   }
 </style>

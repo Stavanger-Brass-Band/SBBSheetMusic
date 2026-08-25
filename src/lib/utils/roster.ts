@@ -23,11 +23,22 @@ import {
 export interface RosterSeat {
   musician: Musician;
   /**
-   * The stemme this section seats them by: the first of theirs belonging to it in
-   * catalogue order. A member playing both Solo kornett and Ess-kornett reads as
-   * the solo player, which is the seat they hold.
+   * The stemme this section *orders* them by: the finest one they hold, which is
+   * a numbered chair wherever the catalogue has one. It is not always what the
+   * card prints — see `label`.
+   *
+   * Ordering by the chair is what puts the Solokornett 1-2 players above the
+   * 3-4 players, who otherwise all held the same plain `Solokornett` and fell
+   * back to running alphabetically.
    */
   part: Part;
+  /**
+   * What the card prints. The instrument rather than the chair: a tuba player is
+   * an "Eb tuba", not a "2. Eb tuba" — which chair they take is a seating
+   * question, not who they are. Falls back to the section's own name for someone
+   * who covers several of its instruments, which is every percussionist.
+   */
+  label: string;
 }
 
 export interface RosterSection {
@@ -161,7 +172,42 @@ function seatsIn(group: InstrumentGroup, musicians: Musician[]): RosterSeat[] {
     );
 }
 
-/** A musician's seat in this section, or `null` when they play nothing in it. */
+/**
+ * Whether a stemme's name names a *chair* rather than an instrument — `1. Eb
+ * tuba`, `2. kornett`, `Solokornett 1-2`, `Percussion 3` — as against `Eb tuba`,
+ * `Solokornett` or `Timpani`.
+ *
+ * Read off the name because nothing else in the catalogue says so. `Eb tuba`,
+ * `1. Eb tuba` and `2. Eb tuba` arrive with the same `sortOrder` (19), the same
+ * `indexable` and the same `alwaysDisplay`, so there is no field to ask. That
+ * makes this a heuristic on Norwegian part naming, and the honest fix is a flag
+ * on the part itself — worth asking the API for. Until then it recognises the two
+ * shapes the catalogue actually uses: a leading `N.` and a trailing number or
+ * range.
+ *
+ * Deliberately narrow. A digit inside a name is not a chair (`Bb tuba` keeps its
+ * B flat), and a name with no number at all never is.
+ */
+function isNumberedChair(name: string | undefined): boolean {
+  return /^\s*\d+\s*\.|\s\d+\s*(?:-\s*\d+)?\s*$/.test(name ?? "");
+}
+
+/**
+ * A musician's seat in this section, or `null` when they play nothing in it.
+ *
+ * Two separate questions, which used to share one answer and shouldn't:
+ *
+ * - **Where do they sit?** The finest stemme they hold — their chair if the
+ *   catalogue has one. This is what orders the section, so the 1-2 players come
+ *   above the 3-4 players even though both print the same thing.
+ * - **What do they play?** The instrument, not the chair. One instrument among
+ *   their stemmer is the label; several means they cover the section rather than
+ *   a seat in it, and the section's own name is the truer answer — a
+ *   percussionist holding eleven stemmer is a `Slagverk` player, not a
+ *   `Klokkespill` player, and picking one of the eleven only ever misrepresented
+ *   them. Nothing but chairs (a plain `2. kornett`, where the catalogue has no
+ *   general `kornett`) falls back to the chair, which is then the whole truth.
+ */
 function seatFor(
   musician: Musician,
   group: InstrumentGroup,
@@ -169,21 +215,29 @@ function seatFor(
   const parts = (musician.parts ?? []).filter(
     (part) => part.instrumentGroup === group,
   );
-  const part = primarySeatingPart(parts);
-  return part ? { musician, part } : null;
+  if (!parts.length) return null;
+
+  const chairs = parts.filter((part) => isNumberedChair(part.name));
+  const instruments = parts.filter((part) => !isNumberedChair(part.name));
+
+  const part = finestPart(chairs.length ? chairs : instruments);
+  if (!part) return null;
+
+  const label =
+    instruments.length === 1
+      ? (instruments[0].name ?? group)
+      : instruments.length > 1
+        ? group
+        : (part.name ?? group);
+
+  return { musician, part, label };
 }
 
 /**
- * The stemme that names a member, out of the ones given: the first in seating
- * order (see `comparePartsForSeating`).
- *
- * Exported because a member's stemme is printed in two places now — the roster
- * card and Quick jump's Korpset rows — and they have to agree. The API orders a
- * musician's stemmer by rank already, but taking its first is what put
- * `Solokornett 1-2` on a player of the plain `Solokornett`: the catalogue ranks
- * the two alike, so the order the assignments happened to arrive in decided it.
+ * The first of these stemmer in seating order (see `comparePartsForSeating`) —
+ * the one that decides where their holder sits.
  */
-export function primarySeatingPart(parts: Part[]): Part | undefined {
+function finestPart(parts: Part[]): Part | undefined {
   return [...parts].sort(comparePartsForSeating)[0];
 }
 

@@ -11,7 +11,7 @@
 import type { NavItem } from "$lib/navigation";
 import type { MusicSet, Musician, Project } from "$lib/types";
 import { formatDmyShort } from "./date";
-import { primarySeatingPart } from "./roster";
+import { rosterSections } from "./roster";
 import { setRouteFor, type SetRouteCapabilities } from "./setRoute";
 
 /** What a row stands for. Decides its group, its heading and its icon. */
@@ -155,12 +155,16 @@ export function projectResults(projects: Project[]): QuickJumpResult[] {
  * search options and serves the whole band in one small response, so it is
  * fetched once and filtered here.
  *
- * Only members Korpset can actually seat are offered: the roster groups by
- * instrument group, so someone whose every stemme has none would be a row
- * leading to a page that doesn't show them. The stemme shown is the one that
- * seats them — `primarySeatingPart`, the same rule the roster card uses, so a
- * member reads the same in both places. Taking the API's first instead put
- * `Solokornett 1-2` on a player of the plain `Solokornett`.
+ * Seated through `rosterSections` — the roster's own model, run over the one
+ * musician — rather than through a rule of its own. A row and the card it leads
+ * to have to agree about what somebody plays, and every attempt to keep two
+ * rules in step has drifted: first the API's own order put `Solokornett 1-2` on a
+ * player of the plain `Solokornett`, then the chair-versus-instrument split
+ * arrived and would have done it again. This way there is one rule.
+ *
+ * It also settles which members are offered at all: a musician the roster can't
+ * seat — every stemme of theirs outside an instrument group — comes back with no
+ * sections, and a row leading to a page that doesn't show them is no use.
  */
 export function memberResults(
   musicians: Musician[],
@@ -172,20 +176,18 @@ export function memberResults(
   return musicians.flatMap((musician) => {
     if (!musician.id || !matches(musician.name, needle)) return [];
 
-    const grouped = (musician.parts ?? []).filter(
-      (part) => part.instrumentGroup,
-    );
-    if (!grouped.length) return [];
+    const sections = rosterSections([musician]);
+    if (!sections.length) return [];
 
     return [
       {
         id: `member-${musician.id}`,
         kind: "member" as const,
         label: musician.name || "Uten navn",
-        detail: [...new Set(grouped.map((part) => part.instrumentGroup))].join(
-          " · ",
-        ),
-        meta: primarySeatingPart(grouped)?.name,
+        // In band order, since that is the order the sections came back in.
+        detail: sections.map((section) => section.group).join(" · "),
+        // The first section is the one `/roster?member=` will open them under.
+        meta: sections[0].seats[0]?.label,
         href: `/roster?member=${musician.id}`,
       },
     ];
