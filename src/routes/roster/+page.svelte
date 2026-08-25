@@ -214,7 +214,6 @@
     margin: 0;
     font-size: 52px;
     line-height: 1;
-    text-transform: uppercase;
   }
   .intro p {
     margin: 14px 0 0;

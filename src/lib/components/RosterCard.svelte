@@ -235,12 +235,21 @@
     pointer-events: none;
   }
 
+  /*
+   * Centred, not top-aligned. The plate takes `flex: 1` so the card fills the
+   * height the grid row gives it — and rows stretch to their tallest card, which
+   * is whichever one has a name long enough to wrap. Left top-aligned, all of
+   * that slack fell below the stemme, so a short-named card sat with its name
+   * against the rule and a gap under it. Centring splits the slack evenly, and
+   * the padding is the floor rather than the whole measure.
+   */
   .plate {
     flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 4px;
-    padding: 14px 15px 15px;
+    padding: 14px 15px;
     border-top: 1px solid var(--border-subtle);
   }
   .plate__top {
@@ -249,16 +258,21 @@
     justify-content: space-between;
     gap: 8px;
   }
-  /* Balanced rather than left to break where it runs out of room: a Norwegian
-     name of three or four parts is the common case here, and the ragged split
-     reads as a mistake on a plate this narrow. */
+  /*
+   * A person's name, set the way a person's name is written. The design frames
+   * upper-case it, which suits the labels around it — the role badge, the section
+   * headings, the tally — but those are labels and this is somebody's name.
+   * `letter-spacing` went with it: the 0.03em was there to open up capitals.
+   *
+   * Balanced rather than left to break where it runs out of room: a Norwegian
+   * name of three or four parts is the common case here, and the ragged split
+   * reads as a mistake on a plate this narrow.
+   */
   .plate__name {
     font-family: var(--font-display);
     font-weight: 600;
     font-size: 15.5px;
     line-height: 1.15;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
     color: var(--text-primary);
     text-wrap: balance;
   }
@@ -305,7 +319,7 @@
       aspect-ratio: 1.24;
     }
     .plate {
-      padding: 12px 13px 13px;
+      padding: 12px 13px;
     }
     .plate__name {
       font-size: 13.5px;
