@@ -176,6 +176,31 @@ accent (`#EA5B0C`).
 - **Build UI from the bespoke primitives** in `src/lib/components/ui/`
   (`Button`, `Input`, `Badge`, `Avatar`, `Breadcrumb`, `Spinner`, `SetCard`,
   `PartTile`). The signature object is `SetCard` (white stacked-sheet card).
+- **Loading has one vocabulary, and where the wait is decides which part of it
+  you use.** `Loader` carries the five brass marks (`valves`, `slide`, `needle`,
+  `notes`, `metronome`), and every mark is two greys plus one brass part in
+  motion — so never run two different marks on one screen.
+  - **Marks belong on a page or panel surface.** A whole page is `valves`, the
+    most iconic mark a brass band has (`PageLoader`, which is the one place that
+    decides); a section is `slide` (`PageLoader inline`); a sentence is `valves`
+    too; a dark-surfaced button is `notes` (`Button` picks it); the minutes-long
+    PDF import is `metronome`. `needle` is the exception to the by-place rule:
+    it's for a wait that resolves into a verdict rather than just ending, which
+    today means the set editor's file matching, where every PDF settles into
+    matchet / ingen stemme / duplikat.
+  - **Inside a filled or tiny control, use the ring `Spinner`.** A brass mark
+    disappears into a brass or red fill, and its five parts can't read below
+    about 16px — so `primary`/`danger` buttons, save chips, input affordances
+    and ≤18px icon buttons keep the ring.
+  - **`Skeleton` where the shape is already known** — `row` for the list tables
+    (archive, brukere, stemmekatalog, kategorier), `card` for the Korpset grid,
+    which it is modelled on. Card grids the design system doesn't model
+    (prosjekter, Hjem) stay on `PageLoader`.
+  - `LoadingBar` is page-level progress, indeterminate unless something really
+    reports a percentage; `LoadingOverlay` is for blocking work, and nothing
+    blocks yet, so it has no caller.
+  - A reader who asked for **reduced motion** gets the ring instead of a mark,
+    and a bar that fills and pulses rather than sweeping.
 - Use **Tailwind utilities** for layout/spacing; component-specific visuals go in
   scoped `<style>` referencing the tokens.
 - **Prefer Flowbite Svelte for overlay & complex form widgets** — Modal,

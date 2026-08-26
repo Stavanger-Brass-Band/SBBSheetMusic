@@ -4,9 +4,14 @@
   import { Plus, SearchX, Tags, Pencil, Trash2, Check } from "@lucide/svelte";
   import { categories as categoriesApi } from "$lib/api/categories";
   import type { Category, CategoryForm, CategoryRequest } from "$lib/types";
-  import { Badge, Button, EmptyState, SearchInput } from "$lib/components/ui";
+  import {
+    Badge,
+    Button,
+    EmptyState,
+    SearchInput,
+    Skeleton,
+  } from "$lib/components/ui";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   let allCategories = $state<Category[]>([]);
   let loading = $state(true);
@@ -127,7 +132,7 @@
 {/if}
 
 {#if loading}
-  <LoadingSpinner label="Laster kategorier…" />
+  <Skeleton variant="row" count={6} />
 {:else if filtered.length === 0}
   {#if searchTerm.trim()}
     <EmptyState

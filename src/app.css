@@ -120,6 +120,7 @@
   --font-display: "Oswald", "Arial Narrow", system-ui, sans-serif;
   --font-text: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --tracking-widest: 0.18em;
 
   /* Spacing / radii / layout */
   --radius-xs: 3px;
@@ -201,7 +202,7 @@
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: var(--tracking-widest);
   color: var(--text-secondary);
 }
 .sbb-mono {

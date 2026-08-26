@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import { Sparkles, CircleAlert, FileText } from "@lucide/svelte";
   import type { PdfImportResult } from "$lib/api/client";
-  import { Spinner } from "$lib/components/ui";
+  import { Loader, LoadingBar } from "$lib/components/ui";
 
   /**
    * Drop zone for importing one combined score PDF, shared by the two places it
@@ -117,7 +117,7 @@
 
 {#if importing}
   <div class="working">
-    <span class="working__icon"><Spinner size={20} inline /></span>
+    <span class="working__icon"><Loader variant="metronome" size="md" /></span>
     <div class="working__body">
       <div class="working__name">
         <FileText size={15} />
@@ -126,6 +126,9 @@
       <div class="working__status">
         Leser sidene og deler opp filen… {elapsedLabel}
       </div>
+      <!-- Nothing reports how far along the split is, so the bar is
+           indeterminate: it says the work is alive, not how much is left. -->
+      <div class="working__bar"><LoadingBar /></div>
       <div class="working__note">
         Dette kan ta flere minutter på et helt sett. Ikke lukk fanen.
       </div>
@@ -206,9 +209,11 @@
     padding: 16px 18px;
   }
   .working__icon {
-    color: var(--accent);
     display: inline-flex;
     margin-top: 2px;
+  }
+  .working__bar {
+    margin: 10px 0 2px;
   }
   .working__name {
     display: flex;

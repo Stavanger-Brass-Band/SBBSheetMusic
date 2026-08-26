@@ -31,13 +31,13 @@
   import type { Category, MusicSet, SetRequest } from "$lib/types";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import PdfImportPanel from "$lib/components/PdfImportPanel.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
   import {
     Button,
-    Spinner,
     EmptyState,
     SearchInput,
+    Skeleton,
     SortableTableHeader,
+    Spinner,
   } from "$lib/components/ui";
 
   /** The set columns the API can sort on — see `readSortParams`. */
@@ -445,7 +445,7 @@
 {/if}
 
 {#if loading}
-  <LoadingSpinner label="Laster arkiv…" />
+  <Skeleton variant="row" count={8} />
 {:else if items.length === 0}
   {#if searchTerm.trim() || selectedCategory}
     <EmptyState title="Ingen treff" description={emptyResultDescription}>

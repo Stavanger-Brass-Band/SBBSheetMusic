@@ -6,7 +6,7 @@
   import { projects as projectsApi } from "$lib/api/projects";
   import { auth } from "$lib/stores/auth.svelte";
   import { DateRangeBoxes, EmptyState, LoadFailed } from "$lib/components/ui";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
   import { cardEnter } from "$lib/utils/motion";
 
   let loading = $state(false);
@@ -54,7 +54,7 @@
     {#snippet icon()}<Lock size={28} strokeWidth={1.6} />{/snippet}
   </EmptyState>
 {:else if loading}
-  <LoadingSpinner label="Laster prosjekter…" />
+  <PageLoader label="Laster prosjekter…" />
 {:else if catalog.activeProjects.length === 0}
   {#if loadFailed}
     <LoadFailed

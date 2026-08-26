@@ -36,7 +36,7 @@
     DateRangeBoxes,
     LoadFailed,
   } from "$lib/components/ui";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
   import ProjectModalBody, {
     isProjectDraftValid,
   } from "$lib/components/ProjectModalBody.svelte";
@@ -345,7 +345,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster prosjekt…" />
+  <PageLoader label="Laster prosjekt…" />
 {:else if loadFailed}
   <LoadFailed
     title="Fant ikke prosjektet"
@@ -493,7 +493,7 @@
     />
   </div>
   {#if loadingCatalog}
-    <LoadingSpinner inline />
+    <PageLoader inline label="Ser etter notesett…" />
   {:else}
     <div class="listhead">
       <span></span><span>Nr.</span><span>Tittel</span><span>Komponist</span

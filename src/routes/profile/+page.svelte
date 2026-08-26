@@ -20,7 +20,7 @@
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import ProfilePicturePanel from "$lib/components/ProfilePicturePanel.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   // Set once the profile has loaded — every save targets this id, since the
   // update endpoint (unlike the read) takes a real guid, not "me". The picture
@@ -121,7 +121,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster profil…" />
+  <PageLoader label="Laster profil…" />
 {:else if loadFailed}
   <LoadFailed
     title="Kunne ikke laste profilen"

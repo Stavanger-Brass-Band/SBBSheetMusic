@@ -52,12 +52,13 @@
     Badge,
     Breadcrumb,
     Button,
-    SaveIndicator,
-    SAVED_VISIBLE_MS,
-    Spinner,
+    Loader,
     LoadFailed,
+    SAVED_VISIBLE_MS,
+    SaveIndicator,
+    Spinner,
   } from "$lib/components/ui";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
   import MusicSetModalBody from "$lib/components/MusicSetModalBody.svelte";
   import PdfImportPanel from "$lib/components/PdfImportPanel.svelte";
   import SetProjectHistory from "$lib/components/SetProjectHistory.svelte";
@@ -649,7 +650,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster notesett…" />
+  <PageLoader label="Laster notesett…" />
 {:else if loadFailed}
   <LoadFailed
     title="Fant ikke notesettet"
@@ -819,8 +820,14 @@
             {#if review.length > 0}
               <div class="review">
                 <div class="review__bar">
-                  <span class="sum">
+                  <span class="sum" class:sum--matching={isMatchingFiles}>
                     {#if isMatchingFiles}
+                      <!-- Every file settles into matchet / ingen stemme /
+                           duplikat, so this wait resolves into a verdict rather
+                           than just ending — which is the tuner's gesture. A
+                           touch larger than the upright marks: the arc and its
+                           ♭/♯ need the room to stay legible. -->
+                      <Loader variant="needle" size={24} />
                       Matcher filer mot stemmekatalogen…
                     {:else if hasDuplicateMatches}
                       <span class="conflict">
@@ -1525,6 +1532,12 @@
   .review__bar .sum {
     font-size: 13px;
     color: var(--text-secondary);
+  }
+  /* The mark is a shape rather than a glyph, so the line has to lay it out. */
+  .review__bar .sum--matching {
+    display: flex;
+    align-items: center;
+    gap: 9px;
   }
   .review__bar .sum b {
     color: var(--success);

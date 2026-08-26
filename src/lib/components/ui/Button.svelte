@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Spinner from "./Spinner.svelte";
+  import Loader from "./Loader.svelte";
 
   type Variant = "primary" | "secondary" | "ghost" | "inverse" | "danger";
   type Size = "sm" | "md" | "lg";
@@ -41,6 +42,11 @@
     children?: Snippet;
     [key: string]: unknown;
   } = $props();
+
+  // The brass loading marks disappear into a brass or red fill, so the filled
+  // variants keep the ring — which takes its colour from the button's own text.
+  // The variants that sit on a dark surface can carry a mark, and get the notes.
+  let filled = $derived(variant === "primary" || variant === "danger");
 </script>
 
 <button
@@ -53,7 +59,13 @@
   {onclick}
   {...rest}
 >
-  {#if loading}<Spinner size={15} inline />{/if}
+  {#if loading}
+    {#if filled}
+      <Spinner size={15} inline />
+    {:else}
+      <Loader variant="notes" size="sm" />
+    {/if}
+  {/if}
   {@render children?.()}
 </button>
 

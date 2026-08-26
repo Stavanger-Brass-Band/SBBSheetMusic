@@ -7,7 +7,7 @@
     toSetProjectHistory,
   } from "$lib/utils/setProjectHistory";
   import type { SetProjectUsage } from "$lib/types";
-  import { Spinner } from "$lib/components/ui";
+  import { Loader } from "$lib/components/ui";
 
   /**
    * Where a set has been played: one row per project it is connected to, newest
@@ -75,7 +75,7 @@
   <div class="history__body">
     {#if loading}
       <p class="note">
-        <Spinner size={14} inline /> Laster prosjekthistorikk…
+        <Loader variant="valves" size="sm" /> Laster prosjekthistorikk…
       </p>
     {:else if loadFailed}
       <!-- One panel of the page, not the page — so the retry is a word in the

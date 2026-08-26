@@ -16,7 +16,7 @@
     EmptyState,
     LoadFailed,
   } from "$lib/components/ui";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
   import ProjectDescription from "$lib/components/ProjectDescription.svelte";
   import { cardEnter } from "$lib/utils/motion";
 
@@ -60,7 +60,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster prosjekt…" />
+  <PageLoader label="Laster prosjekt…" />
 {:else if forbidden}
   <EmptyState
     title="Ingen tilgang til prosjektet"
