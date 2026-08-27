@@ -29,7 +29,7 @@
   import ProjectModalBody, {
     isProjectDraftValid,
   } from "$lib/components/ProjectModalBody.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   // Maps a project's lifecycle phase to its status-tag label and colour.
   const statusBadge: Record<
@@ -198,7 +198,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster prosjekter…" />
+  <PageLoader label="Laster prosjekter…" />
 {:else if projects.length === 0}
   {#if searchTerm.trim()}
     <EmptyState

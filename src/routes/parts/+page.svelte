@@ -29,9 +29,9 @@
     EmptyState,
     FilterChip,
     SearchInput,
+    Skeleton,
   } from "$lib/components/ui";
   import PartModalBody from "$lib/components/PartModalBody.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   /**
    * How many aliases a row shows before the rest become a count. Two rather than
@@ -308,7 +308,7 @@
 </div>
 
 {#if loading}
-  <LoadingSpinner label="Laster stemmekatalog…" />
+  <Skeleton variant="row" count={8} />
 {:else if filtered.length === 0}
   {#if isFiltered}
     <EmptyState title="Ingen treff" description={emptyResultDescription}>

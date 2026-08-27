@@ -43,7 +43,7 @@
   import UserModalBody from "$lib/components/UserModalBody.svelte";
   import ProfilePicturePanel from "$lib/components/ProfilePicturePanel.svelte";
   import PartPickerModalBody from "$lib/components/PartPickerModalBody.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   // Typed on `Role`, so adding a role to the backend list won't compile until it
   // is described here too.
@@ -398,7 +398,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster bruker…" />
+  <PageLoader label="Laster bruker…" />
 {:else if notFound || !user}
   <div class="notfound">
     <h1 class="sbb-h1">Fant ikke brukeren</h1>

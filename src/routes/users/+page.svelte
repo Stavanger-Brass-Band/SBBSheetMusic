@@ -39,13 +39,13 @@
     Badge,
     Button,
     EmptyState,
+    LoadFailed,
     SearchInput,
+    Skeleton,
     SortableTableHeader,
     UserAvatar,
-    LoadFailed,
   } from "$lib/components/ui";
   import UserModalBody from "$lib/components/UserModalBody.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
   // The three filters as dropdown options. Each one's first entry is the "no
   // filter" choice rather than a separate reset: not narrowing is one of the
@@ -401,7 +401,7 @@
 </div>
 
 {#if loading}
-  <LoadingSpinner />
+  <Skeleton variant="row" count={8} />
 {:else if loadFailed}
   <LoadFailed
     title="Kunne ikke laste brukere"

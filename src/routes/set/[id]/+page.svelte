@@ -13,7 +13,7 @@
   } from "$lib/components/ui";
   import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
   import SetProjectHistory from "$lib/components/SetProjectHistory.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   let setId = $derived(page.params.id!);
 
@@ -49,7 +49,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster notesett…" />
+  <PageLoader label="Laster notesett…" />
 {:else if forbidden}
   <EmptyState
     title="Ingen tilgang til notesettet"

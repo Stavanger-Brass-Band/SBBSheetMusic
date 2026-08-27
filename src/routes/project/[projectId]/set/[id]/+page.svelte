@@ -16,7 +16,7 @@
     LoadFailed,
   } from "$lib/components/ui";
   import SetPartDownloads from "$lib/components/SetPartDownloads.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   let setId = $derived(page.params.id!);
   let projectId = $derived(page.params.projectId!);
@@ -63,7 +63,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster notesett…" />
+  <PageLoader label="Laster notesett…" />
 {:else if forbidden}
   <EmptyState
     title="Ingen tilgang til notesettet"

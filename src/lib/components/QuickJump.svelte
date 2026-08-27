@@ -27,6 +27,7 @@
     type QuickJumpResult,
   } from "$lib/utils/quickJump";
   import { Spinner } from "$lib/components/ui";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   /**
    * Quick jump: one field that reaches any set, project, member or page the
@@ -358,7 +359,13 @@
           {/if}
         {/each}
       </ul>
-    {:else if trimmedQuery && !searching}
+    {:else if searching}
+      <!-- Only the first search reaches this: a later keystroke keeps the
+           previous rows on screen, so this is the one moment the body has
+           nothing in it at all. The ring in the field says a request is out;
+           this says what it is looking for. -->
+      <PageLoader inline label="Søker…" />
+    {:else if trimmedQuery}
       <p class="empty">Ingen treff på «{trimmedQuery}».</p>
     {/if}
 

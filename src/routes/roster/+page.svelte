@@ -15,8 +15,7 @@
   } from "$lib/utils/roster";
   import { cardEnter } from "$lib/utils/motion";
   import { replaceListUrl } from "$lib/utils/listNavigation";
-  import { EmptyState, LoadFailed } from "$lib/components/ui";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import { EmptyState, LoadFailed, Skeleton } from "$lib/components/ui";
   import RosterCard from "$lib/components/RosterCard.svelte";
   import RosterMemberDialog from "$lib/components/RosterMemberDialog.svelte";
 
@@ -139,7 +138,9 @@
 </div>
 
 {#if loading}
-  <LoadingSpinner label="Laster korpset…" />
+  <!-- The shape of this page is known before it loads — a grid of member
+       cards — so it fills in rather than spinning. -->
+  <Skeleton variant="card" count={8} />
 {:else if loadFailed}
   <LoadFailed
     title="Kunne ikke laste korpset"

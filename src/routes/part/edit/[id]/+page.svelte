@@ -15,11 +15,11 @@
     Badge,
     Breadcrumb,
     Button,
-    Spinner,
+    Loader,
     UserAvatar,
   } from "$lib/components/ui";
   import PartModalBody from "$lib/components/PartModalBody.svelte";
-  import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+  import PageLoader from "$lib/components/PageLoader.svelte";
 
   let id = $derived(page.params.id!);
   /**
@@ -229,7 +229,7 @@
 />
 
 {#if loading}
-  <LoadingSpinner label="Laster stemme…" />
+  <PageLoader label="Laster stemme…" />
 {:else if notFound || !part}
   <div class="notfound">
     <h1 class="sbb-h1">Fant ikke stemmen</h1>
@@ -340,8 +340,8 @@
         brukeren, og en stemme som er i bruk kan ikke slettes.
       </p>
       {#if loadingMusicians}
-        <p class="hint empty">
-          <Spinner size={14} inline /> Laster musikanter…
+        <p class="hint empty hint--loading">
+          <Loader variant="valves" size="sm" /> Laster musikanter…
         </p>
       {:else if musiciansFailed}
         <p class="err">
@@ -490,6 +490,12 @@
   .hint.empty {
     margin: 14px 0 0;
     font-style: italic;
+  }
+  /* The mark is a shape rather than a glyph, so the line has to lay it out. */
+  .hint--loading {
+    display: flex;
+    align-items: center;
+    gap: 9px;
   }
   .err {
     margin: 14px 0 0;
