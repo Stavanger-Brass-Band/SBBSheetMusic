@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.11.0...v2.12.0) (2026-08-27)
+
+
+### Features
+
+* **ui:** brass band loaders, chosen by where the wait is ([#76](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/76)) ([08438ac](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/08438acc611d83195ab4a83d418596b481eebb6d))
+
 ## [2.11.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.10.0...v2.11.0) (2026-08-25)
 
 
