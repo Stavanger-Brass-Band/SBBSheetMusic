@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.1](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.12.0...v2.12.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **auth:** load active projects when signing back in after an expired session ([#78](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/issues/78)) ([d23be27](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/commit/d23be27655c77c5d80d4c5a63f39975cee4ac71b))
+
 ## [2.12.0](https://github.com/Stavanger-Brass-Band/SBBSheetMusic/compare/v2.11.0...v2.12.0) (2026-08-27)
 
 
