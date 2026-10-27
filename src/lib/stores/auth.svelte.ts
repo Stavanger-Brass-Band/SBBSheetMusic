@@ -441,7 +441,11 @@ class AuthState {
     this.#canManageMusic = false;
     this.#canManageProjects = false;
     this.#canReadLibrary = false;
-    this.#canAccessCatalog = false;
+    // Back to the constructor's generous default rather than false. Signing in
+    // again without a reload reuses this instance, and the login screen sends
+    // the user on to Hjem before `loadRoles` lands — a false here made Hjem skip
+    // fetching the active projects and show none until the next page load.
+    this.#canAccessCatalog = true;
     this.#userId = null;
     this.#name = null;
     this.#email = null;
